@@ -75,3 +75,31 @@ jobs:
           done
       - name: Check glibc floor and architecture
         run: scripts/ci/check_binaries.sh
+
+  pty:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install toolchain
+        run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+      - name: Install tmux
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then sudo apt-get update -q && sudo apt-get install -y -q tmux; else brew install tmux; fi
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: cargo build --locked --features mock-provider
+      - name: PTY E2E
+        run: tests/pty/run.sh
+        env:
+          PTY_LANG: ${{ runner.os == 'macOS' && 'en_US.UTF-8' || 'C.UTF-8' }}
+      - name: Upload PTY logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pty-logs-${{ matrix.os }}
+          path: logs/

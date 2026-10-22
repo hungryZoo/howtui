@@ -126,6 +126,7 @@ pub fn run_tui(
                 Effect::Exit(ExitOutcome::Accepted(cmd)) => break 'main TuiOutcome::Accepted(cmd),
                 Effect::Exit(ExitOutcome::Cancelled) => break 'main TuiOutcome::Cancelled,
                 Effect::StartRequest(req) => {
+                    tracing::debug!(id = req.id, op = ?req.op, history = req.history.len(), "request start");
                     let cancel = CancelToken::new();
                     requests.insert(req.id, cancel.clone());
                     let provider = provider.clone();
@@ -140,6 +141,7 @@ pub fn run_tui(
                     });
                 }
                 Effect::CancelRequest(id) => {
+                    tracing::debug!(id, "request cancel");
                     if let Some(token) = requests.remove(&id) {
                         token.cancel();
                     }
@@ -172,6 +174,11 @@ pub fn run_tui(
             }
         }
 
+        #[cfg(feature = "mock-provider")]
+        if std::env::var_os("HOWTUI_TEST_PANIC").is_some() {
+            let _ = session.draw(|f| inline::render(f, &state));
+            panic!("HOWTUI_TEST_PANIC");
+        }
         if let Err(e) = session.draw(|f| inline::render(f, &state)) {
             return Err(SessionError::Io(e));
         }

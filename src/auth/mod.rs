@@ -335,6 +335,7 @@ impl AuthManager {
             if attempt > 0 {
                 tokio::time::sleep(Duration::from_secs(1 << (attempt - 1))).await;
             }
+            tracing::debug!(attempt, "token refresh");
             match oauth::refresh(
                 &self.http,
                 &self.endpoints,
@@ -439,6 +440,7 @@ impl AuthManager {
         );
         // (5) 브라우저 실행
         let browser_failed = opts.no_browser || open::that_detached(&url).is_err();
+        tracing::debug!(port, new_registration, browser_failed, "login started");
         progress(LoginProgress::Started(LoginView {
             url: Some(url),
             port: Some(port),

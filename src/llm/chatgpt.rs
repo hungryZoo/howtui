@@ -166,6 +166,7 @@ impl ChatGptProvider {
             .await
             .map_err(network)?;
         let status = resp.status().as_u16();
+        tracing::debug!(status, structured, model, "responses status");
         if !(200..300).contains(&status) {
             let body = resp.text().await.unwrap_or_default();
             return Err(map_http_error(status, &body));
