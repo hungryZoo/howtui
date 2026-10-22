@@ -177,7 +177,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-SH-011 | 지원 상태 표기 | PRD-SH-012, SRS-TEST-004, SRS-SH-012 | Phase 2 테스트 완료 | 문서 확인 | 쉘별 검증 버전과 결과 기재 | 수동 | 전체 | 미실행 | - |
 | TC-SH-012 | 위젯 출력 경로 | PRD-OUT-009, SRS-SH-005 | 위젯 모드 (3개 쉘 공통 출력 파일) | 단축키 후 확정, `HOWTUI_OUTPUT_FILE` 없이 `--widget` 실행 | 출력 파일로만 전달(화면에 명령어 출력 없음), 출력 파일 미지정 시 종료 코드 2 | 통합 | 전체 | 통과 | - |
 | TC-SH-013 | PowerShell 한글 인코딩 | PRD-SH-003, SRS-SH-004 | 한국어 Windows, PowerShell 5.1, 코드 페이지 949 | 한글 이모지 포함 명령어 확정 | 입력란 문자 손상 없음 | 수동 | Windows | 미실행 | - |
-| TC-SH-015 | 쉘 하한 미만 처리 | SRS-CMP-002, PRD-SH-001, PRD-SH-003 | Bash 3.2 (macOS 기본), PSReadLine 미로드 PowerShell | init 스크립트 로드, `howtui` 직접 실행 후 확정, ↑ | 바인딩 생략과 경고 1줄, 쉘 정상 동작, 다음 입력란 비어 있음, ↑로 명령어 호출 | PTY | macOS, Windows | 미실행 | - |
+| TC-SH-015 | 쉘 하한 미만 처리 | SRS-CMP-002, PRD-SH-001, PRD-SH-003 | Bash 3.2 (macOS 기본), PSReadLine 미로드 PowerShell | init 스크립트 로드, `howtui` 직접 실행 후 확정, ↑ | 바인딩 생략과 경고 1줄, 쉘 정상 동작, 다음 입력란 비어 있음, ↑로 명령어 호출 | PTY | macOS, Windows | 통과 | - |
 | TC-SH-016 | 직접 실행 결과 다음 입력 전달 | PRD-SH-013, SRS-SH-013, SRS-SH-014 | init 등록 (Bash, Zsh, PowerShell) | 프롬프트에서 `howtui show disk usage` 실행, 확정 | 다음 프롬프트 입력란에 명령어, 미실행 | PTY | Unix | 통과 | - |
 | TC-SH-017 | 캡처와 취소 시 동작 유지 | PRD-SH-013, SRS-SH-013, PRD-OUT-002 | init 등록 | 쉘 변수 캡처로 `howtui` 실행 후 확정, `howtui` 실행 후 Esc | 캡처 변수에 명령어, 다음 입력란 비어 있음. 취소 시 종료 코드 130 전달, 입력란 비어 있음 | PTY | Unix | 통과 | - |
 | TC-SH-018 | PowerShell 7 자동 E2E (Linux) | PRD-SH-003, SRS-SH-004 | Linux pwsh 7.4, PSReadLine 2.3.5 | TC-SH-001, 004-007, 012, 014, 016, 017과 같은 절차 | 같은 기대 결과 | PTY | Linux | 통과 | - |
@@ -465,4 +465,14 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | `TC-SH-016` | 통과 | PTY `tests/pty/shell.sh` | next_input: Bash 5.0, Bash 5.2, Zsh 5.9, PowerShell 7.4 |
 | `TC-SH-017` | 통과 | PTY `tests/pty/shell.sh` | wrapper_capture, wrapper_cancel, 3개 쉘 |
 | `TC-SH-018` | 통과 | PTY `tests/pty/shell.sh powershell` | mcr.microsoft.com/powershell 7.4.2 (Ubuntu 22.04 컨테이너), 12건 |
+| `TC-SH-015` | 통과 | CI macos-15 `tests/pty/shell.sh bash` (`/bin/bash` 3.2.57) | legacy_warning (경고 1줄, 프롬프트 정상), legacy_history (다음 입력란 비어 있음, ↑로 명령어). PSReadLine 미로드 PowerShell은 미실행 |
 | `TC-SH-019` | 통과 | 컨테이너 `bash:3.2`, `bash:4.0`, `bash:4.4`, `bash:5.1`, `bash:5.2` | 5개 버전 문법 검사와 적재, 3.2만 바인딩 생략 경고 |
+
+CI 실행 기록 (run 39766949660, 커밋 3108a88, 14개 작업 전체 통과):
+
+| 작업 | 쉘 | 결과 |
+| --- | --- | --- |
+| pty (ubuntu-24.04) | Bash 5.2.21, Zsh 5.9, PowerShell 7.6.7 (PSReadLine 2.4.5) | 각 12건 통과 |
+| pty (macos-15) | Bash 3.2.57 (2회), Zsh 5.9, PowerShell 7.6.5 (PSReadLine 2.4.5) | Bash 3.2 각 2건, Zsh와 PowerShell 각 12건 통과 |
+
+CI 도입 중 발견과 수정: (1) Bash 5.2의 `bind -x` 안 `$(<file)` 치환 결함 (2) macOS Bash 3.2 전환 안내 출력 (3) Ubuntu `/etc/zsh/zshrc` compinit 확인 질문 (4) 고정 대기 경합 (5) Windows 설치 시험 HTTP 서버 기동 경합.

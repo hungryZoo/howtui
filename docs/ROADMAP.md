@@ -91,7 +91,7 @@ Phase 1 이월 항목 (요구사항 변경 없이 다음 작업으로 이월):
 | CR-002 로그인 간소화 | 완료 | TUI 시작 시 로그인 자동 시작, 붙여넣기 자동 제출, 스킴 없는 주소 허용, 2단계 안내 |
 | `init` 스크립트 3종과 `--widget` | 완료 | Bash, Zsh, PowerShell. 키 변경, 바인딩 생략, 함수 생략 옵션 |
 | CR-003 직접 실행 결과 다음 입력 전달 | 완료 | Zsh 버퍼 스택, Bash 터미널 상태 보고 응답, PowerShell 유휴 이벤트 |
-| 쉘 통합 PTY E2E | 완료 (로컬) | Bash 5.0, Zsh 5.9, PowerShell 7.4 각 12건. CI(ubuntu-24.04, macos-15) 결과는 18절 기록 |
+| 쉘 통합 PTY E2E | 완료 | 로컬 Bash 5.0, 컨테이너 Bash 5.2, Zsh 5.9, PowerShell 7.4. CI ubuntu-24.04와 macos-15 전체 통과 (TC 18절) |
 | Windows PowerShell 5.1, 7 대화형 확인 | 보류 | 사용자 요청으로 Windows 작업 보류 (U-2) |
 | 쉘별 지원 상태 표기 | 완료 | README 6절 |
 

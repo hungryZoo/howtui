@@ -332,9 +332,9 @@ Shell integration, as tested (PTY end-to-end: Ctrl+G, next-prompt insertion, cap
 
 | Shell | Tested | Not tested yet |
 | --- | --- | --- |
-| Bash | 5.0 (Ubuntu 20.04), 5.2 (Ubuntu 24.04); script loading on 3.2, 4.0, 4.4, 5.1 | |
-| Zsh | 5.9 (Debian 12) | 5.1-5.8 |
-| PowerShell | 7.4 on Linux (PSReadLine 2.3.5) | Windows PowerShell 5.1 and PowerShell 7 on Windows |
+| Bash | 5.0 (Ubuntu 20.04), 5.2 (Ubuntu 24.04, CI); 3.2 on macOS (history only, CI); script loading on 4.0, 4.4, 5.1 | |
+| Zsh | 5.9 (Ubuntu 24.04 and macOS 15 in CI, Debian 12) | 5.1-5.8 |
+| PowerShell | 7.4 and 7.6 on Linux, 7.6 on macOS (PSReadLine 2.3.5, 2.4.5) | Windows PowerShell 5.1 and PowerShell 7 on Windows |
 
 | Target | Use it for | Verified |
 | --- | --- | --- |

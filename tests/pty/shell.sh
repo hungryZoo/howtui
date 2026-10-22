@@ -81,7 +81,9 @@ ENVS="HOME=$OUT/home ZDOTDIR=$OUT/home PATH=$BIN_DIR:/usr/bin:/bin TERM=xterm-25
 HOWTUI_LANG=en HOWTUI_MOCK_SCENARIO=echo HOWTUI_DATA_DIR=$OUT/data HOWTUI_CONFIG=$OUT/none.toml"
 if [ -n "${PTY_DOCKER_IMAGE:-}" ]; then
   # 결과 디렉터리는 같은 경로로 연결, 바이너리는 읽기 전용
-  dflags="--rm -it --user $(id -u):$(id -g) -v $ROOT/target/debug:$BIN_DIR:ro -v $OUT:$OUT -w $OUT"
+  # 이름 지정: tmux 세션 종료(SIGHUP) 후에도 남는 쉘(pwsh) 컨테이너를 종료 시 삭제
+  CONTAINER="$SESSION"
+  dflags="--rm -it --name $CONTAINER --user $(id -u):$(id -g) -v $ROOT/target/debug:$BIN_DIR:ro -v $OUT:$OUT -w $OUT"
   for kv in $ENVS; do dflags="$dflags -e $kv"; done
   LAUNCH="docker run $dflags $PTY_DOCKER_IMAGE $DEFAULT_CMD"
 else
@@ -89,7 +91,7 @@ else
 fi
 
 tmux -u new-session -d -s "$SESSION" -n t -x 100 -y 30 "$LAUNCH" 2>&1 | cat
-trap 'tmux kill-session -t "$SESSION" 2>/dev/null | cat' EXIT
+trap 'tmux kill-session -t "$SESSION" 2>/dev/null | cat; [ -n "${CONTAINER:-}" ] && docker rm -f "$CONTAINER" >/dev/null 2>&1' EXIT
 sleep 1
 
 send() { tmux send-keys -t "$P" "$@" 2>&1 | cat; }

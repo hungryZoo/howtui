@@ -107,9 +107,9 @@
 | PRD-OUT-008 | P1 | 필수 | MRD-SCP-005 | SRS-OUT-003 | TC-CLI-004 | `src/cli/no_tui.rs` | 통과 1 |
 | PRD-OUT-009 | P2 | 필수 | MRD-SCP-101 | SRS-OUT-005, SRS-SH-005 | TC-OUT-010, TC-SH-012 | `src/cli/widget.rs`<br>`src/output/mod.rs` | 미실행 1, 통과 1 |
 | PRD-OUT-010 | P1 | 필수 | MRD-SCP-005 | SRS-OUT-004 | TC-OUT-011 | `src/main.rs` | 통과 1 |
-| PRD-SH-001 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 | SRS-SH-002, SRS-CMP-002 | TC-SH-001, TC-SH-015 | `src/shell/scripts/`<br>`src/shell/scripts/howtui.bash` | 미실행 1, 통과 1 |
+| PRD-SH-001 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 | SRS-SH-002, SRS-CMP-002 | TC-SH-001, TC-SH-015 | `src/shell/scripts/`<br>`src/shell/scripts/howtui.bash` | 통과 2 |
 | PRD-SH-002 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 | SRS-SH-003, SRS-CMP-002 | TC-SH-002 | `src/shell/scripts/`<br>`src/shell/scripts/howtui.zsh` | 통과 1 |
-| PRD-SH-003 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 | SRS-SH-004, SRS-SH-011, SRS-CMP-002 | TC-SH-003, TC-SH-013, TC-SH-015, TC-SH-018 | `src/shell/scripts/`<br>`src/shell/scripts/howtui.ps1`<br>`src/shell/scripts/howtui.ps1`, 문서 | 미실행 3, 통과 1 |
+| PRD-SH-003 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 | SRS-SH-004, SRS-SH-011, SRS-CMP-002 | TC-SH-003, TC-SH-013, TC-SH-015, TC-SH-018 | `src/shell/scripts/`<br>`src/shell/scripts/howtui.ps1`<br>`src/shell/scripts/howtui.ps1`, 문서 | 미실행 2, 통과 2 |
 | PRD-SH-004 | P2 | 필수 | MRD-SCN-005 | SRS-SH-006 | TC-SH-004 | `src/shell/init.rs` | 통과 1 |
 | PRD-SH-005 | P2 | 필수 | MRD-SCN-005 | SRS-SH-005 | TC-SH-005 | `src/cli/widget.rs` | 통과 1 |
 | PRD-SH-006 | P2 | 필수 | MRD-DIF-002 | SRS-SH-002, SRS-SH-003, SRS-SH-004 | TC-SH-001, TC-SH-002, TC-SH-003, TC-SH-014 | `src/shell/scripts/howtui.bash`<br>`src/shell/scripts/howtui.ps1`<br>`src/shell/scripts/howtui.zsh` | 미실행 1, 통과 3 |
