@@ -105,6 +105,8 @@ pub enum LlmError {
     NotEligible,
     #[error("ChatGPT plan usage not enabled for this app")]
     ClientNotEnabled,
+    #[error("ChatGPT plan usage not granted at sign-in")]
+    PlanNotGranted,
     #[error("permission configuration error: {code}")]
     PermissionConfig { code: String },
     #[error("blocked by policy or region: {detail}")]
@@ -132,7 +134,10 @@ impl LlmError {
     pub fn exit_code(&self) -> u8 {
         match self {
             LlmError::AuthRequired | LlmError::AuthFailed { .. } => 4,
-            LlmError::NotEligible | LlmError::UsageLimit | LlmError::ClientNotEnabled => 5,
+            LlmError::NotEligible
+            | LlmError::UsageLimit
+            | LlmError::ClientNotEnabled
+            | LlmError::PlanNotGranted => 5,
             LlmError::Transient { .. } | LlmError::Network { .. } | LlmError::Timeout => 6,
             LlmError::Cancelled => 130,
             _ => 7,

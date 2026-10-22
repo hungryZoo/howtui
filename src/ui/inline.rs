@@ -377,7 +377,8 @@ fn render_status(frame: &mut Frame, state: &State, area: Rect) {
         (tr_in(lang, Msg::StatusExplanationStale).to_string(), dim())
     } else {
         let hint = match (state.phase, state.focus) {
-            (Phase::LoginRequired | Phase::LoggingIn, _) => Msg::HintLogin,
+            (Phase::LoginRequired, _) => Msg::HintLogin,
+            (Phase::LoggingIn, _) => Msg::HintRequesting,
             (_, Focus::Command) if state.has_command() => Msg::HintCommand,
             _ => Msg::HintQuestion,
         };

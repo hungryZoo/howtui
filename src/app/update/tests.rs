@@ -118,8 +118,22 @@ fn login_paste_submits_redirect_and_invalid_paste_keeps_waiting() {
             "http://127.0.0.1:1455/auth/callback?code=x&state=y".into()
         )]
     );
+    update(
+        &mut s,
+        Action::LoginStarted(LoginView {
+            url: Some("https://auth/x".into()),
+            port: Some(1455),
+            browser_failed: true,
+        }),
+    );
     update(&mut s, Action::LoginDone(Err(LoginFailure::InvalidPaste)));
     assert_eq!(s.phase, Phase::LoggingIn);
+    assert_eq!(
+        s.login.url.as_deref(),
+        Some("https://auth/x"),
+        "잘못된 붙여넣기 후 URL 표시 유지"
+    );
+    assert!(s.login_paste.is_empty());
 }
 
 #[test]

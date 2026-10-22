@@ -360,8 +360,13 @@ fn on_login_done(state: &mut State, result: Result<LoginInfo, LoginFailure>) -> 
     if state.phase != Phase::LoggingIn {
         return Vec::new();
     }
-    state.login = LoginView::default();
     state.login_paste.clear();
+    // 잘못된 붙여넣기: 로그인 대기와 URL 표시 유지
+    if matches!(result, Err(LoginFailure::InvalidPaste)) {
+        state.status = Some(Status::error(Msg::LoginInvalidPaste, Vec::new()));
+        return Vec::new();
+    }
+    state.login = LoginView::default();
     match result {
         Ok(info) => {
             state.phase = Phase::Ready;
@@ -414,6 +419,7 @@ pub fn error_message(err: &LlmError) -> (Msg, Vec<(&'static str, String)>) {
         LlmError::AuthFailed { .. } => (Msg::ErrAuthFailed, vec![]),
         LlmError::NotEligible => (Msg::ErrNotEligible, vec![]),
         LlmError::ClientNotEnabled => (Msg::ErrClientNotEnabled, vec![]),
+        LlmError::PlanNotGranted => (Msg::LoginPlanDisabled, vec![]),
         LlmError::PermissionConfig { code } => {
             (Msg::ErrPermissionConfig, vec![("code", code.clone())])
         }

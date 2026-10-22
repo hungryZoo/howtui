@@ -1,5 +1,7 @@
 //! LLM Provider 계층 (SRS 5절).
 
+pub mod chatgpt;
+pub mod http;
 #[cfg(feature = "mock-provider")]
 pub mod mock;
 pub mod parse;

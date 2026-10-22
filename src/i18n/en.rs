@@ -142,6 +142,8 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::HelpNoBrowser => "Do not open a browser; print the URL (for SSH or headless machines)",
         Msg::HelpPort => "Fixed local callback port (for SSH port forwarding)",
         Msg::HelpForget => "Also forget the account registration",
+        Msg::HelpHelp => "Print help",
+        Msg::HelpVersion => "Print version",
         Msg::HelpAfter => {
             "Exit codes: 0 accepted, 2 usage, 3 no terminal, 4 auth, 5 plan/usage, 6 network, 7 provider, 8 config, 130 cancelled.\n\
              Sent to the model: your question, the current command, OS, CPU architecture and shell name.\n\

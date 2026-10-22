@@ -158,6 +158,8 @@ messages! {
     HelpNoBrowser,
     HelpPort,
     HelpForget,
+    HelpHelp,
+    HelpVersion,
     HelpAfter,
 }
 

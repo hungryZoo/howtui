@@ -76,10 +76,28 @@ pub enum AuthCommand {
     Status,
 }
 
+fn help_arg() -> clap::Arg {
+    clap::Arg::new("help")
+        .short('h')
+        .long("help")
+        .action(clap::ArgAction::Help)
+        .help(tr(Msg::HelpHelp))
+}
+
 fn localized_command() -> clap::Command {
     Cli::command()
         .about(tr(Msg::HelpAbout))
         .after_help(tr(Msg::HelpAfter))
+        .disable_help_flag(true)
+        .disable_version_flag(true)
+        .arg(help_arg())
+        .arg(
+            clap::Arg::new("version")
+                .short('V')
+                .long("version")
+                .action(clap::ArgAction::Version)
+                .help(tr(Msg::HelpVersion)),
+        )
         .mut_arg("question", |a| a.help(tr(Msg::HelpQuestion)))
         .mut_arg("no_tui", |a| a.help(tr(Msg::HelpNoTui)))
         .mut_arg("shell", |a| a.help(tr(Msg::HelpShell)))
@@ -87,19 +105,31 @@ fn localized_command() -> clap::Command {
         .mut_arg("mode", |a| a.help(tr(Msg::HelpMode)))
         .mut_subcommand("login", |s| {
             s.about(tr(Msg::HelpLogin))
+                .disable_help_flag(true)
+                .arg(help_arg())
                 .mut_arg("no_browser", |a| a.help(tr(Msg::HelpNoBrowser)))
                 .mut_arg("port", |a| a.help(tr(Msg::HelpPort)))
         })
         .mut_subcommand("logout", |s| {
             s.about(tr(Msg::HelpLogout))
+                .disable_help_flag(true)
+                .arg(help_arg())
                 .mut_arg("forget", |a| a.help(tr(Msg::HelpForget)))
         })
         .mut_subcommand("auth", |s| {
             s.about(tr(Msg::HelpAuth))
-                .mut_subcommand("status", |s| s.about(tr(Msg::HelpAuthStatus)))
+                .disable_help_flag(true)
+                .arg(help_arg())
+                .mut_subcommand("status", |s| {
+                    s.about(tr(Msg::HelpAuthStatus))
+                        .disable_help_flag(true)
+                        .arg(help_arg())
+                })
         })
         .mut_subcommand("doctor", |s| {
             s.about(tr(Msg::HelpDoctor))
+                .disable_help_flag(true)
+                .arg(help_arg())
                 .mut_arg("json", |a| a.help(tr(Msg::HelpDoctorJson)))
         })
 }
@@ -153,6 +183,13 @@ pub fn run() -> ExitCode {
         }) => provider::status_command(&loaded, &rt),
         Some(Command::Doctor { json }) => crate::doctor::run(&loaded, &rt, json),
     }
+}
+
+/// doctor용 인증 관리자 (Mock 시나리오 사용 시 None).
+pub fn provider_auth(
+    loaded: &config::Loaded,
+) -> Result<Option<Arc<crate::auth::AuthManager>>, String> {
+    provider::build(loaded).map(|b| b.auth)
 }
 
 fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> ExitCode {

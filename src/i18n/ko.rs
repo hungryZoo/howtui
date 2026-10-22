@@ -133,6 +133,8 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::HelpNoBrowser => "브라우저를 열지 않고 URL만 표시 (SSH, 헤드리스 장치용)",
         Msg::HelpPort => "고정 로컬 콜백 포트 (SSH 포트 포워딩용)",
         Msg::HelpForget => "계정 등록 정보도 삭제",
+        Msg::HelpHelp => "도움말 출력",
+        Msg::HelpVersion => "버전 출력",
         Msg::HelpAfter => {
             "종료 코드: 0 확정, 2 사용법, 3 터미널 없음, 4 인증, 5 플랜과 사용량, 6 네트워크, 7 Provider, 8 설정, 130 취소\n\
              모델 전송 정보: 질문, 현재 명령어, OS, CPU 아키텍처, 쉘 이름\n\
