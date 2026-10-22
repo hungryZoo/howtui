@@ -291,6 +291,46 @@ fn init_prints_scripts_and_validates_key() {
     assert_eq!(out.status.code(), Some(2));
 }
 
+/// rc 파일 표식 구간 추가, 재실행, 키 변경, 제거 (TC-SH-020). 실제 사용자 Profile 보호를 위해 Unix만.
+#[cfg(unix)]
+#[test]
+fn init_install_edits_only_the_marked_block() {
+    let dir = tempfile::tempdir().unwrap();
+    let rc = dir.path().join("zdot").join(".zshrc");
+    std::fs::create_dir_all(rc.parent().unwrap()).unwrap();
+    std::fs::write(&rc, "export A=1\n").unwrap();
+    let zsh = |args: &[&str]| {
+        run(bin(dir.path())
+            .env("ZDOTDIR", dir.path().join("zdot"))
+            .args(["init", "zsh"])
+            .args(args))
+    };
+    let out = zsh(&["--install"]);
+    assert!(out.status.success());
+    assert!(String::from_utf8(out.stdout).unwrap().contains("added"));
+    let text = std::fs::read_to_string(&rc).unwrap();
+    assert!(text.starts_with("export A=1\n\n# >>> howtui shell integration >>>"));
+    assert!(text.contains(r#"eval "$(howtui init zsh)""#));
+    assert!(
+        String::from_utf8(zsh(&["--install"]).stdout)
+            .unwrap()
+            .contains("already")
+    );
+    assert!(zsh(&["--install", "--key", "alt+h"]).status.success());
+    let text = std::fs::read_to_string(&rc).unwrap();
+    assert_eq!(text.matches(">>> howtui shell integration >>>").count(), 1);
+    assert!(text.contains("init zsh --key alt+h"));
+    assert_eq!(
+        zsh(&["--install", "--key", "ctrl+c"]).status.code(),
+        Some(2)
+    );
+    assert!(zsh(&["--uninstall"]).status.success());
+    assert_eq!(std::fs::read_to_string(&rc).unwrap(), "export A=1\n");
+    assert_eq!(zsh(&["--install", "--uninstall"]).status.code(), Some(2));
+    let ps = run(bin(dir.path()).args(["init", "powershell", "--install"]));
+    assert_eq!(ps.status.code(), Some(2));
+}
+
 /// 위젯 모드는 쉘 스크립트가 만든 출력 파일 경로 필수 (SRS 9.2절).
 #[test]
 fn widget_without_output_file_exits_2() {

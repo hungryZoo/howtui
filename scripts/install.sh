@@ -10,11 +10,15 @@
 #   --version X.Y.Z   install a specific release (default: latest)
 #   --bin-dir DIR     install directory (default: ~/.local/bin)
 #   --print-target    print the detected release target and exit
+#   --shell-integration      enable shell integration without asking
+#   --no-shell-integration   do not ask about shell integration
 # Environment:
-#   HOWTUI_VERSION, HOWTUI_INSTALL_DIR
+#   HOWTUI_VERSION, HOWTUI_INSTALL_DIR, HOWTUI_SETUP_SHELL (yes or no)
 #
-# This script only downloads the release archive and SHA256SUMS of this repository over HTTPS,
-# verifies the checksum, and copies the binary. It never edits shell rc files.
+# This script downloads the release archive and SHA256SUMS of this repository over HTTPS,
+# verifies the checksum, and copies the binary. It edits your shell rc file (~/.bashrc or ~/.zshrc)
+# only if you answer yes to the shell integration question, and then only inside a marked block
+# that `howtui init <shell> --uninstall` removes.
 set -eu
 
 REPO="hungryZoo/howtui"
@@ -23,6 +27,7 @@ BASE_URL="${HOWTUI_DOWNLOAD_BASE:-https://github.com/${REPO}/releases/download}"
 LATEST_URL="${HOWTUI_LATEST_URL:-https://github.com/${REPO}/releases/latest}"
 BIN_DIR="${HOWTUI_INSTALL_DIR:-${HOME}/.local/bin}"
 VERSION="${HOWTUI_VERSION:-}"
+SETUP_SHELL="${HOWTUI_SETUP_SHELL:-ask}"
 PRINT_TARGET=0
 TMP_DIR=""
 
@@ -51,8 +56,9 @@ usage() {
 howtui installer (Linux, macOS). No sudo required.
 
 Usage: install.sh [--version X.Y.Z] [--bin-dir DIR] [--print-target]
+                  [--shell-integration | --no-shell-integration]
 
-Environment: HOWTUI_VERSION, HOWTUI_INSTALL_DIR
+Environment: HOWTUI_VERSION, HOWTUI_INSTALL_DIR, HOWTUI_SETUP_SHELL (yes or no)
 EOF
 }
 
@@ -156,10 +162,64 @@ parse_args() {
             --bin-dir) [ "$#" -ge 2 ] || err "--bin-dir needs a value"; BIN_DIR="$2"; shift 2 ;;
             --bin-dir=*) BIN_DIR="${1#*=}"; shift ;;
             --print-target) PRINT_TARGET=1; shift ;;
+            --shell-integration) SETUP_SHELL=yes; shift ;;
+            --no-shell-integration) SETUP_SHELL=no; shift ;;
             -h | --help) usage; exit 0 ;;
             *) err "unknown option: $1 (try --help)" ;;
         esac
     done
+}
+
+# Shell integration (CR-004): asks on the terminal (also under `curl | sh`), changes nothing without a yes.
+setup_shell() {
+    shell_name=$(basename "${SHELL:-}")
+    case "$SETUP_SHELL" in no | n | 0) return ;; esac
+    case "$shell_name" in
+        bash | zsh) ;;
+        *)
+            echo "Shell integration: supported for bash and zsh (your shell: ${shell_name:-unknown}). See: howtui init --help"
+            return
+            ;;
+    esac
+    case "$shell_name" in bash) rc="~/.bashrc" ;; *) rc="~/.zshrc" ;; esac
+    [ "$shell_name" = bash ] && [ "$(uname -s)" = Darwin ] && rc="~/.bash_profile"
+    path_note=""
+    case ":$PATH:" in
+        *":$BIN_DIR:"*) ;;
+        *) path_note=" It also adds $BIN_DIR to PATH." ;;
+    esac
+    case "$SETUP_SHELL" in
+        yes | y | 1) answer=y ;;
+        *)
+            if [ -n "${HOWTUI_TEST_ANSWER:-}" ]; then
+                answer=$HOWTUI_TEST_ANSWER
+            elif [ "${HOWTUI_TEST_NO_TTY:-0}" != 1 ] && (exec </dev/tty) 2>/dev/null; then
+                echo
+                echo "Shell integration for $shell_name: Ctrl+G opens howtui on the current command line, and a"
+                echo "typed \`howtui\` puts the accepted command into your next prompt. Nothing runs by itself."
+                echo "This adds a marked block to $rc.$path_note"
+                echo "Remove it later with: howtui init $shell_name --uninstall"
+                printf 'Enable shell integration? [Y/n] '
+                read -r answer </dev/tty || answer=n
+            else
+                echo
+                echo "Shell integration: run \`howtui init $shell_name --install\` to enable it."
+                return
+            fi
+            ;;
+    esac
+    case "$answer" in
+        "" | y | Y | yes | Yes | YES) ;;
+        *)
+            echo "Skipped. Enable it later with: howtui init $shell_name --install"
+            return
+            ;;
+    esac
+    if [ -n "$path_note" ]; then
+        "$BIN_DIR/$BIN" init "$shell_name" --install --add-path "$BIN_DIR" || echo "howtui install: shell integration was not added" >&2
+    else
+        "$BIN_DIR/$BIN" init "$shell_name" --install || echo "howtui install: shell integration was not added" >&2
+    fi
 }
 
 main() {
@@ -212,8 +272,9 @@ main() {
             echo "  export PATH=\"$BIN_DIR:\$PATH\""
             ;;
     esac
+    setup_shell
     echo
-    echo "Run: $BIN"
+    echo "Run: $BIN   (in a new terminal if you enabled shell integration)"
 }
 
 main "$@"

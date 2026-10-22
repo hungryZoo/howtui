@@ -25,4 +25,10 @@ if [ -n "$(code_grep 'process::Command|Command::new\(' src)" ]; then
     code_grep 'process::Command|Command::new\(' src
     echo "rule: no direct process execution in src (browser opening goes through the open crate)"; fail=1
 fi
+# (5) rc 파일 경로는 표식 구간 편집 모듈에만 (CR-004: 동의한 경우만 수정)
+rc_hits=$(code_grep '\.(bashrc|zshrc|bash_profile)\b' src | grep -vE '^src/(shell/rc\.rs|shell/scripts/|i18n/)' || true)
+if [ -n "$rc_hits" ]; then
+    echo "$rc_hits"
+    echo "rule: shell rc paths may appear only in src/shell/rc.rs (consent-based block editing)"; fail=1
+fi
 exit $fail

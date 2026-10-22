@@ -78,7 +78,7 @@ Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit             g
 - **Edit, then ask.** Edit the command in place (multi-line, undo and redo, Unicode aware), then ask a follow-up; the model sees your edits.
 - **Explain on demand.** After editing by hand, press Ctrl+E to explain the current command.
 - **Clean stdout.** The UI draws on the controlling terminal, so `cmd=$(howtui)` and `howtui | pbcopy` receive only the command.
-- **Shell integration (optional).** Ctrl+G opens howtui on the current command line in Bash, Zsh or PowerShell, and typing `howtui` puts the result into the next prompt. You add one line to your rc file yourself; nothing edits it for you.
+- **Shell integration (optional).** Ctrl+G opens howtui on the current command line in Bash, Zsh or PowerShell, and typing `howtui` puts the result into the next prompt. The installer asks before adding it to your rc file; nothing is changed without a yes.
 - **Never executes.** howtui prints or hands over the command; it has no code path that runs generated commands.
 - **Danger hints.** Rule-based warnings for recursive deletes, disk writes, permission changes, piping downloads into a shell and more. High-risk commands need a second Enter.
 - **English and Korean UI.** Chosen from `HOWTUI_LANG`, `ui.language` or the system locale. Explanations follow the language of your question.
@@ -106,14 +106,16 @@ curl -fsSL https://raw.githubusercontent.com/hungryZoo/howtui/main/scripts/insta
 ```
 
 The script detects the OS and CPU (including a 32-bit Raspberry Pi OS on a 64-bit kernel), downloads the release archive and
-`SHA256SUMS`, verifies the checksum, and installs to `~/.local/bin` without sudo. It never edits your shell rc files; if the
-directory is not on your `PATH`, it prints the line to add.
+`SHA256SUMS`, verifies the checksum, and installs to `~/.local/bin` without sudo. At the end it asks whether to enable
+[shell integration](#shell-integration) for bash or zsh; only a yes adds a marked block to `~/.bashrc` or `~/.zshrc`
+(including the `PATH` line when `~/.local/bin` is not on your `PATH`). Without a terminal it asks nothing and changes nothing.
 
 | Option | Environment variable | Meaning |
 | --- | --- | --- |
 | `--version X.Y.Z` | `HOWTUI_VERSION` | Install a specific release |
 | `--bin-dir DIR` | `HOWTUI_INSTALL_DIR` | Install directory |
 | `--print-target` | | Print the detected release target and exit |
+| `--shell-integration`, `--no-shell-integration` | `HOWTUI_SETUP_SHELL=yes\|no` | Enable shell integration without asking, or skip the question |
 
 ### Windows
 
@@ -183,7 +185,7 @@ cargo build --release          # Rust 1.89 or newer; rust-toolchain.toml pins th
 ```bash
 howtui                  # first run signs you in, then: ask, edit, Enter
 howtui find large log files    # ask right away
-eval "$(howtui init bash)"     # optional: add to ~/.bashrc (zsh: ~/.zshrc) for Ctrl+G and next-prompt insertion
+howtui init bash --install    # optional (the installer offers this): Ctrl+G and next-prompt insertion
 ```
 
 Sign-in starts by itself the first time (or run `howtui login`):
@@ -237,7 +239,9 @@ the ask line, so you can type the next change right away or press Enter to accep
 
 ### Shell integration
 
-Add one line to your shell startup file and open a new terminal. To remove it, delete the line.
+The installer asks whether to enable it. Answer yes (the default) and open a new terminal. Without the installer, run
+`howtui init bash --install` (or `zsh`). Both add a marked block to `~/.bashrc` or `~/.zshrc` and nothing else;
+`howtui init bash --uninstall` removes it. Nothing is changed unless you agree. To set it up by hand, add one line:
 
 | Shell | Add to | Line |
 | --- | --- | --- |

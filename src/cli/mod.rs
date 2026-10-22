@@ -79,6 +79,13 @@ pub enum Command {
         no_bind: bool,
         #[arg(long)]
         no_wrap: bool,
+        #[arg(long, conflicts_with = "uninstall")]
+        install: bool,
+        #[arg(long)]
+        uninstall: bool,
+        /// 설치 스크립트 전용: 표식 구간에 PATH 추가 포함
+        #[arg(long, hide = true, value_name = "DIR", requires = "install")]
+        add_path: Option<std::path::PathBuf>,
     },
 }
 
@@ -151,6 +158,8 @@ fn localized_command() -> clap::Command {
                 .mut_arg("key", |a| a.help(tr(Msg::HelpInitKey)))
                 .mut_arg("no_bind", |a| a.help(tr(Msg::HelpNoBind)))
                 .mut_arg("no_wrap", |a| a.help(tr(Msg::HelpNoWrap)))
+                .mut_arg("install", |a| a.help(tr(Msg::HelpInstall)))
+                .mut_arg("uninstall", |a| a.help(tr(Msg::HelpUninstall)))
         })
 }
 
@@ -180,9 +189,22 @@ pub fn run() -> ExitCode {
         key,
         no_bind,
         no_wrap,
+        install,
+        uninstall,
+        add_path,
     }) = &cli.command
     {
-        return init_command(*shell, key.as_deref(), *no_bind, *no_wrap);
+        let opts = InitArgs {
+            shell: *shell,
+            key: key.as_deref(),
+            no_bind: *no_bind,
+            no_wrap: *no_wrap,
+        };
+        return match (*install, *uninstall) {
+            (true, _) => rc_command(opts, true, add_path.as_deref()),
+            (_, true) => rc_command(opts, false, None),
+            _ => init_command(opts),
+        };
     }
     let loaded = match loaded {
         Ok(l) => l,
@@ -220,25 +242,92 @@ pub fn run() -> ExitCode {
     }
 }
 
-fn init_command(shell: ShellKind, key: Option<&str>, no_bind: bool, no_wrap: bool) -> ExitCode {
-    use crate::shell::init::{InitOptions, Key, KeyError};
-    let key = match key.map(Key::parse).unwrap_or(Ok(Key::default())) {
-        Ok(k) => k,
+#[derive(Clone, Copy)]
+struct InitArgs<'a> {
+    shell: ShellKind,
+    key: Option<&'a str>,
+    no_bind: bool,
+    no_wrap: bool,
+}
+
+/// 키 검증 실패 시 메시지 출력 후 None (종료 코드 2).
+fn parse_key(key: Option<&str>) -> Option<crate::shell::init::Key> {
+    use crate::shell::init::{Key, KeyError};
+    match key.map(Key::parse).unwrap_or(Ok(Key::default())) {
+        Ok(k) => Some(k),
         Err(e) => {
-            let text = key.unwrap_or_default();
             let msg = match e {
                 KeyError::Format => Msg::ErrKeyFormat,
                 KeyError::Reserved => Msg::ErrKeyReserved,
             };
-            eprintln!("{}", trf(msg, &[("key", text)]));
-            return ExitCode::from(2);
+            eprintln!("{}", trf(msg, &[("key", key.unwrap_or_default())]));
+            None
         }
+    }
+}
+
+/// `init --install`, `--uninstall`: rc 파일 표식 구간 추가와 제거 (CR-004).
+fn rc_command(args: InitArgs, install: bool, add_path: Option<&std::path::Path>) -> ExitCode {
+    use crate::shell::rc::{self, Change};
+    let Some(key) = parse_key(args.key) else {
+        return ExitCode::from(2);
+    };
+    let env = process_env;
+    let Some(path) = rc::rc_path(args.shell, &env) else {
+        eprintln!("{}", tr(Msg::ErrInstallUnsupported));
+        return ExitCode::from(2);
+    };
+    let result = if install {
+        let mut init_args = String::new();
+        if key != crate::shell::init::Key::default() {
+            init_args.push_str(&format!(" --key {}", key.arg()));
+        }
+        if args.no_bind {
+            init_args.push_str(" --no-bind");
+        }
+        if args.no_wrap {
+            init_args.push_str(" --no-wrap");
+        }
+        rc::install(&path, &rc::block(args.shell, &init_args, add_path))
+    } else {
+        rc::uninstall(&path)
+    };
+    let shown = paths::tilde(&path, &env);
+    match result {
+        Ok(change) => {
+            let msg = match change {
+                Change::Added => Msg::InitAdded,
+                Change::Updated => Msg::InitUpdated,
+                Change::Unchanged => Msg::InitUnchanged,
+                Change::Removed => Msg::InitRemoved,
+                Change::NotPresent => Msg::InitNotPresent,
+            };
+            println!("{}", trf(msg, &[("path", &shown)]));
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!(
+                "{}",
+                trf(
+                    Msg::ErrRcWrite,
+                    &[("path", &shown), ("detail", &e.to_string())]
+                )
+            );
+            ExitCode::from(1)
+        }
+    }
+}
+
+fn init_command(args: InitArgs) -> ExitCode {
+    use crate::shell::init::InitOptions;
+    let Some(key) = parse_key(args.key) else {
+        return ExitCode::from(2);
     };
     let script = crate::shell::init::script(InitOptions {
-        shell,
+        shell: args.shell,
         key,
-        bind: !no_bind,
-        wrap: !no_wrap,
+        bind: !args.no_bind,
+        wrap: !args.no_wrap,
     });
     let mut out = std::io::stdout().lock();
     match out.write_all(script.as_bytes()).and_then(|_| out.flush()) {

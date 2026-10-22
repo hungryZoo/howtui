@@ -172,7 +172,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-SH-006 | 오류 시 보존 | PRD-SH-007, SRS-SH-009 | Mock 오류 후 종료, 바이너리 경로 오류 | 단축키 | 입력란 무변경, 원인 1줄 표시 | PTY | Unix | 통과 | - |
 | TC-SH-007 | 대체 경로 | PRD-SH-008, SRS-SH-009 | TUI 실행 중 출력 파일 권한 제거 (`chmod 000`) | 확정 | 원인 1줄과 명령어 터미널 표시, 입력란 무변경 | PTY | Unix | 통과 | - |
 | TC-SH-008 | 등록과 제거 안내 | PRD-SH-009, SRS-SH-010 | 없음 | init 출력 확인 | 등록 줄과 제거 방법 주석 포함 | 단위 | 전체 | 통과 | - |
-| TC-SH-009 | 설치 시 rc 무변경 | PRD-SH-010, PRD-INS-001, SRS-INS-005 | 임시 HOME | install.sh 실행 | `.bashrc`, `.zshrc`, `.profile` 해시 불변 | 통합 | Unix | 통과 | - |
+| TC-SH-009 | 설치 시 rc 무변경 | PRD-SH-010, PRD-INS-001, SRS-INS-005 | 임시 HOME | install.sh 실행 (터미널 없음, 질문에 n, `--no-shell-integration`) | `.bashrc`, `.zshrc`, `.profile` 내용 불변, 터미널 없음은 등록 명령 안내 | 통합 | Unix | 통과 | - |
 | TC-SH-010 | 통합 표식 | PRD-SH-011, PRD-DOC-006, SRS-SH-008, SRS-DOC-005 | init 등록 쉘 | `howtui doctor` | integration 항목에 쉘 종류 표시 | PTY | Unix | 통과 | - |
 | TC-SH-011 | 지원 상태 표기 | PRD-SH-012, SRS-TEST-004, SRS-SH-012 | Phase 2 테스트 완료 | 문서 확인 | 쉘별 검증 버전과 결과 기재 | 수동 | 전체 | 미실행 | - |
 | TC-SH-012 | 위젯 출력 경로 | PRD-OUT-009, SRS-SH-005 | 위젯 모드 (3개 쉘 공통 출력 파일) | 단축키 후 확정, `HOWTUI_OUTPUT_FILE` 없이 `--widget` 실행 | 출력 파일로만 전달(화면에 명령어 출력 없음), 출력 파일 미지정 시 종료 코드 2 | 통합 | 전체 | 통과 | - |
@@ -182,6 +182,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-SH-017 | 캡처와 취소 시 동작 유지 | PRD-SH-013, SRS-SH-013, PRD-OUT-002 | init 등록 | 쉘 변수 캡처로 `howtui` 실행 후 확정, `howtui` 실행 후 Esc | 캡처 변수에 명령어, 다음 입력란 비어 있음. 취소 시 종료 코드 130 전달, 입력란 비어 있음 | PTY | Unix | 통과 | - |
 | TC-SH-018 | PowerShell 7 자동 E2E (Linux) | PRD-SH-003, SRS-SH-004 | Linux pwsh 7.4, PSReadLine 2.3.5 | TC-SH-001, 004-007, 012, 014, 016, 017과 같은 절차 | 같은 기대 결과 | PTY | Linux | 통과 | - |
 | TC-SH-019 | Bash 버전별 스크립트 적재 | SRS-SH-002, SRS-CMP-002 | Bash 3.2, 4.0, 4.4, 5.1, 5.2 컨테이너 | `bash -n`, 대화형 쉘에서 init 스크립트 적재 | 문법 오류 없음, 3.2만 경고 1줄, 함수 정의 | 통합 | Linux | 통과 | - |
+| TC-SH-020 | rc 파일 표식 구간 편집 | PRD-SH-014, SRS-SH-015 | 임시 HOME, 기존 rc 내용 | `init zsh --install` 2회, `--key alt+h --install`, `--uninstall`, 심볼릭 링크 rc, PowerShell `--install` | 구간 1개, 재실행은 "이미 있음", 키 변경은 구간 교체, 제거 후 원래 내용, 링크와 권한 유지, PowerShell 종료 코드 2 | 통합 | Unix | 통과 | - |
 | TC-SH-014 | 여러 줄 삽입 | PRD-SH-006, SRS-SH-002, SRS-SH-003, SRS-SH-004 | 3개 쉘 | 2줄 명령어 확정 | 입력란 2줄 유지 (PowerShell 연속 프롬프트) | PTY | 전체 | 통과 | - |
 
 ## 9. Fullscreen
@@ -233,6 +234,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-INS-008 | 업데이트 | PRD-INS-007, SRS-INS-012 | P4, 구버전 설치 | 같은 방식 재실행 | 기존 경로에 신버전 | 통합 | Unix | 미실행 | - |
 | TC-INS-009 | 제거 문서 | PRD-INS-008, SRS-INS-013 | P4 | 문서 절차 수행 | 바이너리, 설정, 자격증명, 쉘 통합 줄 제거 | 수동 | 전체 | 미실행 | - |
 | TC-INS-010 | 원격 코드 실행 부재 | PRD-INS-009, SRS-INS-004 | 스크립트 원문 | 다운로드 대상 검사 | 릴리스 자산과 SHA256SUMS 외 다운로드 없음, 다운로드 내용 실행 없음 | 단위 | 전체 | 통과 | - |
+| TC-INS-011 | 설치 후 쉘 통합 확인 질문 | PRD-INS-001, PRD-SH-014, SRS-INS-014 | 임시 HOME, PATH 밖 설치 디렉터리 | 질문에 y 2회, `--shell-integration`(zsh), `--no-shell-integration`, `cat install.sh \| sh`로 실제 터미널 질문에 Enter | 구간 1개와 PATH 추가 줄, 재실행 중복 없음, zsh는 `.zshrc`, 거부 옵션은 무변경, 파이프 실행에서도 질문 표시 | 통합 | Unix | 통과 | - |
 | TC-REL-001 | 태그 릴리스 | PRD-REL-001, PRD-REL-007, SRS-BLD-008 | 테스트 저장소 또는 초안 릴리스 | `vX.Y.Z` 태그 | 빌드 성공, 초안 릴리스 생성, 공개는 수동 | 수동 | 전체 | 미실행 | - |
 | TC-REL-002 | 자산 명명과 체크섬 | PRD-REL-002, SRS-BLD-006 | 릴리스 산출물 | 파일명 규칙 검사, `sha256sum -c SHA256SUMS` | 규칙 일치, 검증 통과 | 통합 | Linux | 통과 | - |
 | TC-REL-003 | 7개 타깃 | PRD-REL-003, PRD-PLAT-002, SRS-BLD-001, SRS-BLD-003, SRS-BLD-004, SRS-BLD-009, SRS-CMP-005 | P4 | 릴리스 산출물 검사 (`file`, ELF 속성, PE 머신 타입과 임포트 DLL, Mach-O minos와 `codesign -v`) | 7개 타깃 형식 일치, Windows VCRUNTIME 임포트 없음, macOS minos 11.0과 서명 유효 | 통합 | Linux, macOS, Windows | 통과 | - |
@@ -423,7 +425,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | `TC-SAFE-005` | 통과 | 렌더링 TestBackend | main_layout_shows_all_areas (Notes 표시, 경고 영역 없음) |
 | `TC-SAFE-006` | 통과 | CI `scripts/ci/check_rules.sh` | 안전 테스트에 프로세스 실행과 파일 변경 없음 |
 | `TC-SAFE-007` | 통과 | 단위 `cargo test` | findings_follow_edits |
-| `TC-SH-009` | 통과 | `tests/install/run_unix.sh` | rc 파일 해시 불변 |
+| `TC-SH-009` | 통과 | `tests/install/run_unix.sh` | 터미널 없음, 질문에 n, `--no-shell-integration` 3개 경로 rc 불변 (CR-004 이후 재실행) |
 | `TC-UI-001` | 통과 | PTY `tests/pty/run.sh` | inline_keep (원시 출력 ?1049h 0건) |
 | `TC-UI-003` | 통과 | 렌더링 TestBackend | ui::inline::tests::main_layout_shows_all_areas |
 | `TC-UI-004` | 통과 | 렌더링 TestBackend | layout_priority_on_short_screen |
@@ -467,6 +469,8 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | `TC-SH-018` | 통과 | PTY `tests/pty/shell.sh powershell` | mcr.microsoft.com/powershell 7.4.2 (Ubuntu 22.04 컨테이너), 12건 |
 | `TC-SH-015` | 통과 | CI macos-15 `tests/pty/shell.sh bash` (`/bin/bash` 3.2.57) | legacy_warning (경고 1줄, 프롬프트 정상), legacy_history (다음 입력란 비어 있음, ↑로 명령어). PSReadLine 미로드 PowerShell은 미실행 |
 | `TC-SH-019` | 통과 | 컨테이너 `bash:3.2`, `bash:4.0`, `bash:4.4`, `bash:5.1`, `bash:5.2` | 5개 버전 문법 검사와 적재, 3.2만 바인딩 생략 경고 |
+| `TC-SH-020` | 통과 | 통합 `tests/cli.rs`, 단위 `cargo test` | init_install_edits_only_the_marked_block, install_appends_once_and_updates_in_place, uninstall_restores_original_text, rewrite_keeps_symlink_and_mode |
+| `TC-INS-011` | 통과 | `tests/install/run_unix.sh`, 로컬 tmux | answer no, answer yes 2회, uninstall, `--shell-integration`, `--no-shell-integration`. `cat install.sh \| sh` 실행에서 질문 표시와 Enter 동의 확인, 새 쉘에서 함수와 바인딩 적재 |
 
 CI 실행 기록 (run 39766949660, 커밋 3108a88, 13개 작업 전체 통과):
 

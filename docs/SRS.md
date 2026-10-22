@@ -581,7 +581,7 @@ ADR-0003 표 적용.
 - 기본 키: Ctrl+G (Bash `\C-g`, Zsh `^G`, PSReadLine `Ctrl+g`).
 - 대체되는 기본 동작: Bash emacs `abort`, Zsh `send-break`, PSReadLine Emacs와 Vi 모드 `Abort`. PSReadLine Windows 모드는 미할당.
 - 알려진 충돌: VS Code 통합 터미널(Windows, Linux)의 "Go to Recent Directory". 문서에 `terminal.integrated.commandsToSkipShell` 설정 안내 (적용 실측 필요).
-- 옵션: `howtui init <쉘> --key <키>`, `--no-bind` (바인딩 생략), `--no-wrap` (`howtui` 쉘 함수 생략).
+- 옵션: `howtui init <쉘> --key <키>`, `--no-bind` (바인딩 생략), `--no-wrap` (`howtui` 쉘 함수 생략), `--install`과 `--uninstall` (rc 파일 표식 구간, SRS-SH-015).
 - 키 형식: `ctrl+<영문자>`, `alt+<영문자>` (`-` 구분자, 대소문자 무관). 쉘 입력에 필요한 Ctrl+C, D, H, I, J, M, Q, S, Z는 거부 (종료 코드 2).
 
 ### 9.5 쉘 판정 (직접 실행 모드)
@@ -613,6 +613,7 @@ ADR-0003 표 적용.
 | SRS-SH-012 | 쉘별 지원 상태 표기: 검증 쉘 버전과 터미널을 문서 표로 관리 | PRD-SH-012 | `README.md` 6절 |
 | SRS-SH-013 | 9.6절 직접 실행 결과 전달: 쉘 함수, `HOWTUI_NEXT_INPUT_FILE` 경로 판정(stdout 터미널 조건), 기록 실패 시 stdout 대체 | PRD-SH-013 | `src/cli/widget.rs`, `src/shell/scripts/` |
 | SRS-SH-014 | 쉘별 다음 입력 전달 방식 (9.3절 표). Bash는 터미널 상태 보고 요청을 프롬프트 직전에만 송신(뒤따르는 명령의 입력 오염 방지), 입력란이 비어 있을 때만 삽입. PowerShell은 입력란이 비어 있을 때만 삽입 | PRD-SH-013 | `src/shell/scripts/` |
+| SRS-SH-015 | rc 파일 표식 구간 (CR-004): `# >>> howtui shell integration >>>`와 `# <<< howtui shell integration <<<` 사이에 제거 방법 주석, 선택적 PATH 추가 줄, `command -v howtui` 확인 후 `eval "$(howtui init <쉘> [옵션])"`. 대상 파일 Bash `~/.bashrc`(macOS `~/.bash_profile`), Zsh `${ZDOTDIR:-~}/.zshrc`, PowerShell 미지원(종료 코드 2). 추가는 append(심볼릭 링크와 권한 유지), 갱신과 제거는 링크 대상 경로에 임시 파일 기록 후 이름 변경(권한 유지). rc 경로 문자열은 `src/shell/rc.rs`에만 존재 (CI 규칙 검사) | PRD-SH-014, PRD-SH-010 | `src/shell/rc.rs`, `src/cli/mod.rs`, `scripts/ci/check_rules.sh` |
 
 ## 10. 비동기 작업과 취소
 
@@ -880,7 +881,7 @@ rustflags = ["-C", "target-feature=+crt-static"]
 | SRS-INS-002 | 14.2절 플랫폼 판별 (사용자 공간 ELF 클래스 기준, armv6l과 musl 미지원 종료) | PRD-INS-003, PRD-INS-004 | `scripts/install.sh` |
 | SRS-INS-003 | 버전 결정 (지정 우선, latest 리다이렉트, API 대체) | PRD-INS-001 | `scripts/install.sh` |
 | SRS-INS-004 | `SHA256SUMS` 검증 필수, 다운로드 대상은 릴리스 자산 2개뿐, 다운로드 내용 실행 금지 | PRD-INS-001, PRD-INS-009 | `scripts/install.sh`, `scripts/install.ps1` |
-| SRS-INS-005 | 사용자 범위 설치, sudo 미사용, rc 파일 미수정, PATH 안내 | PRD-INS-001, PRD-INS-005, PRD-SH-010 | `scripts/install.sh` |
+| SRS-INS-005 | 사용자 범위 설치, sudo 미사용, rc 파일은 SRS-INS-014 동의 경로에서만 수정, PATH 안내 | PRD-INS-001, PRD-INS-005, PRD-SH-010 | `scripts/install.sh` |
 | SRS-INS-006 | 설치 후 `--version` 확인 | PRD-INS-001 | `scripts/install.sh`, `scripts/install.ps1` |
 | SRS-INS-007 | 임시 파일 정리와 실패 시 기존 바이너리 유지 | PRD-INS-001 | `scripts/install.sh`, `scripts/install.ps1` |
 | SRS-INS-008 | 14.3절 install.ps1 구조 (5.1과 7 호환, TLS, 다운로드 규칙) | PRD-INS-002 | `scripts/install.ps1` |
@@ -889,6 +890,7 @@ rustflags = ["-C", "target-feature=+crt-static"]
 | SRS-INS-011 | 14.4절 대안 설치 경로 문서 | PRD-INS-006 | `README.md` |
 | SRS-INS-012 | 업데이트 절차 문서와 재실행 시 설치 경로 유지 | PRD-INS-007 | `README.md`, `scripts/` |
 | SRS-INS-013 | 제거 절차 문서 | PRD-INS-008 | `README.md` |
+| SRS-INS-014 | 설치 후 쉘 통합 확인 질문 (CR-004): 대상은 `$SHELL` 이름이 bash, zsh인 경우. `/dev/tty`를 열 수 있을 때만 질문(`curl \| sh`에서도 동작), 기본값 Y, 동의 시 `howtui init <쉘> --install` 호출(설치 디렉터리가 PATH에 없으면 `--add-path`). `--shell-integration`, `--no-shell-integration`, `HOWTUI_SETUP_SHELL=yes\|no`. 터미널 없음은 등록 명령 안내 1줄만 | PRD-INS-001, PRD-SH-010, PRD-SH-014 | `scripts/install.sh` |
 
 ## 15. doctor 설계
 

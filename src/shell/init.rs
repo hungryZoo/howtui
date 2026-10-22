@@ -56,6 +56,12 @@ impl Key {
         Ok(Key { alt, letter })
     }
 
+    /// `init --key` 인자 형식 (`ctrl+g`).
+    pub fn arg(self) -> String {
+        let m = if self.alt { "alt" } else { "ctrl" };
+        format!("{m}+{}", self.letter)
+    }
+
     pub fn name(self) -> String {
         let m = if self.alt { "Alt" } else { "Ctrl" };
         format!("{m}+{}", self.letter.to_ascii_uppercase())

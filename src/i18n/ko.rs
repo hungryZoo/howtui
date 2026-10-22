@@ -108,6 +108,10 @@ pub fn text(msg: Msg) -> &'static str {
             "--widget은 쉘 통합 스크립트 전용 (HOWTUI_OUTPUT_FILE 미설정). `howtui init --help` 참고"
         }
         Msg::ErrWidgetWrite => "쉘에 명령어 전달 실패 ({detail}). 아래 명령어를 직접 복사:",
+        Msg::ErrInstallUnsupported => {
+            "--install은 bash, zsh 전용. PowerShell은 $PROFILE에 `howtui init powershell | Out-String | Invoke-Expression` 추가"
+        }
+        Msg::ErrRcWrite => "{path} 수정 실패: {detail}",
         Msg::RiskHigh => "위험 높음",
         Msg::RiskCaution => "주의",
         Msg::CatRecursiveDelete => "재귀 삭제",
@@ -151,6 +155,13 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::HelpInitKey => "현재 입력 줄로 howtui를 여는 키 (ctrl+<영문자> 또는 alt+<영문자>)",
         Msg::HelpNoBind => "단축키 미등록",
         Msg::HelpNoWrap => "howtui 쉘 함수 미정의 (결과는 stdout으로만 전달)",
+        Msg::HelpInstall => "쉘 시작 파일(~/.bashrc 또는 ~/.zshrc)에 통합 줄을 표식 구간으로 추가",
+        Msg::HelpUninstall => "--install로 추가한 구간 제거",
+        Msg::InitAdded => "{path}에 쉘 통합 추가 완료. 새 터미널에서 적용",
+        Msg::InitUpdated => "{path}의 쉘 통합 갱신 완료. 새 터미널에서 적용",
+        Msg::InitUnchanged => "{path}에 쉘 통합이 이미 있음",
+        Msg::InitRemoved => "{path}에서 쉘 통합 제거 완료. 새 터미널에서 적용",
+        Msg::InitNotPresent => "{path}에 howtui 쉘 통합 구간 없음",
         Msg::HelpNoBrowser => "브라우저를 열지 않고 URL만 표시 (SSH, 헤드리스 장치용)",
         Msg::HelpPort => "고정 로컬 콜백 포트 (SSH 포트 포워딩용)",
         Msg::HelpForget => "계정 등록 정보도 삭제",

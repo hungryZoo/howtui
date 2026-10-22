@@ -1,6 +1,7 @@
 //! 대상 쉘 판정 (SRS 9.5절)과 쉘 통합 스크립트.
 
 pub mod init;
+pub mod rc;
 
 use std::fmt;
 

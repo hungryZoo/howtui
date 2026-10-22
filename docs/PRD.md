@@ -277,10 +277,11 @@
 | PRD-SH-007 | 취소, 오류 시 입력란 무변경. 오류 원인 1줄 표시 | P2 | 필수 | MRD-KPI-005 |
 | PRD-SH-008 | 통합 실패 시 대체 경로: 최종 명령어를 터미널에 표시해 수동 복사 가능 상태 제공 | P2 | 필수 | MRD-SCN-006 |
 | PRD-SH-009 | 쉘 초기화 등록과 제거 안내 (문서, `init` 출력 주석) | P2 | 필수 | MRD-SCP-101 |
-| PRD-SH-010 | 설치 과정의 rc 파일과 Profile 자동 변경 금지 | P1 | 필수 | MRD-EXC-004 |
+| PRD-SH-010 | 설치 과정의 rc 파일과 Profile 자동 변경 금지. 예외는 사용자 동의 2가지: 설치 스크립트 확인 질문에 동의(또는 `--shell-integration` 지정), `howtui init <쉘> --install` 실행. 이때도 표식 구간만 추가 (CR-004) | P1 | 필수 | MRD-EXC-004 |
 | PRD-SH-011 | 쉘 통합 사용 여부를 doctor가 판별할 수 있는 표식 제공 | P2 | 필수 | MRD-SCN-008 |
 | PRD-SH-012 | 쉘별 지원 상태는 테스트 결과 기준 표기 (검증 버전 명시) | P2 | 필수 | MRD-EXC-003 |
 | PRD-SH-013 | 쉘 통합 로드 후 프롬프트에서 `howtui`를 직접 입력해 실행한 경우에도 확정 명령어를 다음 프롬프트 입력란에 삽입, 자동 실행 없음. Bash와 PowerShell은 히스토리에도 추가(Bash 4.0 미만은 히스토리만). stdout이 터미널이 아니면(캡처, 파이프, 리디렉션) 기존 stdout 전달 유지 (CR-003) | P2 | 필수 | MRD-SCN-005 |
+| PRD-SH-014 | `howtui init <bash\|zsh> --install`과 `--uninstall`: rc 파일에 표식 구간 추가, 갱신, 제거. 구간 밖 내용 무변경, 재실행 시 중복 없음, 설치 직후 PATH 미포함 디렉터리는 구간 안에서 PATH 추가. 설치 스크립트는 대화형 터미널에서 확인 질문 후에만 호출 (CR-004) | P2 | 필수 | MRD-SCN-009, MRD-EXC-004 |
 
 ### 5.9 Fullscreen TUI
 
@@ -322,7 +323,7 @@
 
 | ID | 요구사항 | 단계 | 우선순위 | MRD |
 | --- | --- | --- | --- | --- |
-| PRD-INS-001 | `scripts/install.sh` (POSIX sh): OS와 아키텍처 감지, 릴리스 자산 선택, 버전 고정 옵션, SHA-256 검증, 실패 시 임시 파일 정리, `~/.local/bin` 기본 설치, 설치 경로 옵션, PATH 안내, 재설치 덮어쓰기, 설치 후 `howtui --version` 확인 | P1 | 필수 | MRD-SCP-007, MRD-SCN-009 |
+| PRD-INS-001 | `scripts/install.sh` (POSIX sh): OS와 아키텍처 감지, 릴리스 자산 선택, 버전 고정 옵션, SHA-256 검증, 실패 시 임시 파일 정리, `~/.local/bin` 기본 설치, 설치 경로 옵션, PATH 안내, 재설치 덮어쓰기, 설치 후 `howtui --version` 확인, 설치 후 쉘 통합 확인 질문 (CR-004, PRD-SH-014) | P1 | 필수 | MRD-SCP-007, MRD-SCN-009 |
 | PRD-INS-002 | `scripts/install.ps1`: Windows PowerShell 5.1과 PowerShell 7 호환, 아키텍처 감지(ARM64 에뮬레이션 고려), SHA-256 검증, 사용자 범위 설치, 사용자 PATH 등록(해제 옵션 제공), 설치 후 버전 확인 | P1 | 필수 | MRD-SCP-007 |
 | PRD-INS-003 | ARMv7 판별: `armv6l` 거부, 64비트 커널과 32비트 사용자 공간 조합(Raspberry Pi 4, 400, CM4, 5의 32비트 OS)은 사용자 공간 기준 armv7 선택 | P1 | 필수 | MRD-PLT-004 |
 | PRD-INS-004 | 미지원 시스템: 설치 없이 명확한 오류로 종료 | P1 | 필수 | MRD-SCP-007 |
@@ -405,6 +406,7 @@
 | CR-001 | 2026-10-22 | 사용자 피드백 "생성 후 다음 입력에 안 들어감" | 응답 후 포커스를 질문 영역에 유지, 빈 질문에서 Enter 확정, ↓와 Tab으로 명령어 편집 | PRD-UI-012, PRD-KEY-001 |
 | CR-002 | 2026-10-22 | 사용자 피드백 "로그인 절차가 초보자에게 어려움" | TUI 로그인 자동 시작, 붙여넣기 자동 제출, 스킴 없는 주소 허용, 단계 안내 간소화 | PRD-AUTH-006, PRD-AUTH-013 |
 | CR-003 | 2026-10-22 | 사용자 피드백 "생성 후 다음 입력에 안 들어감" | 쉘 통합 로드 시 프롬프트에서 직접 실행한 결과도 다음 프롬프트 입력란으로 전달 (Zsh 버퍼 스택, Bash 터미널 상태 보고 응답 바인딩, PowerShell 유휴 이벤트), `init --no-wrap` 추가 | PRD-SH-013 신규, PRD-SH-004 |
+| CR-004 | 2026-10-22 | 사용자 피드백 "처음 설치할 때 eval 줄이 설정되면 좋겠음" | 설치 스크립트의 쉘 통합 확인 질문(동의 시에만 rc 파일 표식 구간 추가), `howtui init <bash\|zsh> --install`, `--uninstall`, doctor 등록 안내 | PRD-SH-010, PRD-SH-014 신규, PRD-INS-001 |
 
 ## 7. 단계별 기능 우선순위 요약
 

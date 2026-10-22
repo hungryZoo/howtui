@@ -8,7 +8,7 @@ pub fn process_env(key: &str) -> Option<String> {
     std::env::var(key).ok().filter(|v| !v.is_empty())
 }
 
-fn home(env: EnvFn) -> Option<PathBuf> {
+pub fn home(env: EnvFn) -> Option<PathBuf> {
     #[cfg(windows)]
     let var = env("USERPROFILE");
     #[cfg(not(windows))]

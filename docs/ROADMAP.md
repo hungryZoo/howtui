@@ -94,6 +94,7 @@ Phase 1 이월 항목 (요구사항 변경 없이 다음 작업으로 이월):
 | 쉘 통합 PTY E2E | 완료 | 로컬 Bash 5.0, 컨테이너 Bash 5.2, Zsh 5.9, PowerShell 7.4. CI ubuntu-24.04와 macos-15 전체 통과 (TC 18절) |
 | Windows PowerShell 5.1, 7 대화형 확인 | 보류 | 사용자 요청으로 Windows 작업 보류 (U-2) |
 | 쉘별 지원 상태 표기 | 완료 | README 6절 |
+| CR-004 설치 시 쉘 통합 등록 | 완료 | 설치 스크립트 확인 질문(동의 시에만), `init --install`, `--uninstall`, doctor 등록 안내 |
 
 ### 3.3 검토 보류 항목: Codex CLI 위임
 

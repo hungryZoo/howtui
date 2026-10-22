@@ -8,9 +8,9 @@
 | 항목 | 값 |
 | --- | --- |
 | MRD 항목 | 77 |
-| PRD 요구사항 | 162 |
-| SRS 설계 요구사항 | 178 |
-| TC | 197 |
+| PRD 요구사항 | 163 |
+| SRS 설계 요구사항 | 180 |
+| TC | 199 |
 | 오류 (누락, 불일치) | 0 |
 | 경고 (TC 미연결 SRS) | 0 |
 
@@ -116,10 +116,11 @@
 | PRD-SH-007 | P2 | 필수 | MRD-KPI-005 | SRS-SH-005, SRS-SH-009 | TC-SH-005, TC-SH-006 | `src/cli/widget.rs` | 통과 2 |
 | PRD-SH-008 | P2 | 필수 | MRD-SCN-006 | SRS-SH-009 | TC-SH-007 | `src/cli/widget.rs` | 통과 1 |
 | PRD-SH-009 | P2 | 필수 | MRD-SCP-101 | SRS-SH-001, SRS-SH-010 | TC-SH-008 | `src/shell/init.rs`, `src/shell/scripts/`, `src/cli/mod.rs`<br>`src/shell/scripts/`, `scripts/` | 통과 1 |
-| PRD-SH-010 | P1 | 필수 | MRD-EXC-004 | SRS-SH-010, SRS-INS-005 | TC-SH-009 | `scripts/install.sh`<br>`src/shell/scripts/`, `scripts/` | 통과 1 |
+| PRD-SH-010 | P1 | 필수 | MRD-EXC-004 | SRS-SH-010, SRS-SH-015, SRS-INS-005, SRS-INS-014 | TC-SH-009 | `scripts/install.sh`<br>`src/shell/rc.rs`, `src/cli/mod.rs`, `scripts/ci/check_rules.sh`<br>`src/shell/scripts/`, `scripts/` | 통과 1 |
 | PRD-SH-011 | P2 | 필수 | MRD-SCN-008 | SRS-SH-008 | TC-SH-010 | `src/shell/scripts/`, `src/doctor/` | 통과 1 |
 | PRD-SH-012 | P2 | 필수 | MRD-EXC-003 | SRS-SH-012, SRS-CMP-006, SRS-TEST-004 | TC-SH-011 | `README.md`<br>`README.md` 6절<br>`docs/TC.md` | 미실행 1 |
 | PRD-SH-013 | P2 | 필수 | MRD-SCN-005 | SRS-SH-013, SRS-SH-014 | TC-SH-016, TC-SH-017 | `src/cli/widget.rs`, `src/shell/scripts/`<br>`src/shell/scripts/` | 통과 2 |
+| PRD-SH-014 | P2 | 필수 | MRD-SCN-009, MRD-EXC-004 | SRS-SH-015, SRS-INS-014 | TC-SH-020, TC-INS-011 | `scripts/install.sh`<br>`src/shell/rc.rs`, `src/cli/mod.rs`, `scripts/ci/check_rules.sh` | 통과 2 |
 | PRD-FS-001 | P3 | 필수 | MRD-SCP-102 | SRS-ARC-003, SRS-TUI-007 | TC-FS-001 | `src/ui/`<br>`src/ui/fullscreen.rs` | 미실행 1 |
 | PRD-FS-002 | P3 | 필수 | MRD-SCP-102 | SRS-ARC-001, SRS-ARC-002, SRS-ARC-003, SRS-MOD-001, SRS-MOD-002, SRS-TUI-007 | TC-FS-002, TC-NFR-001 | `src/`<br>`src/app/`<br>`src/app/`, `src/runtime.rs`<br>`src/ui/`<br>`src/ui/fullscreen.rs` | 미실행 1, 통과 1 |
 | PRD-FS-003 | P3 | 필수 | MRD-SCN-010 | SRS-TUI-007 | TC-FS-003 | `src/ui/fullscreen.rs` | 미실행 1 |
@@ -141,7 +142,7 @@
 | PRD-DOC-007 | P4 | 필수 | MRD-SCP-103 | SRS-DOC-005 | TC-DOC-007 | `src/doctor/` | 미실행 1 |
 | PRD-DOC-008 | P6 | 필수 | MRD-SCP-105 | SRS-DOC-005 | TC-DOC-008 | `src/doctor/` | 미실행 1 |
 | PRD-DOC-009 | P1 | 필수 | MRD-SCN-008 | SRS-DOC-004 | TC-DOC-006 | `src/doctor/mod.rs` | 통과 1 |
-| PRD-INS-001 | P1 | 필수 | MRD-SCP-007, MRD-SCN-009 | SRS-INS-001, SRS-INS-003, SRS-INS-004, SRS-INS-005, SRS-INS-006, SRS-INS-007, SRS-SEC-006 | TC-SH-009, TC-INS-001, TC-INS-002, TC-INS-003 | `scripts/`<br>`scripts/install.sh`<br>`scripts/install.sh`, `scripts/install.ps1` | 통과 4 |
+| PRD-INS-001 | P1 | 필수 | MRD-SCP-007, MRD-SCN-009 | SRS-INS-001, SRS-INS-003, SRS-INS-004, SRS-INS-005, SRS-INS-006, SRS-INS-007, SRS-INS-014, SRS-SEC-006 | TC-SH-009, TC-INS-001, TC-INS-002, TC-INS-003, TC-INS-011 | `scripts/`<br>`scripts/install.sh`<br>`scripts/install.sh`, `scripts/install.ps1` | 통과 5 |
 | PRD-INS-002 | P1 | 필수 | MRD-SCP-007 | SRS-INS-008, SRS-INS-009, SRS-INS-010 | TC-INS-005, TC-INS-006 | `scripts/install.ps1` | 미실행 1, 통과 1 |
 | PRD-INS-003 | P1 | 필수 | MRD-PLT-004 | SRS-INS-002 | TC-INS-004 | `scripts/install.sh` | 통과 1 |
 | PRD-INS-004 | P1 | 필수 | MRD-SCP-007 | SRS-INS-002, SRS-INS-009 | TC-INS-004 | `scripts/install.ps1`<br>`scripts/install.sh` | 통과 1 |

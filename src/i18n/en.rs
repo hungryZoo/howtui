@@ -117,6 +117,10 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::ErrWidgetWrite => {
             "Could not hand the command to the shell ({detail}). Copy it manually:"
         }
+        Msg::ErrInstallUnsupported => {
+            "--install supports bash and zsh. For PowerShell add `howtui init powershell | Out-String | Invoke-Expression` to $PROFILE."
+        }
+        Msg::ErrRcWrite => "Could not update {path}: {detail}",
         Msg::RiskHigh => "High risk",
         Msg::RiskCaution => "Caution",
         Msg::CatRecursiveDelete => "recursive delete",
@@ -166,6 +170,15 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::HelpNoWrap => {
             "Do not define the howtui shell function (results then go to stdout only)"
         }
+        Msg::HelpInstall => {
+            "Add the integration line to your shell startup file (~/.bashrc or ~/.zshrc) in a marked block"
+        }
+        Msg::HelpUninstall => "Remove the block added by --install",
+        Msg::InitAdded => "Shell integration added to {path}. Open a new terminal to use it.",
+        Msg::InitUpdated => "Shell integration in {path} updated. Open a new terminal to use it.",
+        Msg::InitUnchanged => "Shell integration is already in {path}.",
+        Msg::InitRemoved => "Shell integration removed from {path}. Open a new terminal.",
+        Msg::InitNotPresent => "No howtui shell integration block in {path}.",
         Msg::HelpNoBrowser => "Do not open a browser; print the URL (for SSH or headless machines)",
         Msg::HelpPort => "Fixed local callback port (for SSH port forwarding)",
         Msg::HelpForget => "Also forget the account registration",

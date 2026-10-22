@@ -11,7 +11,7 @@ use crate::config::Loaded;
 use crate::i18n::{Msg, tr, trf};
 use crate::llm::chatgpt::ChatGptProvider;
 use crate::platform::paths::{process_env, tilde};
-use crate::shell::{self, ShellSource};
+use crate::shell::{self, ShellKind, ShellSource};
 
 pub const SCHEMA_VERSION: u32 = 1;
 
@@ -283,7 +283,21 @@ pub fn collect(
         integration
             .as_deref()
             .map(|s| format!("shell integration: {s}"))
-            .unwrap_or_else(|| "shell integration not loaded".into()),
+            .unwrap_or_else(|| {
+                // 로그인 쉘 기준 등록 방법 안내 (CR-004)
+                let shell = env("SHELL")
+                    .and_then(|s| s.rsplit(['/', '\\']).next().and_then(ShellKind::parse))
+                    .unwrap_or_else(ShellKind::os_default);
+                match shell {
+                    ShellKind::PowerShell => {
+                        "shell integration not loaded (see: howtui init --help)".into()
+                    }
+                    s => format!(
+                        "shell integration not loaded (enable: howtui init {} --install)",
+                        s.name()
+                    ),
+                }
+            }),
         json!({"loaded": integration.is_some(), "shell": integration}),
     ));
     checks
