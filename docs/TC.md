@@ -468,7 +468,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | `TC-SH-015` | 통과 | CI macos-15 `tests/pty/shell.sh bash` (`/bin/bash` 3.2.57) | legacy_warning (경고 1줄, 프롬프트 정상), legacy_history (다음 입력란 비어 있음, ↑로 명령어). PSReadLine 미로드 PowerShell은 미실행 |
 | `TC-SH-019` | 통과 | 컨테이너 `bash:3.2`, `bash:4.0`, `bash:4.4`, `bash:5.1`, `bash:5.2` | 5개 버전 문법 검사와 적재, 3.2만 바인딩 생략 경고 |
 
-CI 실행 기록 (run 39766949660, 커밋 3108a88, 14개 작업 전체 통과):
+CI 실행 기록 (run 39766949660, 커밋 3108a88, 13개 작업 전체 통과):
 
 | 작업 | 쉘 | 결과 |
 | --- | --- | --- |
