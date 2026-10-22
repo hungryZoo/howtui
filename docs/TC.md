@@ -121,7 +121,9 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-AUTH-005 | ID 토큰 검증 | PRD-AUTH-004, SRS-AUTH-004 | 테스트 RSA 키와 JWKS | 정상, 서명 불일치, aud 불일치, 만료, nonce 불일치 | 정상만 통과 | 단위 | 전체 | 미실행 | - |
 | TC-AUTH-006 | scope 미부여 | PRD-AUTH-004, PRD-AUTH-012, SRS-AUTH-011 | 토큰 응답 scope에 플랜 scope 없음 | 로그인 완료 처리 | 로그인 유지, 플랜 비활성 안내, 재동의 경로 안내 | 단위 | 전체 | 미실행 | - |
 | TC-AUTH-007 | 헤드리스 옵션 | PRD-AUTH-005, SRS-AUTH-005 | 없음 | `howtui login --no-browser --port 18765` | 브라우저 미실행, URL과 SSH 포트 포워딩 안내 표시, 127.0.0.1:18765 리스닝 | 통합 | 전체 | 미실행 | - |
-| TC-AUTH-008 | 리다이렉트 URL 붙여넣기 | PRD-AUTH-006, SRS-AUTH-006 | 실계정 | 다른 장치 브라우저 로그인 후 주소창 URL 붙여넣기 | 허용 시 로그인 성공, 비허용 시 결과 기록 후 기능 비활성 유지 | 실연동 | 전체 | 미실행 | - |
+| TC-AUTH-008 | 리다이렉트 URL 붙여넣기 (실계정) | PRD-AUTH-006, SRS-AUTH-006 | 실계정, `--no-browser` | 다른 장치 브라우저 로그인 후 주소창 URL 붙여넣기 | 로그인 성공 여부와 OpenAI 측 응답 기록 | 실연동 | 전체 | 미실행 | - |
+| TC-AUTH-023 | 붙여넣기 URL 검증 | PRD-AUTH-006, SRS-AUTH-006 | Mock 토큰 서버 | 정상 URL, state 불일치, 호스트 `localhost`, 경로 불일치, 공백과 따옴표 포함 URL 입력 | 정상과 공백 제거 URL만 코드 교환, 나머지 거부 | 단위 | 전체 | 미실행 | - |
+| TC-AUTH-024 | 플랜 사용 불가 처리 | PRD-AUTH-019, SRS-AUTH-017 | Mock 응답: scope 미부여, not_eligible, client_not_enabled, 지역 403 | 질문 제출, `--no-tui` 실행 | 원인별 메시지, 요청 중단, 다른 Provider 요청 없음, `--no-tui` 종료 코드 5 또는 7 | 통합 | 전체 | 미실행 | - |
 | TC-AUTH-009 | SSH 포트 포워딩 로그인 | PRD-AUTH-005, SRS-AUTH-005 | 원격 Linux와 로컬 브라우저 | `ssh -L` 후 원격 `howtui login --no-browser --port N` | 로그인 성공, 원격 장치 host ID 사용 | 실연동 | Linux, RPi | 미실행 | - |
 | TC-AUTH-010 | 자격증명 이전 | PRD-AUTH-007, SRS-AUTH-015 | P4 | 내보내기 후 다른 장치 가져오기 | 대상 host ID 유지, 원본 사용 중지 안내 | 수동 | 전체 | 미실행 | - |
 | TC-AUTH-011 | 저장소 우선순위와 대체 | PRD-AUTH-008, SRS-AUTH-007, SRS-MOD-006 | (a) 보안 저장소 사용 가능 (b) Linux Secret Service 없음 | 로그인 | (a) 보안 저장소 저장 (b) 0600 파일 저장과 고지 | 통합 | 전체 | 미실행 | - |
@@ -189,7 +191,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | TC-CFG-001 | 경로 규칙 | PRD-CFG-001, SRS-CFG-001 | 환경변수 조합 | XDG 설정, 미설정, `HOWTUI_CONFIG` | 12.1절 경로 일치 | 단위 | 전체 | 미실행 | - |
 | TC-CFG-002 | 파일 부재 기본값 | PRD-CFG-002, SRS-CFG-003 | 설정 없음 | 로드 | 기본값, 파일 미생성 | 단위 | 전체 | 미실행 | - |
-| TC-CFG-003 | 스키마 검증 | PRD-CFG-003, SRS-CFG-002 | `inline_height = 2`, `41`, `"a"` | 로드 | 값 오류와 키 이름 포함 메시지 | 단위 | 전체 | 미실행 | - |
+| TC-CFG-003 | 스키마 검증 | PRD-CFG-003, SRS-CFG-002 | `inline_height = 2`, `41`, `"a"`, `language = "fr"` | 로드 | 값 오류와 키 이름 포함 메시지 | 단위 | 전체 | 미실행 | - |
 | TC-CFG-004 | 문법 오류 | PRD-CFG-005, SRS-CFG-004 | 잘못된 TOML | `howtui --no-tui q` | 경로, 행, 열 포함 메시지, 종료 코드 8 | 통합 | 전체 | 미실행 | - |
 | TC-CFG-005 | 알 수 없는 키 | PRD-CFG-006, SRS-CFG-005 | `[ui] colour = 1` | 실행과 doctor | 실행 계속, doctor 경고 | 통합 | 전체 | 미실행 | - |
 | TC-CFG-006 | 비밀값 필드 부재 | PRD-CFG-007, SRS-CFG-006 | 없음 | 스키마 필드 목록 검사 | token, key, secret, password 이름 필드 부재 | 단위 | 전체 | 미실행 | - |
@@ -262,7 +264,19 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-ERR-004 | 시그널 복구 | PRD-ERR-004, SRS-TERM-006 | PTY | `kill -TERM`, `kill -HUP` | 복구, 무출력, 143과 129 | PTY | Unix | 미실행 | - |
 | TC-ERR-005 | 사용량 한도 안내 | PRD-ERR-003, SRS-ERR-003 | Mock 429 `usage_limit_exceeded` | 질문 제출 | 리셋 시각 미표시, 사용량 관리 URL 표시 | 단위 | 전체 | 미실행 | - |
 
-## 15. 구조와 비기능
+## 15. 다국어 메시지
+
+| ID | 목적 | 관련 ID | 사전 조건 | 절차 및 입력 | 기대 결과 | 유형 | 플랫폼 | 결과 | 이슈 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TC-I18N-001 | 메시지 완전성 | PRD-I18N-001, PRD-I18N-003, SRS-I18N-001 | 없음 | 모든 `Msg` 값에 대해 언어별 `tr` 호출 | 빈 문자열 없음, 컴파일 성공 | 단위 | 전체 | 미실행 | - |
+| TC-I18N-002 | 언어 결정 순서 | PRD-I18N-002, SRS-I18N-002 | 환경변수와 설정 조합 | (a) `HOWTUI_LANG=ko`, 설정 en (b) 설정 ko (c) `LANG=ko_KR.UTF-8` (d) `LANG=C` | (a) ko (b) ko (c) ko (d) en | 단위 | 전체 | 미실행 | - |
+| TC-I18N-003 | 자리 채움 일치 | PRD-I18N-003, SRS-I18N-003 | 없음 | 자리 채움 메시지의 언어별 자리 이름 비교 | 집합 일치 | 단위 | 전체 | 미실행 | - |
+| TC-I18N-004 | 화면 언어 전환 | PRD-I18N-001, PRD-I18N-002 | `HOWTUI_LANG=en`, `ko` | TestBackend 렌더링 | 각 언어 스냅샷 일치 | 스냅샷 | 전체 | 미실행 | - |
+| TC-I18N-005 | 도움말 언어 | PRD-I18N-004, SRS-I18N-004 | `HOWTUI_LANG=ko` | `howtui --help` | 한국어 설명 출력 | 통합 | 전체 | 미실행 | - |
+| TC-I18N-006 | 기계 판독 출력 고정 | PRD-I18N-005, SRS-I18N-005 | `HOWTUI_LANG=ko`와 `en` | `doctor --json`, `--no-tui` 실행 | JSON 키와 상태 값, stdout 바이트, 종료 코드 동일 | 통합 | 전체 | 미실행 | - |
+| TC-I18N-007 | Windows 언어 판정 | PRD-I18N-002, SRS-I18N-002 | 한국어 Windows | `auto` 설정으로 실행 | 한국어 표시 | 수동 | Windows | 미실행 | - |
+
+## 16. 구조와 비기능
 
 | ID | 목적 | 관련 ID | 사전 조건 | 절차 및 입력 | 기대 결과 | 유형 | 플랫폼 | 결과 | 이슈 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |

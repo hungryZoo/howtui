@@ -104,6 +104,7 @@ MVP = Phase 1 (Inline TUI MVP). 상세 단계는 [ROADMAP](ROADMAP.md) 참조.
 | MRD-SCP-006 | 최소 doctor (환경, TTY, 설정, 인증 상태) |
 | MRD-SCP-007 | 기본 릴리스 자동화와 설치 스크립트 (Linux, macOS, Windows) |
 | MRD-SCP-008 | 규칙 기반 위험 명령어 경고 |
+| MRD-SCP-009 | 영어, 한국어 UI 메시지와 언어 전환 구조 |
 
 후속 범위 (MVP 이후):
 
@@ -148,7 +149,7 @@ MVP = Phase 1 (Inline TUI MVP). 상세 단계는 [ROADMAP](ROADMAP.md) 참조.
 
 | ID | 리스크 | 영향 | 대응 | 상태 |
 | --- | --- | --- | --- | --- |
-| MRD-RSK-001 | ChatGPT 로그인 경로가 "limited preview" 상태, 신규 동적 등록 앱 활성화 여부 미확인 | Phase 1 Provider 부재 가능성 | 실계정 실측을 Phase 1 첫 작업으로 배치, 불가 시 API Key Provider 선행 여부 사용자 결정 | 미해결 |
+| MRD-RSK-001 | ChatGPT 로그인 경로가 "limited preview" 상태, 신규 동적 등록 앱 활성화 여부 미확인 | Phase 1 Provider 부재 가능성 | 실계정 실측으로 확인. 사용 불가 판정 시 대체 Provider 없이 해당 기간 사용 불가 (사용자 결정 E-01) | 미해결 |
 | MRD-RSK-002 | ChatGPT 로그인 사용 자격 문구 출처 간 불일치 (Plus, Pro 한정 또는 전체 사용자) | 사용자 범위 축소 | Plus 계정 실측, 문서에 확인된 범위만 표기 | 미해결 |
 | MRD-RSK-003 | ChatGPT 로그인 경로의 구조화 출력 지원 미확인, `temperature` 등 미지원 | 응답 형식 불안정 | 지시문 기반 JSON 응답과 단계적 파싱 폴백 | 설계 반영 |
 | MRD-RSK-004 | device code 흐름 부재 | SSH 전용 장치의 첫 로그인 불편 | SSH 포트 포워딩 안내, 리다이렉트 URL 붙여넣기(실측 필요), 공식 자격증명 이전 절차 | 설계 반영 |

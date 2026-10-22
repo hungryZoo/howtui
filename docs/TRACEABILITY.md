@@ -7,10 +7,10 @@
 
 | 항목 | 값 |
 | --- | --- |
-| MRD 항목 | 76 |
-| PRD 요구사항 | 155 |
-| SRS 설계 요구사항 | 170 |
-| TC | 179 |
+| MRD 항목 | 77 |
+| PRD 요구사항 | 161 |
+| SRS 설계 요구사항 | 176 |
+| TC | 188 |
 | 오류 (누락, 불일치) | 0 |
 | 경고 (TC 미연결 SRS) | 0 |
 
@@ -83,13 +83,14 @@
 | PRD-AUTH-003 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-002 | TC-AUTH-004 | `src/auth/state.rs` | 미실행 1 |
 | PRD-AUTH-004 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-004 | TC-AUTH-005, TC-AUTH-006 | `src/auth/idtoken.rs` | 미실행 2 |
 | PRD-AUTH-005 | P1 | 필수 | MRD-SCN-007, MRD-RSK-004 | SRS-AUTH-005 | TC-AUTH-007, TC-AUTH-009 | `src/auth/oauth.rs`, `src/cli/` | 미실행 2 |
-| PRD-AUTH-006 | P1 | 권장 | MRD-SCN-007 | SRS-AUTH-006 | TC-AUTH-008 | `src/auth/oauth.rs` | 미실행 1 |
+| PRD-AUTH-006 | P1 | 필수 | MRD-SCN-007 | SRS-AUTH-006 | TC-AUTH-008, TC-AUTH-023 | `src/auth/oauth.rs` | 미실행 2 |
 | PRD-AUTH-007 | P4 | 권장 | MRD-SCN-007 | SRS-AUTH-015 | TC-AUTH-010 | `src/auth/transfer.rs` | 미실행 1 |
 | PRD-AUTH-008 | P1 | 필수 | MRD-SCP-004 | SRS-MOD-006, SRS-AUTH-007 | TC-AUTH-011 | `src/auth/store.rs` | 미실행 1 |
 | PRD-AUTH-009 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-008 | TC-AUTH-012, TC-AUTH-013, TC-AUTH-022 | `src/auth/session.rs` | 미실행 3 |
 | PRD-AUTH-010 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-009 | TC-AUTH-014, TC-AUTH-022 | `src/auth/session.rs` | 미실행 2 |
 | PRD-AUTH-011 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-010 | TC-AUTH-015 | `src/auth/status.rs` | 미실행 1 |
 | PRD-AUTH-012 | P1 | 필수 | MRD-RSK-002 | SRS-AUTH-011 | TC-AUTH-006 | `src/auth/oauth.rs` | 미실행 1 |
+| PRD-AUTH-019 | P1 | 필수 | MRD-RSK-001 | SRS-AUTH-017 | TC-AUTH-024 | `src/llm/chatgpt.rs`, `src/app/update.rs` | 미실행 1 |
 | PRD-AUTH-013 | P1 | 필수 | MRD-SCN-001 | SRS-TUI-009 | TC-UI-012, TC-AUTH-016 | `src/ui/inline.rs` | 미실행 2 |
 | PRD-AUTH-014 | P1 | 필수 | MRD-SCP-004 | SRS-TUI-010 | TC-AUTH-017 | `src/ui/inline.rs`, `src/auth/state.rs` | 미실행 1 |
 | PRD-AUTH-015 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-013 | TC-AUTH-018 | `src/auth/notice.rs` | 미실행 1 |
@@ -172,6 +173,11 @@
 | PRD-PLAT-002 | P4 | 필수 | MRD-DIF-008 | SRS-MOD-007, SRS-BLD-001, SRS-BLD-003, SRS-BLD-004, SRS-CMP-005 | TC-REL-003, TC-PLAT-002, TC-PLAT-005 | CI<br>`.cargo/config.toml`<br>`.github/workflows/release.yml` | 미실행 3 |
 | PRD-PLAT-003 | P4 | 필수 | MRD-PLT-004 | SRS-BLD-002, SRS-BLD-012, SRS-PERF-004, SRS-CMP-001 | TC-PLAT-002, TC-PLAT-003, TC-NFR-005 | CI<br>Phase 4<br>`.github/workflows/`<br>`README.md`, `docs/` | 미실행 3 |
 | PRD-PLAT-004 | P1 | 필수 | MRD-PLT-004 | SRS-BLD-009, SRS-BLD-012, SRS-TEST-004 | TC-PLAT-004 | `.github/workflows/release.yml`<br>`README.md`, `docs/`<br>`docs/TC.md` | 미실행 1 |
+| PRD-I18N-001 | P1 | 필수 | MRD-SCP-009 | SRS-I18N-001 | TC-I18N-001, TC-I18N-004 | `src/i18n/` | 미실행 2 |
+| PRD-I18N-002 | P1 | 필수 | MRD-SCP-009 | SRS-I18N-002 | TC-I18N-002, TC-I18N-004, TC-I18N-007 | `src/i18n/detect.rs` | 미실행 3 |
+| PRD-I18N-003 | P1 | 필수 | MRD-SCP-009 | SRS-I18N-001, SRS-I18N-003 | TC-I18N-001, TC-I18N-003 | `src/i18n/` | 미실행 2 |
+| PRD-I18N-004 | P1 | 권장 | MRD-SCP-009 | SRS-I18N-004 | TC-I18N-005 | `src/cli/mod.rs` | 미실행 1 |
+| PRD-I18N-005 | P1 | 필수 | MRD-SCP-009 | SRS-I18N-005 | TC-I18N-006 | `src/doctor/json.rs`, `src/output/` | 미실행 1 |
 | PRD-ERR-001 | P1 | 필수 | MRD-SCN-008 | SRS-ERR-002 | TC-ERR-001 | `src/app/update.rs`, `src/llm/error.rs` | 미실행 1 |
 | PRD-ERR-002 | P1 | 필수 | MRD-SCP-003 | SRS-ERR-002 | TC-ERR-002 | `src/app/update.rs`, `src/llm/error.rs` | 미실행 1 |
 | PRD-ERR-003 | P1 | 필수 | MRD-SCP-004 | SRS-ERR-003 | TC-ERR-005 | `src/llm/error.rs` | 미실행 1 |

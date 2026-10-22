@@ -9,8 +9,8 @@
 
 | Phase | 목표 | 완료 조건 (게이트) | 상태 |
 | --- | --- | --- | --- |
-| 0 | SDD 문서와 기술 검증 | 요구사항 간 모순 없음, 기술 리스크와 미해결 항목 기록, 사용자 검토 승인 | 검토 대기 |
-| 1 | Inline TUI MVP | 지정 주요 OS에서 생성, 편집, 확정, 출력 일관 동작. P1 필수 TC 통과 | 대기 |
+| 0 | SDD 문서와 기술 검증 | 요구사항 간 모순 없음, 기술 리스크와 미해결 항목 기록, 사용자 검토 승인 | 완료 (2026-10-22 승인) |
+| 1 | Inline TUI MVP | 지정 주요 OS에서 생성, 편집, 확정, 출력 일관 동작. P1 필수 TC 통과 | 진행 중 |
 | 2 | 선택적 쉘 통합 | 3개 쉘에서 자동 실행 없이 입력란 안전 전달. P2 필수 TC 통과 | 대기 |
 | 3 | Fullscreen TUI | 두 모드 동일 기능, 설정 선택 가능. P3 필수 TC 통과 | 대기 |
 | 4 | 배포와 1.x 안정화 | 지원 플랫폼에서 문서화된 절차로 설치, 진단, 업데이트 가능 | 대기 |
@@ -38,8 +38,8 @@
 | 순서 | 작업 | 관련 요구사항 | 선행 조건 | 검증 TC |
 | --- | --- | --- | --- | --- |
 | 1-01 | ChatGPT 로그인 실계정 실측 실험 (SPIKE-06): 동적 등록, 모델 목록, 스트리밍 추론, 구조화 출력, 리다이렉트 URL 붙여넣기, 갱신, 폐기 | PRD-AUTH-001-006, PRD-LLM-009 | 사용자 계정 참여 (U-1) | TC-LLM-017, TC-AUTH-008, TC-AUTH-022 |
-| 1-02 | 1-01 결과 반영: ADR-0007 확정 또는 대체 Provider 결정 (E-01) | ADR-0007 | 1-01 | 문서 갱신 |
-| 1-03 | 저장소 기반: `Cargo.toml`, 툴체인 고정, CI(fmt, clippy, test 3개 OS, 추적성 검사, grep 검사), LICENSE | SRS-BLD-007, SRS-TEST-005 | 라이선스 결정 (E-02) | TC-NFR-001, TC-NFR-010 |
+| 1-02 | 1-01 결과 반영: ADR-0007 확정, 실측 미확인 항목 갱신 | ADR-0007 | 1-01 | 문서 갱신 |
+| 1-03 | 저장소 기반: `Cargo.toml`, 툴체인 고정, CI(fmt, clippy, test 3개 OS, 추적성 검사, grep 검사), LICENSE(MIT), 다국어 메시지 구조 | SRS-BLD-007, SRS-TEST-005, SRS-I18N-001-005 | 없음 | TC-NFR-001, TC-NFR-010, TC-I18N-001-003 |
 | 1-04 | 터미널 세션 계층: 제어 터미널, fd 1 전환, 복구, 시그널 | SRS-TERM-001-006 | 1-03 | TC-OUT-001-008, TC-UI-010, TC-ERR-003, TC-ERR-004 |
 | 1-05 | Windows 터미널 실측 (CONOUT$, VT 출력, stdout 리디렉션, 키 수신) | SRS-TERM-003 | 1-04, Windows 환경 (U-2) | TC-UI-014, TC-OUT-009, TC-KEY-005 |
 | 1-06 | 앱 코어: State, update, keymap, 편집 버퍼 | SRS-DATA-001-006, SRS-TUI-001, SRS-TUI-002 | 1-03 | TC-UI-006, TC-UI-007, TC-KEY-001, TC-EDIT-001-008 |
@@ -71,18 +71,19 @@
 | U-2 | Windows 실환경 (PowerShell 5.1, PowerShell 7, Windows Terminal, conhost) 테스트 | Phase 1 작업 1-05, Phase 2 |
 | U-3 | macOS 실환경 (Zsh, Terminal.app 또는 iTerm2) 테스트 | Phase 1 게이트, Phase 2 |
 | U-4 | Raspberry Pi 2-5 실기기, Windows ARM64 실기기 | Phase 4 |
-| U-5 | 라이선스 결정 | Phase 1 작업 1-03 |
 | U-6 | 공개 릴리스와 원격 push 승인 | 각 릴리스 |
 | U-7 | Unsloth Gemma 4 모델 벤치마크 결과 제공 | Phase 6 |
 
-## 6. 미해결 사항 (사용자 결정 필요)
+## 6. 사용자 결정 사항 (2026-10-22)
 
-| ID | 사항 | 선택지 | 권장안 | 결정 시점 |
-| --- | --- | --- | --- | --- |
-| E-01 | ChatGPT 로그인 경로 사용 불가 판정 시 Phase 1 Provider | (a) OpenAI API Key Provider를 Phase 1로 앞당김 (b) Phase 1을 Mock Provider 기준으로 완료하고 실연동은 보류 | (a). 요구사항 변경 기록 후 PRD-LLM-013을 P1로 이동, ChatGPT 로그인은 활성화 확인 시 추가 | 작업 1-01 직후 |
-| E-02 | 저장소 라이선스 | (a) MIT (b) MIT OR Apache-2.0 (c) 기타 | (a) MIT (tu와 동일). SIWC DevKit 코드는 사용하지 않는 전제 | 작업 1-03 이전 |
-| E-03 | TUI와 CLI 메시지 언어 | (a) 영어 단일 (b) 한국어 단일 (c) 다국어 | (a). 공개 저장소 대상 범용성. LLM 설명은 질문 언어를 따르므로 한국어 질문에는 한국어 설명 | 작업 1-07 이전 |
-| E-04 | 리다이렉트 URL 붙여넣기 로그인 | (a) 실측 성공 시 기본 활성 (b) 실험 기능 옵션으로만 제공 (c) 미제공 | (b). SIWC 문서 미기재 경로 | 작업 1-01 직후 |
-| E-05 | 쉘 통합 실패 시 "복사 방식" 범위 | (a) 터미널 표시 후 수동 복사 (b) OSC 52 클립보드 복사 추가 | (a). (b)는 터미널별 지원 차이와 원격 클립보드 쓰기 보안 고려 필요 | Phase 2 착수 전 |
-| E-06 | Windows 코드 서명, macOS 공증 | (a) 1.x 미적용 (b) 인증서 구매 후 적용 | (a). curl, irm 경로는 공증 불필요 판단. Smart App Control 강제 모드 차단 사례 수집 후 재검토 | Phase 4 |
-| E-07 | 위험 높음 명령어 확정 재확인(Enter 2회) | (a) 유지 (b) 경고 표시만 | (a). 확정과 실행이 분리되어 있어 부담 작음 | Phase 1 검토 시 |
+| ID | 사항 | 결정 | 반영 위치 |
+| --- | --- | --- | --- |
+| E-01 | ChatGPT 로그인 사용 불가 판정 시 | 대체 Provider 없이 해당 기간 사용 불가. API Key Provider는 계획대로 Phase 5 | PRD-AUTH-019, ADR-0007, MRD-RSK-001 |
+| E-02 | 라이선스 | MIT | `LICENSE`, `Cargo.toml` |
+| E-03 | 메시지 언어 | 영어와 한국어 기본 제공, 언어 전환 가능 구조 | PRD-I18N 계열, SRS 7.5절, ADR-0016 |
+| E-04 | 리다이렉트 URL 붙여넣기 로그인 | 필수 기능으로 제공 | PRD-AUTH-006, SRS-AUTH-006 |
+| E-05 | 쉘 통합 실패 시 복사 방식 | 터미널 표시 후 수동 복사 | PRD-SH-008 |
+| E-06 | Windows 코드 서명, macOS 공증 | 둘 다 미적용 | SRS 13.1절 |
+| E-07 | 위험 높음 명령어 확정 | Enter 재확인 유지 | PRD-SAFE-003 |
+
+Phase 0 승인 (2026-10-22). 작업 1-01(실계정 실측)은 사용자 참여 가능 시점에 수행하고, 그 전까지 공식 문서 기준으로 1-03 이후 작업을 진행. E-01 결정에 따라 1-01 결과가 다른 작업 순서를 바꾸지 않음.

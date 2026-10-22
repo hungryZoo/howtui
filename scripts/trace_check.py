@@ -18,7 +18,7 @@ texts = {name: (DOCS / f"{name}.md").read_text(encoding="utf-8") for name in ["M
 
 # %% 표 행 파싱 함수
 CELL_SPLIT = re.compile(r"(?<!\\)\|")
-ID_TOKEN = re.compile(r"(MRD|PRD|SRS|TC)-([A-Z]+)-(\d{3})(?:-(\d{3}))?")
+ID_TOKEN = re.compile(r"(MRD|PRD|SRS|TC)-([A-Z][A-Z0-9]*)-(\d{3})(?:-(\d{3}))?")
 
 
 def table_rows(text, prefix):

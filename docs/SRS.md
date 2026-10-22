@@ -472,6 +472,29 @@ ADR-0015: `app::editor::TextBuffer` 자체 구현 (ratatui-textarea 미사용).
 | SRS-TUI-012 | 키 바인딩 재정의 설정 미제공 (설정 스키마에 키 항목 부재) | PRD-KEY-003 | `src/config/mod.rs` |
 | SRS-TUI-013 | 화면 문구에 팝업 오버레이 동등 표현 미사용 | PRD-UI-014 | `src/ui/`, `README.md` |
 
+### 7.5 다국어 메시지
+
+ADR-0016 적용.
+
+```rust
+pub enum Lang { En, Ko }
+pub enum Msg { StatusSubmit, LoginRequired, /* ... */ }
+pub fn tr(lang: Lang, msg: Msg) -> &'static str;          // 언어별 match 전체 열거
+pub fn trf(lang: Lang, msg: Msg, args: &[(&str, &str)]) -> String; // {name} 자리 채움
+```
+
+- 언어 결정 순서: `HOWTUI_LANG` > 설정 `ui.language` > `auto` > 영어
+- `auto` 판정: Unix `LC_ALL` > `LC_MESSAGES` > `LANG` 값의 앞부분이 `ko`이면 한국어. Windows 사용자 기본 UI 언어의 주 언어 ID가 한국어(0x12)이면 한국어. 그 외 영어
+- 언어 추가: `Lang` 항목과 해당 언어 match 함수 추가. match 누락은 컴파일 오류로 검출
+
+| ID | 설계 요구사항 | 관련 PRD | 구현 위치 |
+| --- | --- | --- | --- |
+| SRS-I18N-001 | `Lang`, `Msg`, `tr` 구조. 언어별 메시지 함수의 전체 열거 match (와일드카드 금지) | PRD-I18N-001, PRD-I18N-003 | `src/i18n/` |
+| SRS-I18N-002 | 언어 결정 순서와 `auto` 판정 규칙 | PRD-I18N-002 | `src/i18n/detect.rs` |
+| SRS-I18N-003 | 자리 채움 메시지: 언어 간 자리 이름 집합 일치 테스트 | PRD-I18N-003 | `src/i18n/` |
+| SRS-I18N-004 | clap 도움말 문자열을 선택 언어로 구성 (builder 방식 문자열 주입) | PRD-I18N-004 | `src/cli/mod.rs` |
+| SRS-I18N-005 | JSON 키, 상태 값, 종료 코드, stdout 출력은 언어 무관 | PRD-I18N-005 | `src/doctor/json.rs`, `src/output/` |
+
 ## 8. 오류 코드와 실패 처리
 
 ### 8.1 종료 코드
@@ -651,7 +674,7 @@ tokio 작업 스레드: LLM 요청, 토큰 갱신, 콜백 리스너, 시그널 �
 | SRS-AUTH-003 | 루프백 리스너: `127.0.0.1` 바인딩, Host 헤더와 경로 검사, 응답 HTML 1회 후 종료, 비정상 요청 404 | PRD-AUTH-001 | `src/auth/callback.rs` |
 | SRS-AUTH-004 | ID 토큰 검증과 JWKS 조회 (`kid` 기준, 상태 파일 캐시 24시간) | PRD-AUTH-004 | `src/auth/idtoken.rs` |
 | SRS-AUTH-005 | `--no-browser`, `--port`, SSH 포트 포워딩 안내 문구 | PRD-AUTH-005 | `src/auth/oauth.rs`, `src/cli/` |
-| SRS-AUTH-006 | 리다이렉트 URL 붙여넣기 입력 (기능 플래그 `paste-redirect`, 실측 후 기본 활성화 결정) | PRD-AUTH-006 | `src/auth/oauth.rs` |
+| SRS-AUTH-006 | 리다이렉트 URL 붙여넣기 입력: `--no-browser` 또는 브라우저 실행 실패 시 루프백 대기와 터미널 입력 대기를 병행. 붙여넣은 URL은 콜백과 같은 검증(스킴, 호스트 `127.0.0.1`, 포트, 경로 `/auth/callback`, state) 후 코드 교환 | PRD-AUTH-006 | `src/auth/oauth.rs` |
 | SRS-AUTH-007 | 11.2절 저장 구조, OS 보안 저장소 우선, 파일 대체 시 고지 | PRD-AUTH-008, PRD-PRIV-006 | `src/auth/store.rs` |
 | SRS-AUTH-008 | 11.3절 갱신 조건과 잠금 기반 직렬화 | PRD-AUTH-009 | `src/auth/session.rs` |
 | SRS-AUTH-009 | 11.3절 로그아웃, `--forget` | PRD-AUTH-010 | `src/auth/session.rs` |
@@ -662,6 +685,7 @@ tokio 작업 스레드: LLM 요청, 토큰 갱신, 콜백 리스너, 시그널 �
 | SRS-AUTH-014 | 비공식 경로 미사용: `~/.codex` 경로 접근 코드 부재, `backend-api` 문자열 부재 (CI grep 검사) | PRD-AUTH-016 | 저장소 전체 |
 | SRS-AUTH-015 | P4 자격증명 내보내기와 가져오기: 가져오기 대상 장치 host ID 유지, 원본 장치 사본 사용 중지 안내 | PRD-AUTH-007 | `src/auth/transfer.rs` |
 | SRS-AUTH-016 | 일시 장애와 네트워크 오류에서 자격증명 보존 | PRD-AUTH-018 | `src/auth/session.rs` |
+| SRS-AUTH-017 | 플랜 사용 불가 판정(scope 미부여, `subscription_sharing_user_not_eligible`, `subscription_sharing_v2_client_not_enabled`, 지역 403) 시 원인별 메시지 후 요청 중단, 대체 Provider 전환 없음 | PRD-AUTH-019 | `src/llm/chatgpt.rs`, `src/app/update.rs` |
 
 ## 12. 설정과 경로
 
@@ -682,6 +706,7 @@ tokio 작업 스레드: LLM 요청, 토큰 갱신, 콜백 리스너, 시그널 �
 [ui]
 mode = "inline"          # "inline" (P1), "fullscreen" (P3)
 inline_height = 10       # 3-40
+language = "auto"        # "auto", "en", "ko"
 
 [provider]
 default = "chatgpt"      # P1: "chatgpt"만 허용
@@ -693,7 +718,7 @@ default = "chatgpt"      # P1: "chatgpt"만 허용
 | ID | 설계 요구사항 | 관련 PRD | 구현 위치 |
 | --- | --- | --- | --- |
 | SRS-CFG-001 | 12.1절 경로 규칙과 재정의 환경변수 | PRD-CFG-001 | `src/config/paths.rs` |
-| SRS-CFG-002 | 12.2절 스키마, 값 범위 검증 (`inline_height` 3-40) | PRD-CFG-003 | `src/config/mod.rs` |
+| SRS-CFG-002 | 12.2절 스키마, 값 범위 검증 (`inline_height` 3-40, `language` 허용 값) | PRD-CFG-003 | `src/config/mod.rs` |
 | SRS-CFG-003 | 파일 부재 시 기본값, 파일 생성 없음 | PRD-CFG-002 | `src/config/mod.rs` |
 | SRS-CFG-004 | 파싱 오류 메시지에 경로, 행, 열, 키 포함, 종료 코드 8 | PRD-CFG-005 | `src/config/mod.rs` |
 | SRS-CFG-005 | 알 수 없는 키 목록 수집 (실행 계속, doctor 경고) | PRD-CFG-006 | `src/config/mod.rs` |
@@ -993,6 +1018,7 @@ rustflags = ["-C", "target-feature=+crt-static"]
 | [0013](adr/0013-tls-rustls-ring.md) | TLS 백엔드: rustls + ring | 제안 (교차 빌드 실측) |
 | [0014](adr/0014-config-and-data-paths.md) | 설정과 데이터 경로 | 제안 |
 | [0015](adr/0015-own-text-buffer.md) | 자체 편집 버퍼 구현 | 제안 |
+| [0016](adr/0016-i18n-message-catalog.md) | 다국어 메시지 카탈로그 | 승인 (E-03) |
 
 ## 22. 미확정 설계 항목
 

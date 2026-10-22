@@ -10,7 +10,7 @@
 - 추론 경로: `POST https://api.openai.com/v1/responses` (`store: false`, `stream: true`, `instructions` 사용, 미지원 필드 미포함). 모델 목록: `GET https://api.openai.com/v1/models`.
 - `agent_name_hint` 고정값 `howtui`.
 - OpenAI DevKit 코드 복사와 번역 이식 금지. 공개 문서만으로 독자 구현.
-- 헤드리스: 루프백 포트 지정과 SSH 포트 포워딩 안내 1차 지원, 리다이렉트 URL 붙여넣기는 실측 후 활성화, 공식 자격증명 이전 절차는 P4.
+- 헤드리스: 루프백 포트 지정과 SSH 포트 포워딩 안내, 리다이렉트 URL 붙여넣기 기본 제공 (사용자 결정 E-04), 공식 자격증명 이전 절차는 P4.
 
 ## 근거
 
@@ -21,7 +21,7 @@
 
 - "limited preview" 상태, 신규 동적 등록 앱 활성화 여부 미확인 (`subscription_sharing_v2_client_not_enabled` 가능성).
 - 사용 자격(Plus, Pro 또는 전체 사용자), 허용 지역(한국 포함 여부) 미확인.
-- 위 항목은 Phase 1 첫 작업(실계정 실측)에서 확인. 불가 판정 시 API Key Provider 선행 여부를 사용자가 결정 (미해결 사항 E-01).
+- 위 항목은 Phase 1 실계정 실측에서 확인. 불가 판정 시 대체 Provider 없이 사용 불가 상태 유지 (사용자 결정 E-01, 2026-10-22). API Key Provider는 계획대로 Phase 5.
 
 ## 대안
 

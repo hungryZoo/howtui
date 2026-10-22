@@ -34,6 +34,7 @@
 | PRIV | 개인정보와 전송 데이터 |
 | PLAT | 플랫폼 |
 | ERR | 오류 처리 |
+| I18N | 다국어 메시지 |
 
 ---
 
@@ -84,7 +85,7 @@
 상태   gpt-model  bash  Using ChatGPT plan   Enter 확정  Tab 질문  Ctrl+J 줄바꿈  Esc 종료
 ```
 
-- 화면 문구는 예시. 최종 UI 문자열 언어는 미해결 사항 E-03([ROADMAP](ROADMAP.md) 6절)에서 결정.
+- 화면 문구는 한국어 예시. 실제 화면은 영어와 한국어 중 선택 언어로 표시 (PRD-I18N 계열).
 - 요청 중 상태줄: 진행 표시와 "Esc 취소"
 - 경고 영역: 위험 수준과 감지 사유 1줄
 
@@ -233,13 +234,14 @@
 | PRD-AUTH-003 | 설치별 host ID(`urn:uuid:<UUIDv4>`) 최초 1회 생성, 로그아웃과 재로그인 후에도 유지 | P1 | 필수 | MRD-SCP-004 |
 | PRD-AUTH-004 | ID 토큰 서명(RS256, JWKS)과 `iss`, `aud`, `exp`, `nonce` 검증, 플랜 사용 scope 부여 확인 | P1 | 필수 | MRD-SCP-004 |
 | PRD-AUTH-005 | GUI 브라우저 없는 환경: `--no-browser` URL 표시, `--port` 고정 포트와 SSH 포트 포워딩 안내 | P1 | 필수 | MRD-SCN-007, MRD-RSK-004 |
-| PRD-AUTH-006 | 리다이렉트 URL 수동 붙여넣기 입력 (OpenAI 측 허용 여부 실측 후 활성화) | P1 | 권장 | MRD-SCN-007 |
+| PRD-AUTH-006 | 리다이렉트 URL 수동 붙여넣기 입력: `--no-browser` 모드와 브라우저 실행 실패 시 루프백 대기와 병행 제공 (OpenAI 측 동작은 실계정 실측으로 확인) | P1 | 필수 | MRD-SCN-007 |
 | PRD-AUTH-007 | 공식 원격 장치 절차 대응: 자격증명 내보내기와 가져오기, 대상 장치 host ID 유지 | P4 | 권장 | MRD-SCN-007 |
 | PRD-AUTH-008 | 토큰 저장: OS 보안 저장소 우선, 사용 불가 시 소유자 전용 권한 파일(Unix 0600) 사용과 사용자 고지 | P1 | 필수 | MRD-SCP-004 |
 | PRD-AUTH-009 | 액세스 토큰 자동 갱신: 만료 60초 전, `earliest_refresh_at` 이전 갱신 보류, 프로세스 간 직렬화 | P1 | 필수 | MRD-SCP-004 |
 | PRD-AUTH-010 | `howtui logout`: refresh token 폐기 요청, 로컬 토큰 삭제, client 매핑과 host ID 보존, 폐기 미확인 시 고지 | P1 | 필수 | MRD-SCP-004 |
 | PRD-AUTH-011 | `howtui auth status`: 로그인 여부, 마스킹 이메일, 플랜 사용 활성 여부, 액세스 토큰 만료 시각. 토큰 값 미출력 | P1 | 필수 | MRD-SCP-004 |
-| PRD-AUTH-012 | 플랜 사용 scope 미부여 시 안내: 재동의(`prompt=consent`) 재시도 경로, 대체 과금 경로 안내(P5) | P1 | 필수 | MRD-RSK-002 |
+| PRD-AUTH-012 | 플랜 사용 scope 미부여 시 안내: 재동의(`prompt=consent`) 재시도 경로 | P1 | 필수 | MRD-RSK-002 |
+| PRD-AUTH-019 | ChatGPT 플랜 사용 불가(scope 미부여, 비대상 계정, 앱 비활성, 지역 제한) 시 원인 안내 후 요청 중단. P1 범위에서 대체 Provider 미제공 | P1 | 필수 | MRD-RSK-001 |
 | PRD-AUTH-013 | TUI 시작 시 미로그인: TUI 내 로그인 안내, Enter로 로그인 시작, 진행 표시와 Esc 취소 | P1 | 필수 | MRD-SCN-001 |
 | PRD-AUTH-014 | 브랜딩: 로그인 동작 문구 "Continue with ChatGPT", 최초 로그인 후 "You're using your ChatGPT plan" 1회 안내, 상태줄 "Using ChatGPT plan"과 사용량 관리 URL(`https://chatgpt.com/settings/usage`) 안내 | P1 | 필수 | MRD-SCP-004 |
 | PRD-AUTH-015 | 로그인 전 개인정보 처리 고지: 수신 정보(이메일, 이름 클레임), 저장 위치, 전송 데이터 범위 | P1 | 필수 | MRD-SCP-004 |
@@ -295,7 +297,7 @@
 | --- | --- | --- | --- | --- |
 | PRD-CFG-001 | TOML 설정 파일, OS별 기본 위치, `HOWTUI_CONFIG` 환경변수로 경로 재정의 | P1 | 필수 | MRD-SCP-001 |
 | PRD-CFG-002 | 설정 파일 부재 시 기본값 동작, 자동 생성 없음 | P1 | 필수 | MRD-SCP-001 |
-| PRD-CFG-003 | P1 설정 항목: `ui.mode`(`inline`), `ui.inline_height`(10), `provider.default`(`chatgpt`), `provider.chatgpt.model`(선택) | P1 | 필수 | MRD-SCP-001 |
+| PRD-CFG-003 | P1 설정 항목: `ui.mode`(`inline`), `ui.inline_height`(10), `ui.language`(`auto`), `provider.default`(`chatgpt`), `provider.chatgpt.model`(선택) | P1 | 필수 | MRD-SCP-001 |
 | PRD-CFG-004 | `ui.mode` 값 `fullscreen` 활성화 | P3 | 필수 | MRD-SCP-102 |
 | PRD-CFG-005 | 문법 오류와 값 오류: 파일 경로, 행, 키를 포함한 메시지와 종료 코드 8 | P1 | 필수 | MRD-SCN-008 |
 | PRD-CFG-006 | 알 수 없는 키: 실행 계속, doctor 경고 표시 | P1 | 필수 | MRD-SCN-008 |
@@ -373,7 +375,17 @@
 | PRD-PLAT-003 | Raspberry Pi 2-5 지원 목표 (TUI와 원격 LLM), ARMv6와 Pi 1 미지원 | P4 | 필수 | MRD-PLT-004 |
 | PRD-PLAT-004 | 지원 상태 표기 규칙: 실기기 검증, 에뮬레이션 검증, 빌드만 확인, 미검증 구분 | P1 | 필수 | MRD-PLT-004 |
 
-### 5.17 오류 처리
+### 5.17 다국어 메시지
+
+| ID | 요구사항 | 단계 | 우선순위 | MRD |
+| --- | --- | --- | --- | --- |
+| PRD-I18N-001 | 영어와 한국어 메시지 제공: TUI 화면, 상태줄, 오류, 로그인 안내, 고지 문구, doctor 텍스트 출력 | P1 | 필수 | MRD-SCP-009 |
+| PRD-I18N-002 | 언어 선택: 환경변수 `HOWTUI_LANG` > 설정 `ui.language`(`auto`, `en`, `ko`) > `auto` 판정(OS 로캘). 판정 불가 시 영어 | P1 | 필수 | MRD-SCP-009 |
+| PRD-I18N-003 | 언어 추가 가능 구조: 메시지 키 기반 카탈로그, 언어별 누락 메시지는 빌드 또는 테스트 단계 검출 | P1 | 필수 | MRD-SCP-009 |
+| PRD-I18N-004 | `--help` 출력 선택 언어 적용 | P1 | 권장 | MRD-SCP-009 |
+| PRD-I18N-005 | 기계 판독 출력(doctor `--json` 키와 상태 값, 종료 코드, stdout 명령어)은 언어 무관 고정 | P1 | 필수 | MRD-SCP-009 |
+
+### 5.18 오류 처리
 
 | ID | 요구사항 | 단계 | 우선순위 | MRD |
 | --- | --- | --- | --- | --- |
@@ -389,7 +401,7 @@
 
 | 단계 | 필수 요구사항 영역 | 비고 |
 | --- | --- | --- |
-| P1 | CLI(001-007, 010, 011), UI 전체, KEY, EDIT(001-007), LLM(001-012), AUTH(001-006, 008-018), OUT(001-008, 010), SH-010, CFG(001-003, 005-007), DOC(001-005, 009), INS(001-006, 009), REL(001, 002, 004, 005, 007), SAFE 전체, PRIV 전체, PLAT(001, 004), ERR 전체 | MVP |
+| P1 | CLI(001-007, 010, 011), UI 전체, KEY, EDIT(001-007), LLM(001-012), AUTH(001-006, 008-019), I18N 전체, OUT(001-008, 010), SH-010, CFG(001-003, 005-007), DOC(001-005, 009), INS(001-006, 009), REL(001, 002, 004, 005, 007), SAFE 전체, PRIV 전체, PLAT(001, 004), ERR 전체 | MVP |
 | P2 | CLI-008, EDIT-008, OUT-009, SH(001-009, 011, 012), DOC-006 | |
 | P3 | CLI-009, FS 전체, CFG-004 | |
 | P4 | AUTH-007, DOC-007, INS(007, 008), REL(003, 006), PLAT(002, 003) | |
