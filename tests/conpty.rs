@@ -18,17 +18,30 @@ struct Session {
 impl Session {
     fn start(args: &[String], data: &Path) -> Session {
         let pty = native_pty_system();
-        let pair = pty.openpty(PtySize { rows: 30, cols: 100, pixel_width: 0, pixel_height: 0 }).unwrap();
+        let pair = pty
+            .openpty(PtySize {
+                rows: 30,
+                cols: 100,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .unwrap();
         let mut cmd = CommandBuilder::new("cmd.exe");
         cmd.arg("/c");
         for a in args {
             cmd.arg(a);
         }
-        let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests").join("fixtures").join("mock_basic.json");
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests")
+            .join("fixtures")
+            .join("mock_basic.json");
         cmd.env("HOWTUI_MOCK_SCENARIO", fixture.display().to_string());
         cmd.env("HOWTUI_LANG", "en");
         cmd.env("HOWTUI_DATA_DIR", data.display().to_string());
-        cmd.env("HOWTUI_CONFIG", data.join("none.toml").display().to_string());
+        cmd.env(
+            "HOWTUI_CONFIG",
+            data.join("none.toml").display().to_string(),
+        );
         let child = pair.slave.spawn_command(cmd).unwrap();
         drop(pair.slave);
         let mut reader = pair.master.try_clone_reader().unwrap();
@@ -52,7 +65,11 @@ impl Session {
         // master는 child 종료까지 유지되어야 하므로 누수 허용
         std::mem::forget(pair.master);
         let writer: Box<dyn Write + Send> = Box::new(ArcWriter(writer));
-        Session { output, writer, child }
+        Session {
+            output,
+            writer,
+            child,
+        }
     }
 
     fn wait_for(&self, needle: &str, timeout: Duration) -> bool {
@@ -84,7 +101,9 @@ impl Session {
     }
 
     fn dump(&self) -> String {
-        String::from_utf8_lossy(&self.output.lock().unwrap()).escape_debug().to_string()
+        String::from_utf8_lossy(&self.output.lock().unwrap())
+            .escape_debug()
+            .to_string()
     }
 }
 
@@ -105,22 +124,46 @@ fn run_case(redirect_stderr: bool) {
     let dir = tempfile::tempdir().unwrap();
     let out = dir.path().join("out.txt");
     let err = dir.path().join("err.txt");
-    let mut args = vec![env!("CARGO_BIN_EXE_howtui").to_string(), ">".into(), out.display().to_string()];
+    let mut args = vec![
+        env!("CARGO_BIN_EXE_howtui").to_string(),
+        ">".into(),
+        out.display().to_string(),
+    ];
     if redirect_stderr {
         args.extend(["2>".to_string(), err.display().to_string()]);
     }
     let mut s = Session::start(&args, dir.path());
-    assert!(s.wait_for("Ask", Duration::from_secs(20)), "TUI not drawn: {}", s.dump());
+    assert!(
+        s.wait_for("Ask", Duration::from_secs(20)),
+        "TUI not drawn: {}",
+        s.dump()
+    );
     s.send(b"find big files");
     s.send(b"\r");
-    assert!(s.wait_for("Prints a greeting", Duration::from_secs(20)), "response not shown: {}", s.dump());
+    assert!(
+        s.wait_for("Prints a greeting", Duration::from_secs(20)),
+        "response not shown: {}",
+        s.dump()
+    );
     s.send(b"\r");
-    assert_eq!(s.wait_exit(Duration::from_secs(20)), Some(0), "exit: {}", s.dump());
+    assert_eq!(
+        s.wait_exit(Duration::from_secs(20)),
+        Some(0),
+        "exit: {}",
+        s.dump()
+    );
     let got = std::fs::read(&out).unwrap();
-    assert_eq!(String::from_utf8_lossy(&got), EXPECTED, "stdout file must contain only the command");
+    assert_eq!(
+        String::from_utf8_lossy(&got),
+        EXPECTED,
+        "stdout file must contain only the command"
+    );
     assert!(!got.contains(&0x1b), "no control sequences in stdout");
     if redirect_stderr {
-        assert!(std::fs::read(&err).unwrap_or_default().is_empty(), "TUI must not draw on redirected stderr");
+        assert!(
+            std::fs::read(&err).unwrap_or_default().is_empty(),
+            "TUI must not draw on redirected stderr"
+        );
     }
 }
 
@@ -138,7 +181,16 @@ fn stdout_and_stderr_redirected_tui_on_conout() {
 fn console_stdout_cancel_with_ctrl_c() {
     let dir = tempfile::tempdir().unwrap();
     let mut s = Session::start(&[env!("CARGO_BIN_EXE_howtui").to_string()], dir.path());
-    assert!(s.wait_for("Ask", Duration::from_secs(20)), "TUI not drawn: {}", s.dump());
+    assert!(
+        s.wait_for("Ask", Duration::from_secs(20)),
+        "TUI not drawn: {}",
+        s.dump()
+    );
     s.send(b"\x03");
-    assert_eq!(s.wait_exit(Duration::from_secs(20)), Some(130), "exit: {}", s.dump());
+    assert_eq!(
+        s.wait_exit(Duration::from_secs(20)),
+        Some(130),
+        "exit: {}",
+        s.dump()
+    );
 }
