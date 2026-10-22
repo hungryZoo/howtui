@@ -109,12 +109,12 @@ howtui는 단일 실행 파일. 기존 터미널 위에서 Inline TUI를 표시�
 
 ### 3.3 의존성 확정안
 
-근거: [research/rust-crates.md](research/rust-crates.md) (2026-10-22 crates.io 최신 안정 버전, 교차 빌드 실행 결과 포함). `rust-version = "1.88"` (ratatui 0.30, keyring 4.2 MSRV), 개발 툴체인은 최신 안정 버전(조사 시점 1.96.0) 고정.
+근거: [research/rust-crates.md](research/rust-crates.md) (2026-10-22 crates.io 최신 안정 버전, 교차 빌드 실행 결과 포함). `rust-version = "1.89"` (ratatui 0.30, keyring 4.2 MSRV 1.88과 `std::fs::File::lock` 안정화 1.89 중 높은 값), 개발 툴체인은 구현 착수 시점 최신 안정 버전 1.99.1 고정 (`rust-toolchain.toml`).
 
 | crate | 버전 | 기능 플래그 | 용도 | 선정 근거 |
 | --- | --- | --- | --- | --- |
 | ratatui | 0.30.2 | 기본 | TUI | Inline 뷰포트, TestBackend |
-| crossterm | 0.29.0 | 기본 + `bracketed-paste` | 터미널 | 최신 릴리스. `use-dev-tty`는 미사용 (stdin 비TTY 시 `/dev/tty` 자동 사용 확인, SPIKE-01 stdin_pipe) |
+| crossterm | 0.29.0 | 기본 + `bracketed-paste`, macOS만 `use-dev-tty` 추가 | 터미널 | 최신 릴리스. Linux는 stdin 비TTY 시 `/dev/tty` 자동 사용(SPIKE-01 stdin_pipe). macOS kqueue는 `/dev/tty` 폴링 미지원이라 select 기반 이벤트 소스 필요 (CI PTY 실측, 2026-10-22) |
 | tokio | 1.54 | `rt-multi-thread`, `macros`, `net`, `time`, `sync`, `io-util`, `signal` | 네트워크 작업, 콜백 리스너, 시그널 | |
 | reqwest | 0.13.5 | `default-features = false`, `rustls-no-provider`, `http2`, `charset`, `system-proxy`, `json`, `stream` | HTTPS, 스트리밍 | native-tls는 armv7, aarch64 교차 빌드 실패 (openssl-sys) |
 | rustls | 0.23 | `default-features = false`, `ring`, `std`, `tls12`, `logging` | TLS | ring 백엔드가 aws-lc-rs 대비 바이너리 증가분 약 1.46 MB 대 3.47 MB (x86_64 strip, fat LTO 실측) |
@@ -129,7 +129,8 @@ howtui는 단일 실행 파일. 기존 터미널 위에서 Inline TUI를 표시�
 | httparse | 1 | 기본 | 콜백 HTTP 요청 파싱 | hyper 경유 기존 의존 트리 포함 |
 | url | 2 | 기본 | URL 구성, 질의 파싱 | reqwest 경유 기존 의존 트리 포함 |
 | open | 5.4 | 기본 | 브라우저 실행 (`that_detached`) | webbrowser는 텍스트 브라우저에서 대기 발생 |
-| etcetera | 0.11 | 기본 | 홈 디렉터리, XDG 경로 | 12절 경로 규칙 구현 보조 |
+| futures-util | 0.3 | `std` | SSE 바이트 스트림 순회 | reqwest 의존 트리 포함 |
+| tokio-util | 0.7 | 기본 | 취소 토큰 (`CancellationToken`) | h2 의존 트리 포함 |
 | unicode-segmentation, unicode-width | ratatui 의존 버전 | 기본 | 편집 버퍼 grapheme과 표시 폭 | ratatui 의존 트리 포함 |
 | tracing, tracing-subscriber | 0.1.44, 0.3.23 | `fmt` | 선택적 파일 로그 | |
 | thiserror | 2.0 | 기본 | 오류 타입 | |
@@ -140,10 +141,9 @@ howtui는 단일 실행 파일. 기존 터미널 위에서 Inline TUI를 표시�
 
 | crate | 용도 |
 | --- | --- |
-| insta | 렌더링 스냅샷 |
 | assert_cmd, tempfile | 바이너리 통합 테스트 |
 | wiremock | Mock HTTP 서버 (LLM, 인증, revoke) |
-| portable-pty | Rust PTY E2E 테스트 (커서 위치 질의 응답 처리 하네스 필요) |
+| portable-pty | Windows ConPTY E2E 테스트 (`cfg(windows)` 개발 의존성) |
 
 미채택:
 
@@ -349,7 +349,7 @@ pub trait Provider: Send + Sync {
 | SRS-LLM-006 | 모델 목록 24시간 캐시 (상태 파일), `ModelNotFound` 수신 시 캐시 무효화 | PRD-LLM-009 | `src/llm/chatgpt.rs` |
 | SRS-LLM-007 | 제한 시간: 연결 10초, 첫 SSE 이벤트 60초, 전체 120초 | PRD-LLM-011 | `src/llm/chatgpt.rs` |
 | SRS-LLM-008 | 오류 매핑: research/chatgpt-oauth.md 8.6절 표 기준 `LlmError` 변환 | PRD-AUTH-017, PRD-LLM-010 | `src/llm/chatgpt.rs` |
-| SRS-LLM-009 | Mock Provider: 시나리오 파일(JSON)로 응답, 지연, 오류, 스트림 중단 주입. 환경변수 `HOWTUI_MOCK_SCENARIO`로 지정 | PRD-LLM-012 | `src/llm/mock.rs` |
+| SRS-LLM-009 | Mock Provider: 시나리오 파일(JSON 단계 목록: 응답, 지연, 오류 이름, 원문 응답)로 동작. `HOWTUI_MOCK_SCENARIO=<파일>` 또는 `echo`. 같은 기능 플래그에서만 테스트 재정의 `HOWTUI_TEST_API_BASE`, `HOWTUI_TEST_AUTH_BASE`, `HOWTUI_TEST_PANIC` 허용 (릴리스 빌드 문자열 부재 확인) | PRD-LLM-012 | `src/llm/mock.rs`, `src/auth/oauth.rs`, `src/runtime.rs` |
 | SRS-LLM-010 | 취소 시 HTTP 스트림 즉시 drop, 결과 미반환 | PRD-LLM-004 | `src/llm/chatgpt.rs` |
 | SRS-LLM-011 | P5 Provider 추가 시 trait 변경 없이 구현체 추가 (OpenAI, Gemini, Anthropic, OpenAI 호환) | PRD-LLM-013-017 | `src/llm/` |
 | SRS-LLM-012 | P6 로컬 서버: OpenAI 호환 채팅 API 공통 구현 + 서버 종류별 탐지(Ollama `/api/version`, llama-server `/health`), 기본 주소 설정 가능 | PRD-LLM-018-020 | `src/llm/local.rs` |
@@ -363,7 +363,7 @@ pub trait Provider: Send + Sync {
 ```text
 (1) 제어 터미널 열기   Unix: /dev/tty (O_RDWR)      Windows: 출력 핸들 선택 (아래 표), 입력은 crossterm 콘솔 입력(CONIN$)
 (2) fd 1 보관과 전환   Unix: saved = dup(1); dup2(tty, 1)   Windows: 해당 없음
-(3) raw mode 진입, bracketed paste 이전 상태 질의(DECRQM ?2004) 후 활성화, (지원 시) 키보드 확장 플래그 적용
+(3) raw mode 진입, bracketed paste 활성화 (키보드 확장 플래그는 P1 미적용, PRD-KEY-002 이월)
 (4) 시작 커서 위치 질의, 열 > 0 이면 CRLF 출력 후 Inline 뷰포트 생성 (이벤트 루프 시작 전)
 (5) 이벤트 루프 (10절)
 (6) 종료 처리: 뷰포트 첫 행 이동 → 커서 뒤 영역 삭제(ESC[J, 커서 질의 없음) → 커서 원위치
@@ -380,7 +380,7 @@ Windows 출력 핸들 선택 순서 (Phase 1 실측 대상):
 | (3) | stdout, stderr 모두 리디렉션 | `CONOUT$` 핸들 + `WriteConsoleW` 래퍼 (UTF-8을 UTF-16으로 변환) | 파일 핸들 `WriteFile` 경로는 콘솔 코드 페이지 의존 (research/shell-integration.md 4.5절) |
 | (4) | 콘솔 없음 | TUI 미시작, 종료 코드 3 | |
 
-bracketed paste 복원 규칙: 이전 상태 질의 성공 시 이전 상태로 복원. 질의 실패 시 위젯 모드는 활성 상태 유지(쉘 관리), 직접 실행 모드는 해제. 여러 줄 붙여넣기 즉시 실행 위험 때문에 활성 상태였던 쉘에서 해제 상태로 끝내지 않음.
+bracketed paste 복원 규칙: 직접 실행 모드는 종료 시 해제 (쉘이 다음 입력 줄에서 다시 활성화). 위젯 모드(`--widget`)는 종료 시 활성 상태 유지: 쉘 입력 편집 도중이므로 해제하면 여러 줄 붙여넣기 즉시 실행 위험. 이전 상태 질의(DECRQM)는 응답 읽기가 crossterm 입력 처리와 경합하여 미사용 (구현 시 결정, 2026-10-22).
 
 ### 6.2 복구 경로
 
@@ -523,6 +523,8 @@ ADR-0003 표 적용.
 | AuthRequired | 로그인 필요 / Enter로 로그인 | 4 | 해당 없음 |
 | AuthFailed | 인증 실패 / 다시 로그인 | 4 | 갱신 종결 오류일 때만 토큰 삭제 |
 | NotEligible | ChatGPT 플랜 사용 불가 계정 / 플랜과 워크스페이스 확인 | 5 | 보존 |
+| PlanNotGranted | 로그인 시 플랜 사용 권한 미허용 / 다시 로그인해 허용 (요청 미발생) | 5 | 보존 |
+| ClientNotEnabled | howtui 플랜 사용 미활성화 / 활성화 전까지 사용 불가 (E-01) | 5 | 보존 |
 | UsageLimit | 사용량 한도 도달 / 사용량 관리 URL | 5 | 보존 |
 | RegionOrPolicy | 정책 또는 지역 제한 / 상세 메시지 | 7 | 보존 |
 | PermissionConfig | 권한 구성 오류 / 다시 로그인 | 7 | 보존 |
@@ -533,7 +535,7 @@ ADR-0003 표 적용.
 
 | ID | 설계 요구사항 | 관련 PRD | 구현 위치 |
 | --- | --- | --- | --- |
-| SRS-ERR-001 | 8.1절 종료 코드 매핑 단일 함수 | PRD-CLI-010 | `src/main.rs` |
+| SRS-ERR-001 | 8.1절 종료 코드 매핑 (`LlmError::exit_code`, CLI 결과 분기) | PRD-CLI-010 | `src/llm/types.rs`, `src/cli/` |
 | SRS-ERR-002 | 8.2절 오류 분류별 메시지 (원인 1줄 + 조치 1줄) | PRD-ERR-001, PRD-ERR-002 | `src/app/update.rs`, `src/llm/error.rs` |
 | SRS-ERR-003 | 사용량 한도 메시지에 리셋 시각 미표시, URL `https://chatgpt.com/settings/usage` 표시 | PRD-ERR-003 | `src/llm/error.rs` |
 | SRS-ERR-004 | 일시 장애 재시도: 비대화형 모드와 토큰 갱신에 한해 최대 2회, 지수 백오프(1초, 2초) | PRD-AUTH-018 | `src/llm/chatgpt.rs`, `src/auth/session.rs` |
@@ -656,7 +658,7 @@ tokio 작업 스레드: LLM 요청, 토큰 갱신, 콜백 리스너, 시그널 �
 | 파일 또는 항목 | 위치 (12절) | 내용 | 비밀 여부 |
 | --- | --- | --- | --- |
 | 상태 파일 `state.json` | 데이터 디렉터리 | `version`, `host_id`, 등록 정보(`subject`, 마스킹 전 이메일, `client_id`, 등록 시각), 플랜 안내 표시 여부, 모델 목록 캐시, 구조화 출력 지원 판정 | 비밀 아님 (0600 적용) |
-| 자격증명 | OS 보안 저장소 항목 `howtui` / `chatgpt:<client_id>`, 불가 시 `credentials.json` (0600) | `access_token`, `refresh_token`, `id_token`, `token_type`, `scope`, `expires_at`, `earliest_refresh_at`, `saved_at` | 비밀 |
+| 자격증명 | OS 보안 저장소 서비스 `howtui`, 계정 `chatgpt:<client_id>:{access,refresh,id,meta}` 분할 저장 (Windows 항목 크기 2560바이트 제한 대응). 보안 저장소 쓰기 실패 또는 사용 불가 시 `credentials.json` (0600)으로 전환하고 상태 파일에 기록. `HOWTUI_CREDENTIAL_STORE`로 강제 지정 | `access_token`, `refresh_token`, `id_token`, `token_type`, `scope`, `expires_at`, `earliest_refresh_at`, `saved_at` | 비밀 |
 | 잠금 파일 `auth.lock` | 데이터 디렉터리 | 갱신 직렬화용 (`std::fs::File::lock`) | 비밀 아님 |
 
 ### 11.3 갱신, 로그아웃
@@ -673,7 +675,7 @@ tokio 작업 스레드: LLM 요청, 토큰 갱신, 콜백 리스너, 시그널 �
 | SRS-AUTH-002 | host ID 생성과 영구 유지 | PRD-AUTH-003 | `src/auth/state.rs` |
 | SRS-AUTH-003 | 루프백 리스너: `127.0.0.1` 바인딩, Host 헤더와 경로 검사, 응답 HTML 1회 후 종료, 비정상 요청 404 | PRD-AUTH-001 | `src/auth/callback.rs` |
 | SRS-AUTH-004 | ID 토큰 검증과 JWKS 조회 (`kid` 기준, 상태 파일 캐시 24시간) | PRD-AUTH-004 | `src/auth/idtoken.rs` |
-| SRS-AUTH-005 | `--no-browser`, `--port`, SSH 포트 포워딩 안내 문구 | PRD-AUTH-005 | `src/auth/oauth.rs`, `src/cli/` |
+| SRS-AUTH-005 | `--no-browser`, `--port`, SSH 포트 포워딩 안내 문구. TUI 로그인은 `HOWTUI_NO_BROWSER=1` 또는 SSH 세션(`SSH_CONNECTION`, `SSH_TTY`)에서 브라우저 미실행 | PRD-AUTH-005 | `src/auth/mod.rs`, `src/cli/provider.rs` |
 | SRS-AUTH-006 | 리다이렉트 URL 붙여넣기 입력: `--no-browser` 또는 브라우저 실행 실패 시 루프백 대기와 터미널 입력 대기를 병행. 붙여넣은 URL은 콜백과 같은 검증(스킴, 호스트 `127.0.0.1`, 포트, 경로 `/auth/callback`, state) 후 코드 교환 | PRD-AUTH-006 | `src/auth/oauth.rs` |
 | SRS-AUTH-007 | 11.2절 저장 구조, OS 보안 저장소 우선, 파일 대체 시 고지 | PRD-AUTH-008, PRD-PRIV-006 | `src/auth/store.rs` |
 | SRS-AUTH-008 | 11.3절 갱신 조건과 잠금 기반 직렬화 | PRD-AUTH-009 | `src/auth/session.rs` |
@@ -940,7 +942,7 @@ rustflags = ["-C", "target-feature=+crt-static"]
 | SRS-SAFE-001 | 16.1절 규칙 표 구현, 판정 결과 `Finding { level, category, reason, span }` | PRD-SAFE-002, PRD-SAFE-003 | `src/safety/` |
 | SRS-SAFE-002 | 토큰화: 따옴표 내부 문자열은 명령 인자로 취급, 연결 연산자 기준 명령 단위 분리, 정규식 엔진 미사용 (문자열 비교) | PRD-SAFE-002 | `src/safety/lexer.rs` |
 | SRS-SAFE-003 | 판정 시점: 응답 반영 직후, 직접 편집 후 300ms 유휴 시, 확정 직전 | PRD-SAFE-002, PRD-SAFE-003 | `src/app/update.rs` |
-| SRS-SAFE-004 | 프로세스 실행 API(`std::process::Command`) 사용 위치 제한: 브라우저 실행 1곳 외 사용 금지. 쉘 버전은 쉘 통합 스크립트가 넘기는 환경변수로만 수집 (쉘 프로세스 실행 없음). AI 생성 문자열을 프로세스 인자로 전달 금지 (CI grep 검사, 리뷰) | PRD-SAFE-001, PRD-SAFE-006 | 저장소 전체 |
+| SRS-SAFE-004 | `src/`의 직접 프로세스 실행 API(`std::process::Command`) 사용 0곳. 브라우저 실행은 `open::that_detached` 1곳 (인가 URL 인자만 전달). 쉘 버전은 쉘 통합 스크립트가 넘기는 환경변수로만 수집. AI 생성 문자열을 프로세스 인자로 전달 금지 (`scripts/ci/check_rules.sh`) | PRD-SAFE-001, PRD-SAFE-006 | 저장소 전체 |
 | SRS-SAFE-005 | 규칙 테스트는 문자열 입력만 사용, 실제 실행 금지 | PRD-SAFE-007 | `src/safety/tests.rs` |
 | SRS-SAFE-006 | 도움말과 README에 한계 고지 문구 | PRD-SAFE-004 | `src/cli/`, `README.md` |
 | SRS-SAFE-007 | 모델 `notes`는 설명 영역 하단 표시, `Finding` 수준 계산 미반영 | PRD-SAFE-005 | `src/ui/inline.rs` |
@@ -984,9 +986,9 @@ rustflags = ["-C", "target-feature=+crt-static"]
 | 계층 | 도구 | 대상 | CI |
 | --- | --- | --- | --- |
 | 단위 | `cargo test` | `app::update`, keymap, 편집 버퍼, 파서, SSE, 안전 규칙, 설정, 마스킹, 오류 매핑 | 모든 OS |
-| 렌더링 스냅샷 | ratatui `TestBackend` + 스냅샷 비교 | Inline, Fullscreen 화면 | 모든 OS |
-| 통합 (프로세스) | 테스트 하네스에서 바이너리 실행 (Mock Provider) | 비대화형 모드, 제어 터미널 없음, 종료 코드, stdout 순수성 | 모든 OS |
-| PTY E2E | Unix: tmux 또는 PTY crate, Windows: ConPTY 기반 도구 (3.3절) | TUI 입력, 취소, 리사이즈, 복구, 쉘 통합 | Linux, macOS (Windows는 검토) |
+| 렌더링 | ratatui `TestBackend` 버퍼 행 단위 검사 | Inline 화면 (Fullscreen은 P3) | 모든 OS |
+| 통합 (프로세스) | `assert_cmd` 바이너리 실행 (Mock Provider, wiremock) | 비대화형 모드, 제어 터미널 없음, 종료 코드, stdout 순수성, ChatGPT 경로 | 모든 OS |
+| PTY E2E | Unix: `tests/pty/run.sh`(tmux), `tests/pty/no_dsr.py`(무응답 PTY). Windows: `tests/conpty.rs`(portable-pty ConPTY) | TUI 입력, 취소, 리사이즈, 복구, stdout 분리 | Linux, macOS, Windows |
 | 실연동 | 실제 ChatGPT 계정 | OAuth 전체 흐름, 추론, 갱신, 폐기 | 수동, CI 제외 |
 | 실기기 | Raspberry Pi, Windows ARM64 | 설치, 실행 | 수동 |
 
@@ -997,7 +999,7 @@ rustflags = ["-C", "target-feature=+crt-static"]
 | SRS-TEST-003 | 위험 명령어 테스트는 문자열 판정만 수행 | PRD-SAFE-007 | `src/safety/` |
 | SRS-TEST-004 | 테스트 결과는 TC 문서 결과 열에 기록, 미실행은 "미실행"으로 표기. 쉘과 플랫폼 지원 표기는 TC 결과 기준 | PRD-SH-012, PRD-PLAT-004 | `docs/TC.md` |
 | SRS-TEST-005 | 추적성 검사 스크립트(`scripts/trace_check.py`)로 MRD, PRD, SRS, TC 연결 검사, CI 실행 | PRD-REL-001 | `scripts/trace_check.py` |
-| SRS-TEST-006 | PTY E2E 하네스: tmux(Unix 수동 실행) 또는 portable-pty(자동 테스트). portable-pty 하네스는 `ESC[6n` 질의에 응답 필요 (ConPTY의 커서 상속 모드 포함) | PRD-UI-010, PRD-OUT-006 | `tests/pty/` |
+| SRS-TEST-006 | PTY E2E 하네스: Unix tmux 스크립트(CI Linux, macOS), Windows portable-pty ConPTY 테스트(`ESC[6n` 질의 자동 응답) | PRD-UI-010, PRD-OUT-006 | `tests/pty/`, `tests/conpty.rs` |
 
 ## 21. ADR 목록
 
@@ -1027,8 +1029,8 @@ rustflags = ["-C", "target-feature=+crt-static"]
 | ChatGPT 경로 구조화 출력 지원 여부 | Phase 1 실계정 실측 | SRS-LLM-005 |
 | 리다이렉트 URL 붙여넣기 허용 여부 | Phase 1 실계정 실측 | SRS-AUTH-006 |
 | 신규 동적 등록 앱 활성화 여부, 한국 지역 허용 여부 | Phase 1 실계정 실측 | ADR-0007 |
-| Windows 콘솔 출력 핸들 선택과 stdout 리디렉션 병행 | Phase 1 Windows 실측 | SRS-TERM-003 |
-| macOS `/dev/tty`와 fd 1 전환 동작 | Phase 1 macOS 실측 | SRS-TERM-002 |
+| Windows 콘솔 출력 핸들 선택과 stdout 리디렉션 병행 | 부분 해소: ConPTY 자동 E2E 3개 경로 통과 (CI windows-2025, windows-11-arm). Windows Terminal, conhost 대화형 확인과 한국어 코드 페이지 환경은 수동 확인 대기 | SRS-TERM-003 |
+| macOS `/dev/tty`와 fd 1 전환 동작 | 해소: CI macos-15 PTY E2E 18건 통과 (2026-10-22) | SRS-TERM-002 |
 | 한국어 IME 조합 입력과 raw mode 상호작용 | Phase 1 실측 | SRS-TUI-011 |
 | ratatui 가로 축소 시 전체 화면 정리 동작 (0.30.2, main 브랜치 수정 미릴리스) | ratatui 차기 릴리스 | SRS-TERM-008 |
 | Zsh 지원 하한 버전 | Phase 2 실측 | SRS-CMP-002 |

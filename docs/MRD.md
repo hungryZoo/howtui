@@ -154,8 +154,8 @@ MVP = Phase 1 (Inline TUI MVP). 상세 단계는 [ROADMAP](ROADMAP.md) 참조.
 | MRD-RSK-003 | ChatGPT 로그인 경로의 구조화 출력 지원 미확인, `temperature` 등 미지원 | 응답 형식 불안정 | 지시문 기반 JSON 응답과 단계적 파싱 폴백 | 설계 반영 |
 | MRD-RSK-004 | device code 흐름 부재 | SSH 전용 장치의 첫 로그인 불편 | SSH 포트 포워딩 안내, 리다이렉트 URL 붙여넣기(실측 필요), 공식 자격증명 이전 절차 | 설계 반영 |
 | MRD-RSK-005 | Atuin AI와의 기능 중첩 | 차별성 약화 | 직접 편집, 자동 실행 없음, PowerShell, 독립 실행 중심 포지셔닝 | 설계 반영 |
-| MRD-RSK-006 | crossterm 커서 위치 질의의 stdout 출력 | stdout 오염 | fd 1 임시 전환 기법 검증 완료 (SPIKE-01) | Linux 검증 완료, macOS와 Windows 미검증 |
-| MRD-RSK-007 | Windows 콘솔에서 stdout 리디렉션과 TUI 렌더링 병행 동작 미검증 | Windows stdout 계약 미충족 가능성 | Phase 1 초기 Windows 실환경 검증 | 미해결 |
+| MRD-RSK-006 | crossterm 커서 위치 질의의 stdout 출력 | stdout 오염 | fd 1 임시 전환 기법 (SPIKE-01, ADR-0002) | 해소: Linux와 macOS PTY E2E 통과. Windows는 콘솔 API 경로로 해당 없음 (ConPTY E2E 통과) |
+| MRD-RSK-007 | Windows 콘솔에서 stdout 리디렉션과 TUI 렌더링 병행 동작 | Windows stdout 계약 미충족 가능성 | ConPTY 자동 E2E (TC-UI-016, TC-OUT-012), 수동 확인 (TC-UI-014, TC-OUT-009) | 부분 해소 (자동 검증 통과, 대화형 수동 확인 대기) |
 | MRD-RSK-008 | PowerShell 위젯 핸들러의 네이티브 출력 캡처 인코딩 (한국어 Windows 코드 페이지) | 한글과 이모지 깨짐 | 출력 파일 기반 전달 방식 채택 (ADR-0009), Phase 2 실측 | 설계 반영 |
 | MRD-RSK-009 | Raspberry Pi 실기기 미보유 시 검증 불가 | 지원 표기 지연 | qemu 에뮬레이션 결과와 실기기 결과 구분 표기 | 부분 검증 (qemu) |
 | MRD-RSK-010 | SIWC 약관의 DevKit 비상업 라이선스 참조 조항 해석 불명확 | 라이선스 위험 | DevKit 코드 미사용, 공개 문서 기반 독자 구현, 사용자 법률 검토 | 미해결 |

@@ -301,9 +301,9 @@ Officially supported pairs: **Linux + Bash**, **macOS + Zsh**, **Windows + Power
 | `aarch64-unknown-linux-gnu` | 64-bit Raspberry Pi OS (Pi 3, 4, 5), ARM servers | CI tests on ARM64 Linux |
 | `armv7-unknown-linux-gnueabihf` | 32-bit Raspberry Pi OS (Pi 2-5) | Build and glibc check only |
 | `aarch64-apple-darwin` | Apple Silicon Macs | CI tests, PTY end-to-end tests |
-| `x86_64-apple-darwin` | Intel Macs | Build only |
-| `x86_64-pc-windows-msvc` | Windows x64 | CI tests |
-| `aarch64-pc-windows-msvc` | Windows on ARM | CI tests on Windows ARM64 |
+| `x86_64-apple-darwin` | Intel Macs | Build, minimum-version and signature checks only |
+| `x86_64-pc-windows-msvc` | Windows x64 | CI tests, ConPTY end-to-end tests, installer tests (PowerShell 5.1 and 7) |
+| `aarch64-pc-windows-msvc` | Windows on ARM | CI tests and ConPTY end-to-end tests on Windows ARM64 |
 
 Linux builds need glibc 2.17 or newer (Raspberry Pi OS Buster and later, Ubuntu 20.04 and later); musl-based distributions are
 not supported. macOS builds need macOS 11 or newer. Windows builds link the C runtime statically. Raspberry Pi 1, Zero and
