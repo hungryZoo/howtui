@@ -63,3 +63,6 @@ codegen-units = 1
 strip = true
 opt-level = 3
 panic = "unwind"
+
+[target.'cfg(windows)'.dev-dependencies]
+portable-pty = "0.9"
