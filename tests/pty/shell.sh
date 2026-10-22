@@ -101,6 +101,10 @@ fail() { echo "FAIL $KIND/$1: $2" | tee -a "$OUT/summary.txt"; FAILED=1; }
 reset_line() { send C-u; sleep 0.1; send C-l; sleep 0.3; }
 # 프롬프트 대기
 wait_prompt() { for _ in $(seq 1 50); do case "$(last_line)" in "PROMPT>"*) return 0 ;; esac; sleep 0.1; done; return 1; }
+# 명령 실행 후 빈 프롬프트 대기 (고정 대기는 느린 CI 러너에서 경합)
+run_line() { lit "$1"; send Enter; for _ in $(seq 1 50); do [ "$(last_line)" = "PROMPT>" ] && return 0; sleep 0.1; done; return 1; }
+# 화면에 지정 줄이 나타날 때까지 대기
+wait_line() { for _ in $(seq 1 50); do tmux capture-pane -p -t "$P" | cat | sed 's/[[:space:]]*$//' | grep -qxF "$1" && return 0; sleep 0.1; done; return 1; }
 
 if ! wait_prompt; then
   snap start; fail start "no prompt"; exit 1
@@ -135,10 +139,10 @@ fi
 
 # (1b) 여러 줄 명령어 삽입 (TC-SH-014)
 reset_line
-lit "$SET_MULTI"; send Enter; sleep 0.3
+run_line "$SET_MULTI"
 send C-g; sleep 1; lit "two lines"; send Enter; sleep 0.6; send Enter; sleep 0.5; snap widget_multiline
 send C-c; sleep 0.3
-lit "$SET_ECHO"; send Enter; sleep 0.3
+run_line "$SET_ECHO"
 if awk 'found && /two$/ { ok = 1 } { found = ($0 ~ /^PROMPT> echo one \\[[:space:]]*$/) } END { exit !ok }' "$OUT/widget_multiline.screen"; then
   pass widget_multiline
 else
@@ -147,7 +151,7 @@ fi
 
 # (1c) 화면 맨 아래에서 실행: 화면 스크롤 후에도 입력 줄 1개만 남고 이전 출력 유지 (TC-SH-001)
 reset_line
-lit "$FILL"; send Enter; sleep 0.5
+run_line "$FILL"
 lit "echo bottom"; send C-g; sleep 1; lit "at bottom"; send Enter; sleep 0.6; send Enter; sleep 0.5; snap widget_bottom
 prev=$(sed '/^[[:space:]]*$/d' "$OUT/widget_bottom.screen" | tail -2 | head -1)
 if [ "$(last_line)" = "PROMPT> echo 'at bottom'" ] && [ "$prev" = "fill40" ] && [ "$(grep -c '^PROMPT>' "$OUT/widget_bottom.screen")" = 1 ]; then
@@ -165,11 +169,11 @@ if [ "$line" = "PROMPT> echo keep" ]; then pass widget_cancel; else fail widget_
 
 # (3) 바이너리 없음: 입력란 보존, 원인 표시 (TC-SH-006)
 reset_line
-lit "$PATH_BREAK"; send Enter; sleep 0.3
-lit "echo still"; send C-g; sleep 0.5; snap widget_missing
+run_line "$PATH_BREAK"
+lit "echo still"; wait_line "PROMPT> echo still"; send C-g; sleep 1; snap widget_missing
 # Zsh는 입력 줄 아래 메시지 표시: 마지막 프롬프트 줄로 판정
 line=$(grep '^PROMPT>' "$OUT/widget_missing.screen" | tail -1 | sed 's/[[:space:]]*$//')
-send C-u; lit "$PATH_RESTORE"; send Enter; sleep 0.3
+send C-u; run_line "$PATH_RESTORE"
 if [ "$line" = "PROMPT> echo still" ]; then
   pass widget_missing
 else
@@ -178,10 +182,10 @@ fi
 
 # (3b) 요청 오류 후 종료: 입력란 보존 (TC-SH-006)
 reset_line
-lit "$SET_ERROR"; send Enter; sleep 0.3
+run_line "$SET_ERROR"
 lit "echo err-keep"; send C-g; sleep 1; lit "q"; send Enter; sleep 0.6; snap widget_error; send Escape; sleep 0.5
 line=$(last_line)
-send C-u; lit "$SET_ECHO"; send Enter; sleep 0.3
+send C-u; run_line "$SET_ECHO"
 if grep -q 'usage limit' "$OUT/widget_error.screen" && [ "$line" = "PROMPT> echo err-keep" ]; then
   pass widget_error
 else
