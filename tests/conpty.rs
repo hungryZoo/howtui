@@ -72,6 +72,7 @@ impl Session {
         }
     }
 
+    /// ConPTY는 공백을 커서 이동(`ESC[1C`)으로 출력하므로 공백 없는 단어로 찾는다.
     fn wait_for(&self, needle: &str, timeout: Duration) -> bool {
         let start = Instant::now();
         while start.elapsed() < timeout {
@@ -141,7 +142,7 @@ fn run_case(redirect_stderr: bool) {
     s.send(b"find big files");
     s.send(b"\r");
     assert!(
-        s.wait_for("Prints a greeting", Duration::from_secs(20)),
+        s.wait_for("greeting", Duration::from_secs(20)),
         "response not shown: {}",
         s.dump()
     );
