@@ -39,7 +39,8 @@ case "$KIND" in
       if [ -z "${PTY_DOCKER_IMAGE:-}" ] && [ "$("$SH_BIN" -c 'echo ${BASH_VERSINFO[0]}')" -lt 4 ]; then LEGACY=1; fi
     else
       printf '%s\n' 'unset HISTFILE' "PROMPT='PROMPT> '" 'eval "$(howtui init zsh)"' > "$OUT/home/.zshrc"
-      DEFAULT_CMD="$(shell_bin zsh) -i"
+      # 배포판 전역 rc 제외 (Ubuntu /etc/zsh/zshrc의 compinit 확인 질문)
+      DEFAULT_CMD="$(shell_bin zsh) --no-globalrcs -i"
     fi
     PATH_BREAK='OLDPATH=$PATH; PATH=/usr/bin:/bin'
     PATH_RESTORE='PATH=$OLDPATH'
