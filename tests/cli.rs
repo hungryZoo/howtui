@@ -253,7 +253,6 @@ fn auth_status_signed_out_exits_4() {
     assert_eq!(out.status.code(), Some(4));
 }
 
-#[cfg(unix)]
 /// 쉘 통합 스크립트 출력과 키 검증 (TC-SH-008, TC-SH-004). 설정 파일 오류와 무관하게 동작.
 #[test]
 fn init_prints_scripts_and_validates_key() {
@@ -309,6 +308,7 @@ fn widget_without_output_file_exits_2() {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn tui_without_controlling_terminal_exits_3() {
     use std::os::unix::process::CommandExt;
