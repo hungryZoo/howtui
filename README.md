@@ -27,14 +27,15 @@ curl -fsSL https://raw.githubusercontent.com/hungryZoo/howtui/main/scripts/insta
 Run `howtui` and a few lines open under your prompt; nothing else on the screen moves. Type what you want in plain language,
 for example *"find files over 100 MB here"*. A command and a one-line explanation appear. Edit the command directly, or type a
 follow-up such as *"also sort by size"* and the model revises **your edited version**. Press Enter and the inline UI disappears,
-leaving only the command on stdout. Running it is your decision.
+leaving only the command on stdout. With the optional [shell integration](#shell-integration) the command lands in your
+next prompt line instead, ready to edit or run. Running it is your decision.
 
 ```text
 $ howtui
-Ask     > Ask for a change, or accept the command with Enter (find files over 100 MB here)
+Ask     > Type a change, or press Enter to accept the command (find files over 100 MB here)
 Command > find . -type f -size +100M -exec ls -lh {} +
 About   > Lists regular files larger than 100 MB below the current directory with their sizes.
-Enter accept  Ctrl+J newline  Ctrl+E explain  Tab ask  Esc quit               gpt-model  bash  Using ChatGPT plan
+Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit             gpt-model  bash  Using ChatGPT plan
 ```
 
 ---
@@ -55,6 +56,7 @@ Enter accept  Ctrl+J newline  Ctrl+E explain  Tab ask  Esc quit               gp
 4. [Usage](#4-usage)
    - [Commands](#commands)
    - [Keys](#keys)
+   - [Shell integration](#shell-integration)
    - [Non-interactive mode](#non-interactive-mode)
    - [Exit codes](#exit-codes)
 5. [Configuration](#5-configuration)
@@ -76,6 +78,7 @@ Enter accept  Ctrl+J newline  Ctrl+E explain  Tab ask  Esc quit               gp
 - **Edit, then ask.** Edit the command in place (multi-line, undo and redo, Unicode aware), then ask a follow-up; the model sees your edits.
 - **Explain on demand.** After editing by hand, press Ctrl+E to explain the current command.
 - **Clean stdout.** The UI draws on the controlling terminal, so `cmd=$(howtui)` and `howtui | pbcopy` receive only the command.
+- **Shell integration (optional).** Ctrl+G opens howtui on the current command line in Bash, Zsh or PowerShell, and typing `howtui` puts the result into the next prompt. You add one line to your rc file yourself; nothing edits it for you.
 - **Never executes.** howtui prints or hands over the command; it has no code path that runs generated commands.
 - **Danger hints.** Rule-based warnings for recursive deletes, disk writes, permission changes, piping downloads into a shell and more. High-risk commands need a second Enter.
 - **English and Korean UI.** Chosen from `HOWTUI_LANG`, `ui.language` or the system locale. Explanations follow the language of your question.
@@ -85,10 +88,10 @@ Enter accept  Ctrl+J newline  Ctrl+E explain  Tab ask  Esc quit               gp
 
 | Step | What happens |
 | --- | --- |
-| Sign in | `howtui login` runs the official Sign in with ChatGPT flow (OAuth with PKCE, `127.0.0.1` callback). Tokens go to the OS credential store, or to a file readable only by you. |
+| Sign in | The first run (or `howtui login`) starts the official Sign in with ChatGPT flow (OAuth with PKCE, `127.0.0.1` callback). Tokens go to the OS credential store, or to a file readable only by you. |
 | Ask | Your question, the current command and your OS, CPU architecture and shell name are sent to the OpenAI Responses API with your ChatGPT plan. |
 | Edit | The command editor is local. Follow-up requests include the edited command. |
-| Accept | The inline UI is cleared, the terminal is restored, and the command plus one newline is written to stdout. |
+| Accept | The inline UI is cleared, the terminal is restored, and the command plus one newline is written to stdout (or, with shell integration, handed to the prompt line). |
 
 <p align="right"><a href="#table-of-contents">↑ back to top</a></p>
 
@@ -178,14 +181,19 @@ cargo build --release          # Rust 1.89 or newer; rust-toolchain.toml pins th
 ## 3. Quickstart
 
 ```bash
-howtui login            # opens the browser; on SSH use: howtui login --no-browser
-howtui                  # ask, edit, Enter
+howtui                  # first run signs you in, then: ask, edit, Enter
 howtui find large log files    # ask right away
+eval "$(howtui init bash)"     # optional: add to ~/.bashrc (zsh: ~/.zshrc) for Ctrl+G and next-prompt insertion
 ```
 
-On a machine without a browser, `howtui login --no-browser` prints the sign-in URL. Open it on any device; when the browser
-ends on a `http://127.0.0.1:<port>/auth/callback?...` page that does not load, copy that address and paste it into the
-terminal. Alternatively forward the callback port first: `ssh -L <port>:127.0.0.1:<port> <host>` with a fixed `--port`.
+Sign-in starts by itself the first time (or run `howtui login`):
+
+1. A browser window opens. Sign in and press **Allow**.
+2. Only if the browser then shows an error page (`127.0.0.1` can't be reached, for example because howtui runs on another
+   machine over SSH): copy the whole address bar and paste it into the terminal. No Enter needed in the UI.
+
+`howtui login --no-browser` only prints the URL. Alternatively forward the callback port first:
+`ssh -L <port>:127.0.0.1:<port> <host>` with a fixed `--port`.
 
 <p align="right"><a href="#table-of-contents">↑ back to top</a></p>
 
@@ -203,6 +211,7 @@ terminal. Alternatively forward the callback port first: `ssh -L <port>:127.0.0.
 | `howtui logout [--forget]` | Revoke the session and delete local tokens (`--forget` also drops the account registration) |
 | `howtui auth status` | Show the signed-in account (masked email), plan usage and token expiry |
 | `howtui doctor [--json]` | Check terminal, locale, config, sign-in and model access; output contains no tokens or home paths |
+| `howtui init bash\|zsh\|powershell` | Print the shell integration script (options: `--key ctrl+x`, `--no-bind`, `--no-wrap`) |
 
 Common options: `--shell bash|zsh|powershell`, `--height N` (3-40).
 
@@ -210,18 +219,42 @@ Common options: `--shell bash|zsh|powershell`, `--height N` (3-40).
 
 | Key | Ask line | Command editor |
 | --- | --- | --- |
-| Enter | Send (first request generates, later ones revise) | Accept (high-risk commands ask for a second Enter) |
+| Enter | Send (first request generates, later ones revise); on an empty ask line, accept the command | Accept (high-risk commands ask for a second Enter) |
 | Ctrl+J, Alt+Enter | | New line (Shift+Enter where the terminal reports it) |
 | Tab, Shift+Tab | Switch to the command | Switch to the ask line |
 | Ctrl+E | | Explain the current command |
 | Esc | Quit | Quit (cancels a running request first) |
 | Ctrl+C | Quit | Quit |
-| Ctrl+Z, Ctrl+Y | Undo, redo | Undo, redo (an AI revision is one undo step) |
-| ← → ↑ ↓, Home, End, Ctrl+A | Move | Move |
+| Ctrl+Z, Ctrl+Y | Undo, redo (on an empty ask line: the command) | Undo, redo (an AI revision is one undo step) |
+| ↓ | Go to the command editor | Next line |
+| ↑ | | Previous line; on the first line, go to the ask line |
+| ← →, Home, End, Ctrl+A | Move | Move |
 | Ctrl+← →, Alt+B, Alt+F | Word left, right | Word left, right |
 | Backspace, Delete, Ctrl+W, Ctrl+U, Ctrl+K | Delete char, word, to start, to end | Same |
 
-Pasting multi-line text into the editor keeps the lines and never triggers Accept.
+Pasting multi-line text into the editor keeps the lines and never triggers Accept. After each answer the cursor stays on
+the ask line, so you can type the next change right away or press Enter to accept.
+
+### Shell integration
+
+Add one line to your shell startup file and open a new terminal. To remove it, delete the line.
+
+| Shell | Add to | Line |
+| --- | --- | --- |
+| Bash | `~/.bashrc` | `eval "$(howtui init bash)"` |
+| Zsh | `~/.zshrc` | `eval "$(howtui init zsh)"` |
+| PowerShell | `$PROFILE` | `howtui init powershell \| Out-String \| Invoke-Expression` |
+
+| You do | Result |
+| --- | --- |
+| Press **Ctrl+G** at the prompt | howtui opens with the current line as the command. Accepting replaces the line; Esc or an error leaves it untouched. |
+| Type `howtui ...` and accept | The command appears in the next prompt line (Bash and PowerShell also add it to history). |
+| `x=$(howtui)`, `howtui \| pbcopy`, `howtui > file` | Unchanged: the command goes to stdout. |
+
+Nothing is executed for you in any case. Options: `--key alt+h` (or another `ctrl+`/`alt+` letter), `--no-bind` (no key),
+`--no-wrap` (no `howtui` function, so typed runs print to stdout as before). Bash 3.2 (the macOS default) gets the history
+part only and prints a one-line notice instead of binding the key. If writing the result back to the shell fails, howtui
+prints the command so you can copy it.
 
 ### Non-interactive mode
 
@@ -295,6 +328,14 @@ Sign-in state and the file-based token store live in the data directory: `$XDG_D
 
 Officially supported pairs: **Linux + Bash**, **macOS + Zsh**, **Windows + PowerShell**. Other shells are not claimed.
 
+Shell integration, as tested (PTY end-to-end: Ctrl+G, next-prompt insertion, capture, cancel, errors, multi-line, fallback):
+
+| Shell | Tested | Not tested yet |
+| --- | --- | --- |
+| Bash | 5.0 (Ubuntu 20.04); script loading on 3.2, 4.0, 4.4, 5.1, 5.2 | |
+| Zsh | 5.9 (Debian 12) | 5.1-5.8 |
+| PowerShell | 7.4 on Linux (PSReadLine 2.3.5) | Windows PowerShell 5.1 and PowerShell 7 on Windows |
+
 | Target | Use it for | Verified |
 | --- | --- | --- |
 | `x86_64-unknown-linux-gnu` | Linux PCs and servers | CI tests, PTY end-to-end tests |
@@ -342,6 +383,7 @@ Zero W (ARMv6) are not supported, and no Raspberry Pi hardware has been tested y
 ```bash
 cargo test --features mock-provider          # unit and integration tests
 cargo build --features mock-provider && tests/pty/run.sh   # PTY end-to-end (needs tmux)
+tests/pty/shell.sh bash                      # shell integration end-to-end (also zsh, powershell)
 uv run scripts/trace_check.py                # requirement traceability check
 ```
 
@@ -355,7 +397,7 @@ Releases are built by `.github/workflows/release.yml` from `v*` tags as drafts a
 ## 9. Roadmap
 
 - [ ] Phase 1: inline UI, Sign in with ChatGPT, stdout output, installers (implemented, waiting for real-account and Windows checks)
-- [ ] Phase 2: optional shell integration that puts the command into the Bash, Zsh or PowerShell prompt
+- [ ] Phase 2: optional shell integration that puts the command into the Bash, Zsh or PowerShell prompt (implemented, Windows checks pending)
 - [ ] Phase 3: fullscreen mode
 - [ ] Phase 4: Raspberry Pi and Windows ARM64 hardware checks, update checks in `doctor`
 - [ ] Phase 5: API key providers (OpenAI, Gemini, Anthropic, OpenAI-compatible)

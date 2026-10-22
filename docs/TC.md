@@ -40,7 +40,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-CLI-004 | 비대화형 모드 | PRD-CLI-005, PRD-OUT-008, SRS-OUT-003 | Mock 시나리오(정상) | `howtui --no-tui "list files" > out 2> err` | out에 명령어 + LF만, err에 설명 평문, 두 파일 모두 ESC(0x1B) 0건, 종료 코드 0 | 통합 | 전체 | 통과 | - |
 | TC-CLI-005 | 높이 옵션 | PRD-CLI-006, SRS-TERM-007, SRS-CLI-006 | 터미널 100x30 | `howtui --height 5` | Inline 영역 5줄 | PTY | Unix | 통과 | - |
 | TC-CLI-006 | 쉘 지정 옵션과 기본값 | PRD-CLI-007, SRS-SH-007 | 쉘 판정 환경변수 제거 | (a) `--shell zsh` 지정 (b) 미지정 | (a) 요청 컨텍스트 shell=Zsh (b) OS 기본 조합 값 | 단위 | 전체 | 통과 | - |
-| TC-CLI-007 | init 출력 | PRD-CLI-008, SRS-SH-001 | 없음 | `howtui init bash`, `init zsh`, `init powershell` | 각 쉘 스크립트 stdout 출력, 종료 코드 0, 알 수 없는 쉘은 종료 코드 2 | 통합 | 전체 | 미실행 | - |
+| TC-CLI-007 | init 출력 | PRD-CLI-008, SRS-SH-001 | 없음 | `howtui init bash`, `init zsh`, `init powershell` | 각 쉘 스크립트 stdout 출력, 종료 코드 0, 알 수 없는 쉘은 종료 코드 2 | 통합 | 전체 | 통과 | - |
 | TC-CLI-008 | 모드 옵션 | PRD-CLI-009, PRD-FS-005, SRS-TUI-007, SRS-CLI-007 | P3 구현 | `howtui --mode fullscreen` | Alternate Screen 진입 | PTY | Unix | 미실행 | - |
 | TC-CLI-009 | 종료 코드 매핑 | PRD-CLI-010, SRS-ERR-001 | 없음 | 오류 분류별 매핑 함수 호출 | 8.1절 표와 일치 | 단위 | 전체 | 통과 | - |
 | TC-CLI-010 | 사용법 오류 | PRD-CLI-010, SRS-CLI-003 | 없음 | `howtui --unknown-flag` | 종료 코드 2, stdout 0바이트 | 통합 | 전체 | 통과 | - |
@@ -55,15 +55,17 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-UI-004 | 레이아웃 우선순위 | PRD-UI-002, SRS-TUI-003 | 명령어 8줄, 설명 5줄, 높이 6 | TestBackend 렌더링 | 상태줄 1, 질문 1, 명령어 4(스크롤 표시), 설명 0 | 스냅샷 | 전체 | 통과 | - |
 | TC-UI-005 | 진행 표시 | PRD-UI-007, SRS-ASYNC-005 | Mock 지연 2초 | 질문 제출 | 상태줄 진행 표시와 "Esc 취소", 응답 후 진행 표시 제거 | PTY | Unix | 통과 | - |
 | TC-UI-006 | 상태 전이 전체 | PRD-UI-013, SRS-TUI-001, SRS-DATA-001 | 없음 | PRD 3절 표 각 행 입력 | 각 행 다음 상태와 Effect 일치 | 단위 | 전체 | 통과 | - |
-| TC-UI-007 | 포커스 규칙 | PRD-UI-012, SRS-TUI-005 | 없음 | 시작, 응답 수신, Tab 입력 | 질문 → 명령어 → 질문 순 포커스 | 단위 | 전체 | 통과 | - |
+| TC-UI-007 | 포커스 규칙 | PRD-UI-012, SRS-TUI-005 | 없음 | 시작, 응답 수신, ↓, 명령어 2행에서 ↑ 2회, Tab | 응답 후 질문 영역 유지, ↓ 명령어 영역, 첫 줄 ↑ 질문 영역, 명령어 없으면 ↓ 이동 없음 | 단위 | 전체 | 통과 | - |
 | TC-UI-008 | 리사이즈 | PRD-UI-008, SRS-TERM-008 | 편집 중 상태 | 100x30 → 60x30 → 100x12 → 100x30 | 각 단계 화면 재구성, 확정 출력 정상 | PTY | Unix | 통과 | - |
 | TC-UI-009 | 최소 크기 미만 | PRD-UI-009, SRS-TERM-007 | 터미널 25x3 | 실행, Enter, Esc | 크기 부족 안내 1줄, Enter 무시, Esc 종료 130 | PTY | Unix | 통과 | - |
 | TC-UI-010 | 종료 시 복구 | PRD-UI-010, SRS-TERM-001, SRS-TERM-006 | 없음 | 확정, Esc, Ctrl+C, 오류, panic 주입 각각 | 종료 후 `stty -a`에 icanon, echo, isig 존재, 커서 표시, Inline 영역 삭제 | PTY | Unix | 통과 | - |
 | TC-UI-011 | 프롬프트 줄 중간 시작 | PRD-UI-011, SRS-TERM-005 | 커서 열 10에서 실행 | 실행 후 취소 | 시작 시 다음 줄부터 영역 표시, 종료 후 커서 열 10 원위치 | PTY | Unix | 통과 | - |
-| TC-UI-012 | 로그인 필요 화면 | PRD-AUTH-013, SRS-TUI-009 | 자격증명 없음 | 실행, Esc | 로그인 안내 화면, Esc 종료 130 | PTY | Unix | 통과 | - |
+| TC-UI-012 | 로그인 자동 시작 화면 | PRD-AUTH-013, SRS-TUI-009 | 자격증명 없음, `HOWTUI_NO_BROWSER=1` | 실행, Esc, Esc | Enter 없이 로그인 진행 화면(단계 안내 1, 2와 URL 전체), 첫 Esc 후 로그인 필요 화면, 두 번째 Esc 종료 130 | PTY | Unix | 통과 | - |
 | TC-UI-013 | 팝업 표현 문구 부재 | PRD-UI-014, SRS-TUI-013 | 없음 | `--help`, README에서 "popup", "팝업" 검색 | 팝업 오버레이 동등 표현 없음 | 수동 | 전체 | 통과 | - |
 | TC-UI-015 | 커서 질의 무응답 터미널 | SRS-CMP-003, PRD-UI-001, PRD-OUT-007 | 커서 위치 질의에 응답하지 않는 PTY 하네스 | 실행 | 2초 이내 TUI 미시작, 종료 코드 3, 터미널 모드 복구, stdout 0바이트 | PTY | Unix | 통과 | - |
 | TC-UI-014 | Windows Inline 렌더링 | PRD-UI-001, PRD-UI-010, SRS-TERM-003, SRS-CMP-004 | Windows Terminal, conhost | 실행, 편집, 확정, 취소 | 렌더링 정상, 종료 후 콘솔 모드 복구 | 수동 | Windows | 미실행 | - |
+| TC-UI-017 | 빈 질문 Enter 확정 | PRD-UI-012, SRS-TUI-005 | Mock 응답 | 응답 수신 후 질문 영역에서 Enter, 위험 높음 명령어는 Enter 2회 | 명령어 확정, 위험 높음은 재확인 후 확정 | 단위 | 전체 | 통과 | - |
+| TC-UI-018 | 빈 질문 영역 Undo | PRD-EDIT-007, SRS-TUI-005 | Mock 응답 | 후속 수정 응답 후 질문 영역에서 Ctrl+Z | AI 반영 직전 명령어 복원 | 단위 | 전체 | 통과 | - |
 | TC-UI-016 | Windows ConPTY 자동 E2E | PRD-UI-001, PRD-UI-010, SRS-TERM-003, SRS-TEST-006 | windows-2025, windows-11-arm 러너, Mock 시나리오 | `tests/conpty.rs`: 의사 콘솔에서 질문 입력, 응답 표시 확인, 확정, Ctrl+C 취소 | 화면 렌더링(한글, 이모지 포함), 확정 0, 취소 130 | PTY | Windows | 통과 | - |
 
 ## 4. 키 바인딩과 편집
@@ -83,7 +85,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-EDIT-006 | 재생성 보존 정책 | PRD-EDIT-006, SRS-DATA-003, SRS-DATA-004 | 편집 중 상태, 사용자 수정 반영 | 후속 요청 제출, 요청 중 입력, 응답 수신, Undo | 요청 페이로드에 수정본 포함, 요청 중 입력 무시, 응답 반영, Undo 시 수정본 복원 | 단위 | 전체 | 통과 | - |
 | TC-EDIT-007 | 취소 시 편집 보존 | PRD-EDIT-006 | 편집 중 상태 | 후속 요청 후 Esc | 명령어 버퍼 요청 전과 동일 | 단위 | 전체 | 통과 | - |
 | TC-EDIT-008 | 설명 갱신 필요 표시 | PRD-EDIT-007, SRS-TUI-005 | 응답 반영 상태 | 명령어 1글자 수정, Ctrl+E | 수정 직후 stale 표시, Explain 요청 발생, 응답 후 표시 해제 | 단위 | 전체 | 통과 | - |
-| TC-EDIT-009 | 쉘 입력란 초기값 | PRD-EDIT-008, SRS-SH-005 | P2, `HOWTUI_BUFFER="tar -x"` | 어댑터 모드 실행 | 명령어 영역 초기값 "tar -x", 포커스 질문 영역 | 단위 | 전체 | 미실행 | - |
+| TC-EDIT-009 | 쉘 입력란 초기값 | PRD-EDIT-008, SRS-SH-005 | P2, `HOWTUI_BUFFER="tar -x"` | 어댑터 모드 실행 | 명령어 영역 초기값 "tar -x", 포커스 질문 영역 | 단위 | 전체 | 통과 | - |
 
 ## 5. LLM
 
@@ -122,8 +124,9 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-AUTH-005 | ID 토큰 검증 | PRD-AUTH-004, SRS-AUTH-004 | 테스트 RSA 키와 JWKS | 정상, 서명 불일치, aud 불일치, 만료, nonce 불일치 | 정상만 통과 | 단위 | 전체 | 통과 | - |
 | TC-AUTH-006 | scope 미부여 | PRD-AUTH-004, PRD-AUTH-012, SRS-AUTH-011 | 토큰 응답 scope에 플랜 scope 없음 | 로그인 완료 처리 | 로그인 유지, 플랜 비활성 안내, 재동의 경로 안내 | 단위 | 전체 | 통과 | - |
 | TC-AUTH-007 | 헤드리스 옵션 | PRD-AUTH-005, SRS-AUTH-005 | 없음 | `howtui login --no-browser --port 18765` | 브라우저 미실행, URL과 SSH 포트 포워딩 안내 표시, 127.0.0.1:18765 리스닝 | 통합 | 전체 | 통과 | - |
-| TC-AUTH-008 | 리다이렉트 URL 붙여넣기 (실계정) | PRD-AUTH-006, SRS-AUTH-006 | 실계정, `--no-browser` | 다른 장치 브라우저 로그인 후 주소창 URL 붙여넣기 | 로그인 성공 여부와 OpenAI 측 응답 기록 | 실연동 | 전체 | 미실행 | - |
-| TC-AUTH-023 | 붙여넣기 URL 검증 | PRD-AUTH-006, SRS-AUTH-006 | Mock 토큰 서버 | 정상 URL, state 불일치, 호스트 `localhost`, 경로 불일치, 공백과 따옴표 포함 URL 입력 | 정상과 공백 제거 URL만 코드 교환, 나머지 거부 | 단위 | 전체 | 통과 | - |
+| TC-AUTH-008 | 리다이렉트 URL 붙여넣기 (실계정) | PRD-AUTH-006, SRS-AUTH-006 | 실계정, `--no-browser` | 다른 장치 브라우저 로그인 후 주소창 URL 붙여넣기 | 로그인 성공 여부와 OpenAI 측 응답 기록 | 실연동 | 전체 | 통과 | - |
+| TC-AUTH-023 | 붙여넣기 URL 검증 | PRD-AUTH-006, SRS-AUTH-006 | Mock 토큰 서버 | 정상 URL, state 불일치, 호스트 `localhost`, 경로 불일치, 공백과 따옴표 포함 URL, 스킴 없는 주소, 줄바꿈 포함 주소 입력 | 정상, 공백 제거, 스킴 보완 URL만 코드 교환, 나머지 거부 | 단위 | 전체 | 통과 | - |
+| TC-AUTH-025 | 콜백 주소 붙여넣기 자동 제출 | PRD-AUTH-006, SRS-AUTH-006 | 로그인 진행 상태 | `/auth/callback` 포함 문자열 붙여넣기, 그 외 문자열 붙여넣기 후 Enter | 콜백 주소는 Enter 없이 제출, 그 외 문자열은 Enter로 제출 | 단위 | 전체 | 통과 | - |
 | TC-AUTH-024 | 플랜 사용 불가 처리 | PRD-AUTH-019, SRS-AUTH-017 | Mock 응답: scope 미부여, not_eligible, client_not_enabled, 지역 403 | 질문 제출, `--no-tui` 실행 | 원인별 메시지, 요청 중단, 다른 Provider 요청 없음, `--no-tui` 종료 코드 5 또는 7 | 통합 | 전체 | 통과 | - |
 | TC-AUTH-009 | SSH 포트 포워딩 로그인 | PRD-AUTH-005, SRS-AUTH-005 | 원격 Linux와 로컬 브라우저 | `ssh -L` 후 원격 `howtui login --no-browser --port N` | 로그인 성공, 원격 장치 host ID 사용 | 실연동 | Linux, RPi | 미실행 | - |
 | TC-AUTH-010 | 자격증명 이전 | PRD-AUTH-007, SRS-AUTH-015 | P4 | 내보내기 후 다른 장치 가져오기 | 대상 host ID 유지, 원본 사용 중지 안내 | 수동 | 전체 | 미실행 | - |
@@ -161,21 +164,25 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 
 | ID | 목적 | 관련 ID | 사전 조건 | 절차 및 입력 | 기대 결과 | 유형 | 플랫폼 | 결과 | 이슈 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-SH-001 | Bash 삽입 | PRD-SH-001, PRD-SH-006, SRS-SH-002 | Bash 4.0 이상, init 등록 | 입력 "ls" 후 단축키, 확정 | 입력란 교체, 커서 끝, 미실행 (history 미기록) | PTY | Linux | 미실행 | - |
-| TC-SH-002 | Zsh 삽입 | PRD-SH-002, PRD-SH-006, SRS-SH-003 | Zsh, emacs와 viins | 동일 | 동일, 두 키맵 모두 동작 | PTY | Unix | 미실행 | - |
+| TC-SH-001 | Bash 삽입 | PRD-SH-001, PRD-SH-006, SRS-SH-002 | Bash 4.0 이상, init 등록 | 입력 "ls -l" 후 단축키, 질문, 확정. 화면 맨 아래에서 반복 | 명령어 초기값 "ls -l", 입력란 교체, 커서 끝, 미실행. 화면 스크롤 후 입력 줄 1개 | PTY | Linux | 통과 | - |
+| TC-SH-002 | Zsh 삽입 | PRD-SH-002, PRD-SH-006, SRS-SH-003 | Zsh 5.9, emacs 키맵 | 동일 | 동일 | PTY | Unix | 통과 | - |
 | TC-SH-003 | PowerShell 삽입 | PRD-SH-003, PRD-SH-006, SRS-SH-004, SRS-SH-011 | PowerShell 5.1과 7, PSReadLine | 입력 후 단축키, 확정 | 입력란 교체, 미실행 | 수동 | Windows | 미실행 | - |
-| TC-SH-004 | 단축키와 변경 | PRD-SH-004, SRS-SH-006 | init 기본값, 키 지정 옵션 | 기본 키, 지정 키 입력 | 각각 호출 | PTY | Unix | 미실행 | - |
-| TC-SH-005 | 취소 시 보존 | PRD-SH-005, PRD-SH-007, SRS-SH-005 | 입력 "echo 보존" | 단축키 후 Ctrl+C | 입력란 무변경 | PTY | Unix | 미실행 | - |
-| TC-SH-006 | 오류 시 보존 | PRD-SH-007, SRS-SH-009 | Mock 오류 후 종료, 바이너리 경로 오류 | 단축키 | 입력란 무변경, 원인 1줄 표시 | PTY | Unix | 미실행 | - |
-| TC-SH-007 | 대체 경로 | PRD-SH-008, SRS-SH-009 | 버퍼 삽입 실패 주입 | 확정 | 명령어 터미널 표시 | PTY | Unix | 미실행 | - |
-| TC-SH-008 | 등록과 제거 안내 | PRD-SH-009, SRS-SH-010 | 없음 | init 출력 확인 | 등록 줄과 제거 방법 주석 포함 | 단위 | 전체 | 미실행 | - |
+| TC-SH-004 | 단축키와 변경 | PRD-SH-004, SRS-SH-006 | init 기본값, 키 지정 옵션 | 기본 키, 지정 키 입력 | 각각 호출 | PTY | Unix | 통과 | - |
+| TC-SH-005 | 취소 시 보존 | PRD-SH-005, PRD-SH-007, SRS-SH-005 | 입력 "echo keep" | 단축키 후 Esc | 입력란 무변경 | PTY | Unix | 통과 | - |
+| TC-SH-006 | 오류 시 보존 | PRD-SH-007, SRS-SH-009 | Mock 오류 후 종료, 바이너리 경로 오류 | 단축키 | 입력란 무변경, 원인 1줄 표시 | PTY | Unix | 통과 | - |
+| TC-SH-007 | 대체 경로 | PRD-SH-008, SRS-SH-009 | TUI 실행 중 출력 파일 권한 제거 (`chmod 000`) | 확정 | 원인 1줄과 명령어 터미널 표시, 입력란 무변경 | PTY | Unix | 통과 | - |
+| TC-SH-008 | 등록과 제거 안내 | PRD-SH-009, SRS-SH-010 | 없음 | init 출력 확인 | 등록 줄과 제거 방법 주석 포함 | 단위 | 전체 | 통과 | - |
 | TC-SH-009 | 설치 시 rc 무변경 | PRD-SH-010, PRD-INS-001, SRS-INS-005 | 임시 HOME | install.sh 실행 | `.bashrc`, `.zshrc`, `.profile` 해시 불변 | 통합 | Unix | 통과 | - |
-| TC-SH-010 | 통합 표식 | PRD-SH-011, PRD-DOC-006, SRS-SH-008, SRS-DOC-005 | init 등록 쉘 | `howtui doctor` | integration 항목에 쉘 종류 표시 | PTY | Unix | 미실행 | - |
+| TC-SH-010 | 통합 표식 | PRD-SH-011, PRD-DOC-006, SRS-SH-008, SRS-DOC-005 | init 등록 쉘 | `howtui doctor` | integration 항목에 쉘 종류 표시 | PTY | Unix | 통과 | - |
 | TC-SH-011 | 지원 상태 표기 | PRD-SH-012, SRS-TEST-004, SRS-SH-012 | Phase 2 테스트 완료 | 문서 확인 | 쉘별 검증 버전과 결과 기재 | 수동 | 전체 | 미실행 | - |
-| TC-SH-012 | 어댑터 출력 경로 | PRD-OUT-009, SRS-SH-005 | 어댑터 모드 | Bash, Zsh: stdout, PowerShell: 출력 파일 | 각 경로로만 결과 전달 | 통합 | 전체 | 미실행 | - |
+| TC-SH-012 | 위젯 출력 경로 | PRD-OUT-009, SRS-SH-005 | 위젯 모드 (3개 쉘 공통 출력 파일) | 단축키 후 확정, `HOWTUI_OUTPUT_FILE` 없이 `--widget` 실행 | 출력 파일로만 전달(화면에 명령어 출력 없음), 출력 파일 미지정 시 종료 코드 2 | 통합 | 전체 | 통과 | - |
 | TC-SH-013 | PowerShell 한글 인코딩 | PRD-SH-003, SRS-SH-004 | 한국어 Windows, PowerShell 5.1, 코드 페이지 949 | 한글 이모지 포함 명령어 확정 | 입력란 문자 손상 없음 | 수동 | Windows | 미실행 | - |
-| TC-SH-015 | 쉘 하한 미만 처리 | SRS-CMP-002, PRD-SH-001, PRD-SH-003 | Bash 3.2 (macOS 기본), PSReadLine 미로드 PowerShell | init 스크립트 로드 | 바인딩 생략과 경고 1줄, 쉘 정상 동작 | 수동 | macOS, Windows | 미실행 | - |
-| TC-SH-014 | 여러 줄 삽입 | PRD-SH-006, SRS-SH-002, SRS-SH-003, SRS-SH-004 | 3개 쉘 | 2줄 명령어 확정 | 입력란 2줄 유지 (PowerShell 연속 프롬프트) | PTY | 전체 | 미실행 | - |
+| TC-SH-015 | 쉘 하한 미만 처리 | SRS-CMP-002, PRD-SH-001, PRD-SH-003 | Bash 3.2 (macOS 기본), PSReadLine 미로드 PowerShell | init 스크립트 로드, `howtui` 직접 실행 후 확정, ↑ | 바인딩 생략과 경고 1줄, 쉘 정상 동작, 다음 입력란 비어 있음, ↑로 명령어 호출 | PTY | macOS, Windows | 미실행 | - |
+| TC-SH-016 | 직접 실행 결과 다음 입력 전달 | PRD-SH-013, SRS-SH-013, SRS-SH-014 | init 등록 (Bash, Zsh, PowerShell) | 프롬프트에서 `howtui show disk usage` 실행, 확정 | 다음 프롬프트 입력란에 명령어, 미실행 | PTY | Unix | 통과 | - |
+| TC-SH-017 | 캡처와 취소 시 동작 유지 | PRD-SH-013, SRS-SH-013, PRD-OUT-002 | init 등록 | 쉘 변수 캡처로 `howtui` 실행 후 확정, `howtui` 실행 후 Esc | 캡처 변수에 명령어, 다음 입력란 비어 있음. 취소 시 종료 코드 130 전달, 입력란 비어 있음 | PTY | Unix | 통과 | - |
+| TC-SH-018 | PowerShell 7 자동 E2E (Linux) | PRD-SH-003, SRS-SH-004 | Linux pwsh 7.4, PSReadLine 2.3.5 | TC-SH-001, 004-007, 012, 014, 016, 017과 같은 절차 | 같은 기대 결과 | PTY | Linux | 통과 | - |
+| TC-SH-019 | Bash 버전별 스크립트 적재 | SRS-SH-002, SRS-CMP-002 | Bash 3.2, 4.0, 4.4, 5.1, 5.2 컨테이너 | `bash -n`, 대화형 쉘에서 init 스크립트 적재 | 문법 오류 없음, 3.2만 경고 1줄, 함수 정의 | 통합 | Linux | 통과 | - |
+| TC-SH-014 | 여러 줄 삽입 | PRD-SH-006, SRS-SH-002, SRS-SH-003, SRS-SH-004 | 3개 쉘 | 2줄 명령어 확정 | 입력란 2줄 유지 (PowerShell 연속 프롬프트) | PTY | 전체 | 통과 | - |
 
 ## 9. Fullscreen
 
@@ -319,7 +326,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | `TC-AUTH-019` | 통과 | CI `scripts/ci/check_rules.sh` | 비공식 경로 문자열 0건 |
 | `TC-AUTH-020` | 통과 | 단위 `cargo test` | transient_refresh_failure_keeps_credentials |
 | `TC-AUTH-021` | 통과 | 단위 `cargo test` | terminal_refresh_error_deletes_tokens, token_errors_are_classified |
-| `TC-AUTH-023` | 통과 | 단위 `cargo test` | pasted_url_validation |
+| `TC-AUTH-023` | 통과 | 단위 `cargo test` | pasted_url_validation, pasted_url_without_scheme_or_with_line_breaks |
 | `TC-AUTH-024` | 통과 | 통합 `tests/cli.rs` | plan_not_granted_stops_without_request, client_not_enabled_is_reported |
 | `TC-CFG-001` | 통과 | 단위 `cargo test` | platform::paths::tests |
 | `TC-CFG-002` | 통과 | 단위 `cargo test` | missing_file_uses_defaults |
@@ -422,12 +429,40 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | `TC-UI-004` | 통과 | 렌더링 TestBackend | layout_priority_on_short_screen |
 | `TC-UI-005` | 통과 | 렌더링 TestBackend | requesting_shows_progress_and_cancel_hint |
 | `TC-UI-006` | 통과 | 단위 `cargo test` | app::update::tests (상태 전이 표 행별 27건) |
-| `TC-UI-007` | 통과 | 단위 `cargo test` | success_applies_command_and_moves_focus, follow_up_revises_with_user_edit_and_undo_restores_edit |
+| `TC-UI-007` | 통과 | 단위 `cargo test` | success_applies_command_and_keeps_question_focus, arrows_move_between_question_and_command (CR-001 이후 재실행) |
 | `TC-UI-008` | 통과 | PTY `tests/pty/run.sh` | resize |
 | `TC-UI-009` | 통과 | PTY `tests/pty/run.sh` | tiny (25x5) |
 | `TC-UI-010` | 통과 | PTY `tests/pty/run.sh` | cancel, panic, signal 케이스 stty 복구 판정 |
 | `TC-UI-011` | 통과 | PTY `tests/pty/run.sh` | midline (prefixEND) |
-| `TC-UI-012` | 통과 | PTY `tests/pty/run.sh` | login |
+| `TC-UI-012` | 통과 | PTY `tests/pty/run.sh` | login, login_cancelled 화면 (CR-002 이후 재실행) |
 | `TC-UI-013` | 통과 | 수동 | README와 --help에 팝업 동등 표현 없음 확인 |
 | `TC-UI-015` | 통과 | PTY `tests/pty/no_dsr.py` | 종료 코드 3, 2.01초 |
 | `TC-UI-016` | 통과 | CI `tests/conpty.rs` | windows-2025, windows-11-arm (run 39726403517) |
+
+## 18. 실행 결과 기록 (요구사항 변경 CR-001-003, Phase 2)
+
+- 실행 환경: 로컬 Ubuntu 20.04 x86_64 (rustc 1.99.1, tmux 3.7c, Bash 5.0.17), 컨테이너 Zsh 5.9 (Debian 12), PowerShell 7.4.2 (Ubuntu 22.04), Bash 3.2-5.2 공식 이미지. 컨테이너 이미지는 시험 후 삭제
+- 변경 전 통과 기록이 있는 TC는 17절 행에 재실행 근거 추가
+
+| TC | 결과 | 실행 수단 | 근거 |
+| --- | --- | --- | --- |
+| `TC-AUTH-008` | 통과 | 실계정 수동 (사용자) | 붙여넣기 로그인 성공 보고, `state.json` 구조화 출력 `true` (2026-10-22) |
+| `TC-AUTH-025` | 통과 | 단위 `cargo test` | login_paste_submits_redirect_and_invalid_paste_keeps_waiting |
+| `TC-UI-017` | 통과 | 단위 `cargo test`, PTY `tests/pty/run.sh` | empty_question_enter_accepts_command, empty_question_enter_on_high_risk_needs_second_enter, pipe, danger |
+| `TC-UI-018` | 통과 | 단위 `cargo test` | follow_up_revises_with_user_edit_and_undo_restores_edit |
+| `TC-CLI-007` | 통과 | 통합 `tests/cli.rs` | init_prints_scripts_and_validates_key (bash, zsh, powershell, pwsh 별칭, fish 종료 코드 2) |
+| `TC-EDIT-009` | 통과 | 단위 `cargo test`, PTY `tests/pty/shell.sh` | widget_input_requires_output_file, widget_open 화면 (명령어 초기값, 질문 영역 포커스 안내) |
+| `TC-SH-001` | 통과 | PTY `tests/pty/shell.sh bash` | Bash 5.0 로컬: widget_replace, widget_bottom |
+| `TC-SH-002` | 통과 | PTY `tests/pty/shell.sh zsh` | Zsh 5.9 (Debian 12 컨테이너): widget_replace, widget_bottom |
+| `TC-SH-004` | 통과 | PTY `tests/pty/shell.sh` | key_option (alt+h, `--no-wrap`), 3개 쉘 |
+| `TC-SH-005` | 통과 | PTY `tests/pty/shell.sh` | widget_cancel, 3개 쉘 |
+| `TC-SH-006` | 통과 | PTY `tests/pty/shell.sh` | widget_missing (바이너리 없음), widget_error (Mock 사용량 한도 오류 후 Esc), 3개 쉘 |
+| `TC-SH-007` | 통과 | PTY `tests/pty/shell.sh`, 단위 `cargo test` | widget_fallback 3개 쉘, file_destinations_write_and_widget_failure_exits_1 |
+| `TC-SH-008` | 통과 | 단위 `cargo test`, 통합 `tests/cli.rs` | default_scripts_bind_ctrl_g_and_define_wrapper, init_prints_scripts_and_validates_key |
+| `TC-SH-010` | 통과 | PTY `tests/pty/shell.sh` | doctor (`shell integration: <쉘>`), 3개 쉘 |
+| `TC-SH-012` | 통과 | PTY `tests/pty/shell.sh`, 통합 `tests/cli.rs` | widget_replace 3개 쉘, widget_without_output_file_exits_2 |
+| `TC-SH-014` | 통과 | PTY `tests/pty/shell.sh` | widget_multiline 3개 쉘 (PowerShell 연속 프롬프트 `>>`) |
+| `TC-SH-016` | 통과 | PTY `tests/pty/shell.sh` | next_input: Bash 5.0, Zsh 5.9, PowerShell 7.4 |
+| `TC-SH-017` | 통과 | PTY `tests/pty/shell.sh` | wrapper_capture, wrapper_cancel, 3개 쉘 |
+| `TC-SH-018` | 통과 | PTY `tests/pty/shell.sh powershell` | mcr.microsoft.com/powershell 7.4.2 (Ubuntu 22.04 컨테이너), 12건 |
+| `TC-SH-019` | 통과 | 컨테이너 `bash:3.2`, `bash:4.0`, `bash:4.4`, `bash:5.1`, `bash:5.2` | 5개 버전 문법 검사와 적재, 3.2만 바인딩 생략 경고 |

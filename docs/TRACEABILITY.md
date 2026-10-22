@@ -8,9 +8,9 @@
 | 항목 | 값 |
 | --- | --- |
 | MRD 항목 | 77 |
-| PRD 요구사항 | 161 |
-| SRS 설계 요구사항 | 176 |
-| TC | 190 |
+| PRD 요구사항 | 162 |
+| SRS 설계 요구사항 | 178 |
+| TC | 197 |
 | 오류 (누락, 불일치) | 0 |
 | 경고 (TC 미연결 SRS) | 0 |
 
@@ -28,8 +28,8 @@
 | PRD-CLI-004 | P1 | 필수 | MRD-SCP-006 | SRS-CLI-001 | TC-CLI-003 | `src/cli/mod.rs` | 통과 1 |
 | PRD-CLI-005 | P1 | 필수 | MRD-SCP-005 | SRS-CLI-003, SRS-OUT-003 | TC-CLI-004 | `src/cli/mod.rs`<br>`src/cli/no_tui.rs` | 통과 1 |
 | PRD-CLI-006 | P1 | 권장 | MRD-SCP-001 | SRS-CLI-003, SRS-CLI-006 | TC-CLI-005 | `src/cli/mod.rs` | 통과 1 |
-| PRD-CLI-007 | P1 | 필수 | MRD-SCN-001 | SRS-SH-007 | TC-CLI-006 | `src/shell/detect.rs` | 통과 1 |
-| PRD-CLI-008 | P2 | 필수 | MRD-SCP-101 | SRS-SH-001 | TC-CLI-007 | `src/shell/init.rs`, `src/shell/scripts/` | 미실행 1 |
+| PRD-CLI-007 | P1 | 필수 | MRD-SCN-001 | SRS-SH-007 | TC-CLI-006 | `src/shell/mod.rs` | 통과 1 |
+| PRD-CLI-008 | P2 | 필수 | MRD-SCP-101 | SRS-SH-001 | TC-CLI-007 | `src/shell/init.rs`, `src/shell/scripts/`, `src/cli/mod.rs` | 통과 1 |
 | PRD-CLI-009 | P3 | 필수 | MRD-SCP-102 | SRS-CLI-007 | TC-CLI-008 | `src/cli/mod.rs` | 미실행 1 |
 | PRD-CLI-010 | P1 | 필수 | MRD-SCP-005 | SRS-CLI-003, SRS-ERR-001 | TC-CLI-009, TC-CLI-010 | `src/cli/mod.rs`<br>`src/llm/types.rs`, `src/cli/` | 통과 2 |
 | PRD-CLI-011 | P1 | 필수 | MRD-SCN-001 | SRS-CLI-004 | TC-CLI-003 | `src/cli/mod.rs` | 통과 1 |
@@ -44,10 +44,10 @@
 | PRD-UI-009 | P1 | 필수 | MRD-SCP-001 | SRS-TERM-007 | TC-UI-009 | `src/ui/inline.rs` | 통과 1 |
 | PRD-UI-010 | P1 | 필수 | MRD-KPI-003 | SRS-TERM-001, SRS-TERM-006, SRS-TEST-006 | TC-UI-010, TC-UI-014, TC-UI-016 | `src/platform/tty.rs`, `src/ui/terminal.rs`<br>`src/ui/terminal.rs`, `src/runtime.rs`<br>`tests/pty/`, `tests/conpty.rs` | 미실행 1, 통과 2 |
 | PRD-UI-011 | P1 | 필수 | MRD-KPI-001 | SRS-TERM-005 | TC-UI-011 | `src/ui/terminal.rs` | 통과 1 |
-| PRD-UI-012 | P1 | 필수 | MRD-SCN-002 | SRS-TUI-005 | TC-UI-007 | `src/app/update.rs` | 통과 1 |
+| PRD-UI-012 | P1 | 필수 | MRD-SCN-002 | SRS-TUI-005 | TC-UI-007, TC-UI-017 | `src/app/update.rs` | 통과 2 |
 | PRD-UI-013 | P1 | 필수 | MRD-SCP-001 | SRS-ARC-001, SRS-DATA-001, SRS-TUI-001 | TC-UI-006 | `src/app/`, `src/runtime.rs`<br>`src/app/state.rs`<br>`src/app/update.rs` | 통과 1 |
 | PRD-UI-014 | P1 | 필수 | MRD-EXC-012 | SRS-TUI-013 | TC-UI-013 | `src/ui/`, `README.md` | 통과 1 |
-| PRD-KEY-001 | P1 | 필수 | MRD-SCP-001, MRD-SCP-002 | SRS-TUI-002 | TC-KEY-001, TC-KEY-002, TC-KEY-005 | `src/ui/keymap.rs` | 미실행 1, 통과 2 |
+| PRD-KEY-001 | P1 | 필수 | MRD-SCP-001, MRD-SCP-002 | SRS-TUI-002, SRS-TUI-005 | TC-KEY-001, TC-KEY-002, TC-KEY-005 | `src/app/update.rs`<br>`src/ui/keymap.rs` | 미실행 1, 통과 2 |
 | PRD-KEY-002 | P1 | 권장 | MRD-SCP-002 | SRS-TUI-008 | TC-KEY-003 | `src/ui/terminal.rs` | 미실행 1 |
 | PRD-KEY-003 | P1 | 필수 | MRD-SCP-001 | SRS-TUI-012 | TC-KEY-004 | `src/config/mod.rs` | 통과 1 |
 | PRD-EDIT-001 | P1 | 필수 | MRD-DIF-001, MRD-SCP-002 | SRS-TUI-011 | TC-EDIT-001 | `src/app/editor.rs`, `src/ui/widgets.rs` | 통과 1 |
@@ -56,8 +56,8 @@
 | PRD-EDIT-004 | P1 | 필수 | MRD-SCP-002 | SRS-TUI-011 | TC-EDIT-004 | `src/app/editor.rs`, `src/ui/widgets.rs` | 통과 1 |
 | PRD-EDIT-005 | P1 | 필수 | MRD-SCP-002 | SRS-DATA-002, SRS-TUI-011 | TC-EDIT-005 | `src/app/editor.rs`<br>`src/app/editor.rs`, `src/ui/widgets.rs` | 통과 1 |
 | PRD-EDIT-006 | P1 | 필수 | MRD-DIF-001, MRD-SCN-003 | SRS-DATA-003, SRS-DATA-004 | TC-EDIT-006, TC-EDIT-007 | `src/app/editor.rs`<br>`src/app/update.rs` | 통과 2 |
-| PRD-EDIT-007 | P1 | 필수 | MRD-SCN-004 | SRS-TUI-005 | TC-EDIT-008 | `src/app/update.rs` | 통과 1 |
-| PRD-EDIT-008 | P2 | 필수 | MRD-SCN-005 | SRS-SH-005 | TC-EDIT-009 | `src/cli/widget.rs` | 미실행 1 |
+| PRD-EDIT-007 | P1 | 필수 | MRD-SCN-004 | SRS-TUI-005 | TC-UI-018, TC-EDIT-008 | `src/app/update.rs` | 통과 2 |
+| PRD-EDIT-008 | P2 | 필수 | MRD-SCN-005 | SRS-SH-005 | TC-EDIT-009 | `src/cli/widget.rs` | 통과 1 |
 | PRD-LLM-001 | P1 | 필수 | MRD-SCP-003 | SRS-MOD-005, SRS-LLM-002, SRS-LLM-004, SRS-SEC-002 | TC-LLM-001, TC-LLM-013, TC-LLM-017, TC-NFR-007 | `src/llm/http.rs`<br>`src/llm/prompt.rs`<br>`src/llm/sse.rs` | 미실행 2, 통과 2 |
 | PRD-LLM-002 | P1 | 필수 | MRD-SCP-003, MRD-DIF-001 | SRS-LLM-002 | TC-LLM-002 | `src/llm/prompt.rs` | 통과 1 |
 | PRD-LLM-003 | P1 | 필수 | MRD-SCP-003 | SRS-LLM-002 | TC-LLM-003 | `src/llm/prompt.rs` | 통과 1 |
@@ -83,7 +83,7 @@
 | PRD-AUTH-003 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-002 | TC-AUTH-004 | `src/auth/state.rs` | 통과 1 |
 | PRD-AUTH-004 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-004 | TC-AUTH-005, TC-AUTH-006 | `src/auth/idtoken.rs` | 통과 2 |
 | PRD-AUTH-005 | P1 | 필수 | MRD-SCN-007, MRD-RSK-004 | SRS-AUTH-005 | TC-AUTH-007, TC-AUTH-009 | `src/auth/mod.rs`, `src/cli/provider.rs` | 미실행 1, 통과 1 |
-| PRD-AUTH-006 | P1 | 필수 | MRD-SCN-007 | SRS-AUTH-006 | TC-AUTH-008, TC-AUTH-023 | `src/auth/oauth.rs` | 미실행 1, 통과 1 |
+| PRD-AUTH-006 | P1 | 필수 | MRD-SCN-007 | SRS-AUTH-006 | TC-AUTH-008, TC-AUTH-023, TC-AUTH-025 | `src/auth/callback.rs`, `src/app/update.rs` | 통과 3 |
 | PRD-AUTH-007 | P4 | 권장 | MRD-SCN-007 | SRS-AUTH-015 | TC-AUTH-010 | `src/auth/transfer.rs` | 미실행 1 |
 | PRD-AUTH-008 | P1 | 필수 | MRD-SCP-004 | SRS-MOD-006, SRS-AUTH-007 | TC-AUTH-011 | `src/auth/store.rs` | 통과 1 |
 | PRD-AUTH-009 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-008 | TC-AUTH-012, TC-AUTH-013, TC-AUTH-022 | `src/auth/session.rs` | 미실행 1, 통과 2 |
@@ -91,34 +91,35 @@
 | PRD-AUTH-011 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-010 | TC-AUTH-015 | `src/auth/status.rs` | 통과 1 |
 | PRD-AUTH-012 | P1 | 필수 | MRD-RSK-002 | SRS-AUTH-011 | TC-AUTH-006 | `src/auth/oauth.rs` | 통과 1 |
 | PRD-AUTH-019 | P1 | 필수 | MRD-RSK-001 | SRS-AUTH-017 | TC-AUTH-024 | `src/llm/chatgpt.rs`, `src/app/update.rs` | 통과 1 |
-| PRD-AUTH-013 | P1 | 필수 | MRD-SCN-001 | SRS-TUI-009 | TC-UI-012, TC-AUTH-016 | `src/ui/inline.rs` | 미실행 1, 통과 1 |
+| PRD-AUTH-013 | P1 | 필수 | MRD-SCN-001 | SRS-TUI-009 | TC-UI-012, TC-AUTH-016 | `src/ui/inline.rs`, `src/runtime.rs` | 미실행 1, 통과 1 |
 | PRD-AUTH-014 | P1 | 필수 | MRD-SCP-004 | SRS-TUI-010 | TC-AUTH-017 | `src/ui/inline.rs`, `src/auth/state.rs` | 통과 1 |
 | PRD-AUTH-015 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-013 | TC-AUTH-018 | `src/auth/notice.rs` | 통과 1 |
 | PRD-AUTH-016 | P1 | 필수 | MRD-EXC-007 | SRS-LLM-005, SRS-AUTH-014 | TC-AUTH-019 | `src/llm/chatgpt.rs`<br>저장소 전체 | 통과 1 |
 | PRD-AUTH-017 | P1 | 필수 | MRD-SCP-004 | SRS-LLM-008 | TC-LLM-015, TC-AUTH-021 | `src/llm/chatgpt.rs` | 통과 2 |
 | PRD-AUTH-018 | P1 | 필수 | MRD-SCP-004 | SRS-ERR-004, SRS-AUTH-016 | TC-AUTH-020 | `src/auth/session.rs`<br>`src/llm/chatgpt.rs`, `src/auth/session.rs` | 통과 1 |
 | PRD-OUT-001 | P1 | 필수 | MRD-SCP-005, MRD-DIF-005 | SRS-OUT-001 | TC-OUT-001, TC-OUT-009, TC-OUT-012 | `src/output/mod.rs` | 미실행 1, 통과 2 |
-| PRD-OUT-002 | P1 | 필수 | MRD-SCP-005 | SRS-MOD-008, SRS-TERM-001, SRS-TERM-002, SRS-TERM-003 | TC-OUT-008 | `src/platform/tty.rs`<br>`src/platform/tty.rs`, `src/ui/terminal.rs`<br>`src/ui/terminal.rs` | 통과 1 |
+| PRD-OUT-002 | P1 | 필수 | MRD-SCP-005 | SRS-MOD-008, SRS-TERM-001, SRS-TERM-002, SRS-TERM-003 | TC-OUT-008, TC-SH-017 | `src/platform/tty.rs`<br>`src/platform/tty.rs`, `src/ui/terminal.rs`<br>`src/ui/terminal.rs` | 통과 2 |
 | PRD-OUT-003 | P1 | 필수 | MRD-SCP-005 | SRS-OUT-002 | TC-OUT-004 | `src/main.rs` | 통과 1 |
 | PRD-OUT-004 | P1 | 필수 | MRD-SCP-005 | SRS-OUT-002 | TC-OUT-005 | `src/main.rs` | 통과 1 |
 | PRD-OUT-005 | P1 | 필수 | MRD-SCP-005 | SRS-DATA-006, SRS-OUT-001 | TC-OUT-002 | `src/app/editor.rs`<br>`src/output/mod.rs` | 통과 1 |
 | PRD-OUT-006 | P1 | 필수 | MRD-KPI-002 | SRS-TERM-002, SRS-TEST-006 | TC-OUT-001, TC-OUT-002, TC-OUT-003, TC-OUT-007, TC-OUT-009, TC-OUT-012 | `src/platform/tty.rs`<br>`tests/pty/`, `tests/conpty.rs` | 미실행 1, 통과 5 |
 | PRD-OUT-007 | P1 | 필수 | MRD-SCP-005 | SRS-TERM-004, SRS-CMP-003 | TC-UI-015, TC-OUT-006 | `src/platform/tty.rs`, `src/main.rs`<br>`src/ui/terminal.rs` | 통과 2 |
 | PRD-OUT-008 | P1 | 필수 | MRD-SCP-005 | SRS-OUT-003 | TC-CLI-004 | `src/cli/no_tui.rs` | 통과 1 |
-| PRD-OUT-009 | P2 | 필수 | MRD-SCP-101 | SRS-OUT-005, SRS-SH-005 | TC-OUT-010, TC-SH-012 | `src/cli/widget.rs`<br>`src/output/mod.rs` | 미실행 2 |
+| PRD-OUT-009 | P2 | 필수 | MRD-SCP-101 | SRS-OUT-005, SRS-SH-005 | TC-OUT-010, TC-SH-012 | `src/cli/widget.rs`<br>`src/output/mod.rs` | 미실행 1, 통과 1 |
 | PRD-OUT-010 | P1 | 필수 | MRD-SCP-005 | SRS-OUT-004 | TC-OUT-011 | `src/main.rs` | 통과 1 |
-| PRD-SH-001 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 | SRS-SH-002, SRS-CMP-002 | TC-SH-001, TC-SH-015 | `src/shell/scripts/`<br>`src/shell/scripts/howtui.bash` | 미실행 2 |
-| PRD-SH-002 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 | SRS-SH-003, SRS-CMP-002 | TC-SH-002 | `src/shell/scripts/`<br>`src/shell/scripts/howtui.zsh` | 미실행 1 |
-| PRD-SH-003 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 | SRS-SH-004, SRS-SH-011, SRS-CMP-002 | TC-SH-003, TC-SH-013, TC-SH-015 | `src/shell/scripts/`<br>`src/shell/scripts/howtui.ps1`<br>`src/shell/scripts/howtui.ps1`, 문서 | 미실행 3 |
-| PRD-SH-004 | P2 | 필수 | MRD-SCN-005 | SRS-SH-006 | TC-SH-004 | `src/shell/init.rs` | 미실행 1 |
-| PRD-SH-005 | P2 | 필수 | MRD-SCN-005 | SRS-SH-005 | TC-SH-005 | `src/cli/widget.rs` | 미실행 1 |
-| PRD-SH-006 | P2 | 필수 | MRD-DIF-002 | SRS-SH-002, SRS-SH-003, SRS-SH-004 | TC-SH-001, TC-SH-002, TC-SH-003, TC-SH-014 | `src/shell/scripts/howtui.bash`<br>`src/shell/scripts/howtui.ps1`<br>`src/shell/scripts/howtui.zsh` | 미실행 4 |
-| PRD-SH-007 | P2 | 필수 | MRD-KPI-005 | SRS-SH-005, SRS-SH-009 | TC-SH-005, TC-SH-006 | `src/cli/widget.rs` | 미실행 2 |
-| PRD-SH-008 | P2 | 필수 | MRD-SCN-006 | SRS-SH-009 | TC-SH-007 | `src/cli/widget.rs` | 미실행 1 |
-| PRD-SH-009 | P2 | 필수 | MRD-SCP-101 | SRS-SH-001, SRS-SH-010 | TC-SH-008 | `src/shell/init.rs`, `src/shell/scripts/`<br>`src/shell/scripts/`, `scripts/` | 미실행 1 |
+| PRD-SH-001 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 | SRS-SH-002, SRS-CMP-002 | TC-SH-001, TC-SH-015 | `src/shell/scripts/`<br>`src/shell/scripts/howtui.bash` | 미실행 1, 통과 1 |
+| PRD-SH-002 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 | SRS-SH-003, SRS-CMP-002 | TC-SH-002 | `src/shell/scripts/`<br>`src/shell/scripts/howtui.zsh` | 통과 1 |
+| PRD-SH-003 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 | SRS-SH-004, SRS-SH-011, SRS-CMP-002 | TC-SH-003, TC-SH-013, TC-SH-015, TC-SH-018 | `src/shell/scripts/`<br>`src/shell/scripts/howtui.ps1`<br>`src/shell/scripts/howtui.ps1`, 문서 | 미실행 3, 통과 1 |
+| PRD-SH-004 | P2 | 필수 | MRD-SCN-005 | SRS-SH-006 | TC-SH-004 | `src/shell/init.rs` | 통과 1 |
+| PRD-SH-005 | P2 | 필수 | MRD-SCN-005 | SRS-SH-005 | TC-SH-005 | `src/cli/widget.rs` | 통과 1 |
+| PRD-SH-006 | P2 | 필수 | MRD-DIF-002 | SRS-SH-002, SRS-SH-003, SRS-SH-004 | TC-SH-001, TC-SH-002, TC-SH-003, TC-SH-014 | `src/shell/scripts/howtui.bash`<br>`src/shell/scripts/howtui.ps1`<br>`src/shell/scripts/howtui.zsh` | 미실행 1, 통과 3 |
+| PRD-SH-007 | P2 | 필수 | MRD-KPI-005 | SRS-SH-005, SRS-SH-009 | TC-SH-005, TC-SH-006 | `src/cli/widget.rs` | 통과 2 |
+| PRD-SH-008 | P2 | 필수 | MRD-SCN-006 | SRS-SH-009 | TC-SH-007 | `src/cli/widget.rs` | 통과 1 |
+| PRD-SH-009 | P2 | 필수 | MRD-SCP-101 | SRS-SH-001, SRS-SH-010 | TC-SH-008 | `src/shell/init.rs`, `src/shell/scripts/`, `src/cli/mod.rs`<br>`src/shell/scripts/`, `scripts/` | 통과 1 |
 | PRD-SH-010 | P1 | 필수 | MRD-EXC-004 | SRS-SH-010, SRS-INS-005 | TC-SH-009 | `scripts/install.sh`<br>`src/shell/scripts/`, `scripts/` | 통과 1 |
-| PRD-SH-011 | P2 | 필수 | MRD-SCN-008 | SRS-SH-008 | TC-SH-010 | `src/shell/scripts/`, `src/doctor/` | 미실행 1 |
-| PRD-SH-012 | P2 | 필수 | MRD-EXC-003 | SRS-SH-012, SRS-CMP-006, SRS-TEST-004 | TC-SH-011 | `README.md`<br>`docs/TC.md`<br>`docs/` | 미실행 1 |
+| PRD-SH-011 | P2 | 필수 | MRD-SCN-008 | SRS-SH-008 | TC-SH-010 | `src/shell/scripts/`, `src/doctor/` | 통과 1 |
+| PRD-SH-012 | P2 | 필수 | MRD-EXC-003 | SRS-SH-012, SRS-CMP-006, SRS-TEST-004 | TC-SH-011 | `README.md`<br>`README.md` 6절<br>`docs/TC.md` | 미실행 1 |
+| PRD-SH-013 | P2 | 필수 | MRD-SCN-005 | SRS-SH-013, SRS-SH-014 | TC-SH-016, TC-SH-017 | `src/cli/widget.rs`, `src/shell/scripts/`<br>`src/shell/scripts/` | 통과 2 |
 | PRD-FS-001 | P3 | 필수 | MRD-SCP-102 | SRS-ARC-003, SRS-TUI-007 | TC-FS-001 | `src/ui/`<br>`src/ui/fullscreen.rs` | 미실행 1 |
 | PRD-FS-002 | P3 | 필수 | MRD-SCP-102 | SRS-ARC-001, SRS-ARC-002, SRS-ARC-003, SRS-MOD-001, SRS-MOD-002, SRS-TUI-007 | TC-FS-002, TC-NFR-001 | `src/`<br>`src/app/`<br>`src/app/`, `src/runtime.rs`<br>`src/ui/`<br>`src/ui/fullscreen.rs` | 미실행 1, 통과 1 |
 | PRD-FS-003 | P3 | 필수 | MRD-SCN-010 | SRS-TUI-007 | TC-FS-003 | `src/ui/fullscreen.rs` | 미실행 1 |
@@ -136,7 +137,7 @@
 | PRD-DOC-003 | P1 | 필수 | MRD-SCP-006 | SRS-DOC-001, SRS-DOC-006 | TC-DOC-003 | `src/doctor/` | 통과 1 |
 | PRD-DOC-004 | P1 | 필수 | MRD-SCN-008 | SRS-DOC-002 | TC-DOC-004 | `src/doctor/json.rs` | 통과 1 |
 | PRD-DOC-005 | P1 | 필수 | MRD-SCN-008 | SRS-DOC-003 | TC-DOC-005 | `src/doctor/mask.rs` | 통과 1 |
-| PRD-DOC-006 | P2 | 필수 | MRD-SCP-101 | SRS-SH-008, SRS-DOC-005 | TC-SH-010 | `src/doctor/`<br>`src/shell/scripts/`, `src/doctor/` | 미실행 1 |
+| PRD-DOC-006 | P2 | 필수 | MRD-SCP-101 | SRS-SH-008, SRS-DOC-005 | TC-SH-010 | `src/doctor/`<br>`src/shell/scripts/`, `src/doctor/` | 통과 1 |
 | PRD-DOC-007 | P4 | 필수 | MRD-SCP-103 | SRS-DOC-005 | TC-DOC-007 | `src/doctor/` | 미실행 1 |
 | PRD-DOC-008 | P6 | 필수 | MRD-SCP-105 | SRS-DOC-005 | TC-DOC-008 | `src/doctor/` | 미실행 1 |
 | PRD-DOC-009 | P1 | 필수 | MRD-SCN-008 | SRS-DOC-004 | TC-DOC-006 | `src/doctor/mod.rs` | 통과 1 |

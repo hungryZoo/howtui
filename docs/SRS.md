@@ -462,11 +462,11 @@ ADR-0015: `app::editor::TextBuffer` 자체 구현 (ratatui-textarea 미사용).
 | SRS-TUI-002 | keymap 순수 함수와 PRD 4절 표 대응 테스트 | PRD-KEY-001 | `src/ui/keymap.rs` |
 | SRS-TUI-003 | 7.2절 Inline 레이아웃 규칙 | PRD-UI-002-006 | `src/ui/inline.rs` |
 | SRS-TUI-004 | 렌더링 스냅샷 테스트 (ratatui TestBackend) | PRD-UI-003-006 | `tests/`, `src/ui/` |
-| SRS-TUI-005 | 응답 반영 시 포커스 명령어 영역 이동, 설명 갱신 필요 표시 해제 | PRD-UI-012, PRD-EDIT-007 | `src/app/update.rs` |
+| SRS-TUI-005 | 응답 반영 시 포커스 질문 영역 유지와 설명 갱신 필요 표시 해제. 질문 영역 빈 입력 Enter는 명령어 확정(위험 높음 재확인 동일), ↓는 명령어 영역 이동, 명령어 첫 줄 ↑는 질문 영역 이동, 빈 질문 영역의 Undo와 Redo는 명령어 대상 (CR-001) | PRD-UI-012, PRD-EDIT-007, PRD-KEY-001 | `src/app/update.rs` |
 | SRS-TUI-006 | 위험 확인 상태: 높음 판정 명령어 확정 시 진입, Enter 외 키 입력 시 해제 | PRD-SAFE-003 | `src/app/update.rs` |
 | SRS-TUI-007 | 7.3절 Fullscreen 렌더러와 Alternate Screen 처리 | PRD-FS-001-005 | `src/ui/fullscreen.rs` |
 | SRS-TUI-008 | Shift+Enter: crossterm 키보드 확장 플래그 지원 판정 후 활성화 | PRD-KEY-002 | `src/ui/terminal.rs` |
-| SRS-TUI-009 | 로그인 필요, 로그인 진행 화면 (인가 URL 표시, 진행 표시, Esc 취소) | PRD-AUTH-013 | `src/ui/inline.rs` |
+| SRS-TUI-009 | 미로그인 시작 시 로그인 자동 시작, 높이 최소 14행. 로그인 진행 화면: 진행 표시, 단계 안내 2개((1) 브라우저 로그인과 허용, (2) 오류 화면 시 주소 붙여넣기), 인가 URL 전체, 붙여넣기 입력란. Esc 취소 후 로그인 필요 화면, 다시 Esc 종료 (CR-002) | PRD-AUTH-013 | `src/ui/inline.rs`, `src/runtime.rs` |
 | SRS-TUI-010 | 상태줄 플랜 사용 표시와 최초 1회 안내 | PRD-AUTH-014 | `src/ui/inline.rs`, `src/auth/state.rs` |
 | SRS-TUI-011 | 7.4절 자체 편집 버퍼와 ui 계층 줄바꿈, 스크롤, 실제 커서 배치 | PRD-EDIT-001, PRD-EDIT-002, PRD-EDIT-004, PRD-EDIT-005 | `src/app/editor.rs`, `src/ui/widgets.rs` |
 | SRS-TUI-012 | 키 바인딩 재정의 설정 미제공 (설정 스키마에 키 항목 부재) | PRD-KEY-003 | `src/config/mod.rs` |
@@ -546,8 +546,8 @@ ADR-0003 표 적용.
 
 ### 9.1 구성
 
-- 쉘 쪽 어댑터: `howtui init <bash|zsh|powershell>`가 출력하는 쉘 스크립트 (바이너리에 내장, `src/shell/scripts/`).
-- 바이너리 쪽: 위젯 모드 `howtui --widget`. 입력은 환경변수, 결과는 출력 파일.
+- 쉘 쪽 어댑터: `howtui init <bash|zsh|powershell>`가 출력하는 쉘 스크립트 (바이너리에 내장, `src/shell/scripts/`). 구성 2개: 단축키 위젯(`#@bind` 구간)과 `howtui` 쉘 함수(`#@wrap` 구간, 9.6절).
+- 바이너리 쪽: 위젯 모드 `howtui --widget`. 입력은 환경변수, 결과는 출력 파일. 쉘 함수 경유 직접 실행은 `HOWTUI_NEXT_INPUT_FILE` (9.6절).
 - 사용자 등록 방식: Bash `eval "$(howtui init bash)"`, Zsh `eval "$(howtui init zsh)"`, PowerShell `howtui init powershell | Out-String | Invoke-Expression` (rc 파일과 Profile 직접 편집은 사용자 수행).
 
 ### 9.2 위젯 프로토콜 (4단계 구조)
@@ -566,39 +566,53 @@ ADR-0003 표 적용.
 
 | 항목 | Bash | Zsh | PowerShell |
 | --- | --- | --- | --- |
-| 최소 버전 | 4.0 (`READLINE_LINE`), 미만은 바인딩 생략과 경고 | 5.1 이상 (bracketed paste 처리 기준, 하한 실측 필요) | Windows PowerShell 5.1 (PSReadLine 2.0.0), PowerShell 7.x |
+| 최소 버전 | 4.0 (`READLINE_LINE`), 미만은 바인딩 생략과 경고. `HOWTUI_LBUFFER`는 5.0 이상 (`READLINE_POINT` 문자 단위 실측) | 5.1 이상 (검증 5.9) | Windows PowerShell 5.1 (PSReadLine 2.0.0), PowerShell 7.x (검증 Linux 7.4, PSReadLine 2.3.5) |
 | 바인딩 | `bind -m <keymap> -x` (emacs, vi-insert, vi-command). Bash 5.1은 `bind -r` 선행 (기존 바인딩 덮어쓰기 결함) | `zle -N howtui-widget`, `bindkey -M emacs/viins/vicmd` | `Set-PSReadLineKeyHandler -Chord` (Vi 모드는 Insert, Command 각각) |
-| 버퍼 교체 | `READLINE_LINE=$(<tmp)`, `READLINE_POINT=0x7fffffff` | `BUFFER=$(<tmp)`, `CURSOR=$#BUFFER`, `zle reset-prompt` | `Replace(0, $line.Length, $new)`, CRLF를 LF로 정규화 (PSReadLine 2.0.0 대응) |
-| 화면 재그림 | 자동 (4.4 이상 마지막 프롬프트 줄) | `zle reset-prompt` (바이너리의 정확한 커서 복원 전제) | `InvokePrompt($null, $y)`, `$y = CursorTop - ExtraPromptLineCount`, 0과 `BufferHeight - 1` 사이 보정 |
+| 버퍼 교체 | `READLINE_LINE=$(<tmp)`, `READLINE_POINT=2147483647` (10진수만 해석, 입력 길이로 보정) | `BUFFER=$(<tmp)`, `CURSOR=$#BUFFER`, `zle reset-prompt` | `Replace(0, $line.Length, $new)` (빈 입력은 `Insert`), `SetCursorPosition`, CRLF를 LF로 정규화 (PSReadLine 2.0.0 대응) |
+| 화면 재그림 | 자동 (4.4 이상 마지막 프롬프트 줄) | `zle reset-prompt` (바이너리의 정확한 커서 복원 전제) | `InvokePrompt($null, $y)`, `$y = CursorTop - ExtraPromptLineCount`를 TUI 종료 직후, 입력 교체 전에 계산 (화면 스크롤과 여러 줄 교체 대응), 0과 `BufferHeight - 1` 사이 보정 |
 | 바이너리 조회 | `command howtui` | `command howtui` | `Get-Command howtui -CommandType Application` 실행 시점 조회 (경로 내장 금지, 한글 사용자 폴더 대응) |
 | 스크립트 문자 집합 | 제한 없음 | 제한 없음 | ASCII 전용 (5.1의 BOM 없는 스크립트 ANSI 해석) |
-| bracketed paste | 영향 실측 필요 | 위젯 종료 후 `zle_bracketed_paste` 재활성 | 해당 없음 |
+| bracketed paste | `bind -v`의 `enable-bracketed-paste` 값을 `HOWTUI_BRACKETED_PASTE`로 전달 | `zle_bracketed_paste` 설정 시 `HOWTUI_BRACKETED_PASTE=1` | 미전달 (TUI 종료 시 해제) |
+| 바이너리 없음 | 쉘 오류 메시지, 입력란 무변경 | `zle -M` 메시지, 입력란 무변경 | `Ding`, 입력란 무변경 |
+| 다음 입력 전달 (9.6절) | `history -s`(현재 `howtui` 줄 교체), 4.0 이상은 `PROMPT_COMMAND`에서 `ESC[5n` 요청, 응답 `ESC[0n` 바인딩(`bind -x`, 3개 키맵)이 빈 입력란에 삽입 | `print -rz` (버퍼 스택) | `AddToHistory`, `PowerShell.OnIdle` 1회 이벤트에서 빈 입력란에 `Insert` |
 
 ### 9.4 단축키
 
 - 기본 키: Ctrl+G (Bash `\C-g`, Zsh `^G`, PSReadLine `Ctrl+g`).
 - 대체되는 기본 동작: Bash emacs `abort`, Zsh `send-break`, PSReadLine Emacs와 Vi 모드 `Abort`. PSReadLine Windows 모드는 미할당.
 - 알려진 충돌: VS Code 통합 터미널(Windows, Linux)의 "Go to Recent Directory". 문서에 `terminal.integrated.commandsToSkipShell` 설정 안내 (적용 실측 필요).
-- 옵션: `howtui init <쉘> --key <키>`, `--no-bind` (함수만 정의, 바인딩 생략).
+- 옵션: `howtui init <쉘> --key <키>`, `--no-bind` (바인딩 생략), `--no-wrap` (`howtui` 쉘 함수 생략).
+- 키 형식: `ctrl+<영문자>`, `alt+<영문자>` (`-` 구분자, 대소문자 무관). 쉘 입력에 필요한 Ctrl+C, D, H, I, J, M, Q, S, Z는 거부 (종료 코드 2).
 
 ### 9.5 쉘 판정 (직접 실행 모드)
 
 우선순위: (1) `--shell` 옵션 (2) `HOWTUI_SHELL` 환경변수 (init 스크립트 설정) (3) OS 기본 조합 (Linux Bash, macOS Zsh, Windows PowerShell). `$SHELL`은 로그인 쉘이므로 판정 근거로 사용하지 않고 doctor 정보로만 표시.
 
+### 9.6 직접 실행 결과 전달 (CR-003, 4단계 구조)
+
+| 단계 | 내용 |
+| --- | --- |
+| (1) 함수 호출 | init 스크립트의 `howtui` 쉘 함수가 임시 파일 생성 후 `HOWTUI_SHELL`, `HOWTUI_SHELL_VERSION`, `HOWTUI_SHELL_INTEGRATION`, `HOWTUI_NEXT_INPUT_FILE`를 해당 호출에만 지정해 바이너리 실행 (전역 export 없음). 인자와 하위 명령은 그대로 전달 |
+| (2) 경로 판정 | 바이너리는 TUI 시작 전 stdout이 터미널이고 `HOWTUI_NEXT_INPUT_FILE`가 비어 있지 않을 때만 확정 명령어를 파일에 기록 (6.3절 `File` 형식). 그 외(캡처, 파이프, 리디렉션, `--no-tui`, 하위 명령)는 기존 동작 |
+| (3) 파일 기록 실패 | stdout 전달로 대체 |
+| (4) 쉘 반영 | 종료 코드 0이고 파일이 비어 있지 않을 때만 9.3절 "다음 입력 전달" 방식 적용. 종료 코드는 그대로 반환 (취소 130) |
+
 | ID | 설계 요구사항 | 관련 PRD | 구현 위치 |
 | --- | --- | --- | --- |
-| SRS-SH-001 | `howtui init <쉘> [--key K] [--no-bind]`: 내장 스크립트 출력, 알 수 없는 쉘은 종료 코드 2 | PRD-CLI-008, PRD-SH-009 | `src/shell/init.rs`, `src/shell/scripts/` |
+| SRS-SH-001 | `howtui init <쉘> [--key K] [--no-bind] [--no-wrap]`: 내장 스크립트 출력, 알 수 없는 쉘과 잘못된 키는 종료 코드 2. 설정 파일 오류와 무관하게 동작 (rc 파일에서 매번 실행) | PRD-CLI-008, PRD-SH-009 | `src/shell/init.rs`, `src/shell/scripts/`, `src/cli/mod.rs` |
 | SRS-SH-002 | Bash 스크립트: 9.3절 규칙, 대화형 쉘 한정, 서브쉘 안에서만 환경변수 export | PRD-SH-001, PRD-SH-006 | `src/shell/scripts/howtui.bash` |
 | SRS-SH-003 | Zsh 스크립트: 9.3절 규칙, `emulate -L zsh`, `</dev/tty` 필수 (위젯 stdin은 /dev/null) | PRD-SH-002, PRD-SH-006 | `src/shell/scripts/howtui.zsh` |
 | SRS-SH-004 | PowerShell 스크립트: 9.3절 규칙, PSReadLine 2.0.0 미만 또는 미로드 시 바인딩 생략과 경고, UTF-8(BOM 없음) 명시 읽기 | PRD-SH-003, PRD-SH-006 | `src/shell/scripts/howtui.ps1` |
 | SRS-SH-005 | 9.2절 위젯 프로토콜 (`--widget`, 환경변수, 출력 파일, 종료 코드 판정) | PRD-SH-005, PRD-SH-007, PRD-OUT-009, PRD-EDIT-008 | `src/cli/widget.rs` |
-| SRS-SH-006 | 9.4절 기본 키와 `--key`, `--no-bind` | PRD-SH-004 | `src/shell/init.rs` |
-| SRS-SH-007 | 9.5절 쉘 판정 우선순위 | PRD-CLI-007 | `src/shell/detect.rs` |
+| SRS-SH-006 | 9.4절 기본 키와 `--key`, `--no-bind`, `--no-wrap`, 키 형식 검증 | PRD-SH-004 | `src/shell/init.rs` |
+| SRS-SH-007 | 9.5절 쉘 판정 우선순위 | PRD-CLI-007 | `src/shell/mod.rs` |
 | SRS-SH-008 | 통합 표식: init 스크립트가 `HOWTUI_SHELL_INTEGRATION=<쉘>` 설정, doctor가 판독 | PRD-SH-011, PRD-DOC-006 | `src/shell/scripts/`, `src/doctor/` |
-| SRS-SH-009 | 실패 대체 경로: 위젯 모드에서 출력 파일 기록 실패 시 명령어를 터미널에 표시하고 원인 1줄 출력, 종료 코드 1 | PRD-SH-007, PRD-SH-008 | `src/cli/widget.rs` |
+| SRS-SH-009 | 실패 대체 경로: 위젯 모드에서 출력 파일 기록 실패 시 줄바꿈 후 원인 1줄과 명령어를 터미널에 표시, 종료 코드 1 (입력란 무변경) | PRD-SH-007, PRD-SH-008 | `src/cli/widget.rs` |
 | SRS-SH-010 | 스크립트 머리 주석에 등록 방법과 제거 방법 기재. 설치 스크립트와 바이너리는 rc 파일과 Profile 미수정 | PRD-SH-009, PRD-SH-010 | `src/shell/scripts/`, `scripts/` |
 | SRS-SH-011 | PowerShell 5.1과 7 공통 동작: 실행 정책 `Restricted`에서 Profile 미실행 안내, Profile 경로 차이 안내 | PRD-SH-003 | `src/shell/scripts/howtui.ps1`, 문서 |
-| SRS-SH-012 | 쉘별 지원 상태 표기: 검증 쉘 버전과 터미널을 문서 표로 관리 | PRD-SH-012 | `docs/` |
+| SRS-SH-012 | 쉘별 지원 상태 표기: 검증 쉘 버전과 터미널을 문서 표로 관리 | PRD-SH-012 | `README.md` 6절 |
+| SRS-SH-013 | 9.6절 직접 실행 결과 전달: 쉘 함수, `HOWTUI_NEXT_INPUT_FILE` 경로 판정(stdout 터미널 조건), 기록 실패 시 stdout 대체 | PRD-SH-013 | `src/cli/widget.rs`, `src/shell/scripts/` |
+| SRS-SH-014 | 쉘별 다음 입력 전달 방식 (9.3절 표). Bash는 터미널 상태 보고 요청을 프롬프트 직전에만 송신(뒤따르는 명령의 입력 오염 방지), 입력란이 비어 있을 때만 삽입. PowerShell은 입력란이 비어 있을 때만 삽입 | PRD-SH-013 | `src/shell/scripts/` |
 
 ## 10. 비동기 작업과 취소
 
@@ -676,7 +690,7 @@ tokio 작업 스레드: LLM 요청, 토큰 갱신, 콜백 리스너, 시그널 �
 | SRS-AUTH-003 | 루프백 리스너: `127.0.0.1` 바인딩, Host 헤더와 경로 검사, 응답 HTML 1회 후 종료, 비정상 요청 404 | PRD-AUTH-001 | `src/auth/callback.rs` |
 | SRS-AUTH-004 | ID 토큰 검증과 JWKS 조회 (`kid` 기준, 상태 파일 캐시 24시간) | PRD-AUTH-004 | `src/auth/idtoken.rs` |
 | SRS-AUTH-005 | `--no-browser`, `--port`, SSH 포트 포워딩 안내 문구. TUI 로그인은 `HOWTUI_NO_BROWSER=1` 또는 SSH 세션(`SSH_CONNECTION`, `SSH_TTY`)에서 브라우저 미실행 | PRD-AUTH-005 | `src/auth/mod.rs`, `src/cli/provider.rs` |
-| SRS-AUTH-006 | 리다이렉트 URL 붙여넣기 입력: `--no-browser` 또는 브라우저 실행 실패 시 루프백 대기와 터미널 입력 대기를 병행. 붙여넣은 URL은 콜백과 같은 검증(스킴, 호스트 `127.0.0.1`, 포트, 경로 `/auth/callback`, state) 후 코드 교환 | PRD-AUTH-006 | `src/auth/oauth.rs` |
+| SRS-AUTH-006 | 리다이렉트 URL 붙여넣기 입력: `--no-browser` 또는 브라우저 실행 실패 시 루프백 대기와 터미널 입력 대기를 병행. 붙여넣은 URL은 콜백과 같은 검증(스킴, 호스트 `127.0.0.1`, 포트, 경로 `/auth/callback`, state) 후 코드 교환. 공백과 줄바꿈 제거, `127.0.0.1:`로 시작하는 주소는 `http://` 보완, TUI에서 `/auth/callback` 포함 붙여넣기는 Enter 없이 즉시 제출 (CR-002) | PRD-AUTH-006 | `src/auth/callback.rs`, `src/app/update.rs` |
 | SRS-AUTH-007 | 11.2절 저장 구조, OS 보안 저장소 우선, 파일 대체 시 고지 | PRD-AUTH-008, PRD-PRIV-006 | `src/auth/store.rs` |
 | SRS-AUTH-008 | 11.3절 갱신 조건과 잠금 기반 직렬화 | PRD-AUTH-009 | `src/auth/session.rs` |
 | SRS-AUTH-009 | 11.3절 로그아웃, `--forget` | PRD-AUTH-010 | `src/auth/session.rs` |
@@ -1026,12 +1040,12 @@ rustflags = ["-C", "target-feature=+crt-static"]
 
 | 항목 | 확정 시점 | 관련 |
 | --- | --- | --- |
-| ChatGPT 경로 구조화 출력 지원 여부 | Phase 1 실계정 실측 | SRS-LLM-005 |
-| 리다이렉트 URL 붙여넣기 허용 여부 | Phase 1 실계정 실측 | SRS-AUTH-006 |
-| 신규 동적 등록 앱 활성화 여부, 한국 지역 허용 여부 | Phase 1 실계정 실측 | ADR-0007 |
+| ChatGPT 경로 구조화 출력 지원 여부 | 해소: 실계정 `state.json`의 `structured_output = true` (2026-10-22) | SRS-LLM-005 |
+| 리다이렉트 URL 붙여넣기 허용 여부 | 해소: 실계정 붙여넣기 로그인 성공 (사용자 확인, 2026-10-22) | SRS-AUTH-006 |
+| 신규 동적 등록 앱 활성화 여부, 한국 지역 허용 여부 | 해소: 한국 지역 실계정 로그인과 명령어 생성 성공 (사용자 확인, 2026-10-22) | ADR-0007 |
 | Windows 콘솔 출력 핸들 선택과 stdout 리디렉션 병행 | 부분 해소: ConPTY 자동 E2E 3개 경로 통과 (CI windows-2025, windows-11-arm). Windows Terminal, conhost 대화형 확인과 한국어 코드 페이지 환경은 수동 확인 대기 | SRS-TERM-003 |
 | macOS `/dev/tty`와 fd 1 전환 동작 | 해소: CI macos-15 PTY E2E 18건 통과 (2026-10-22) | SRS-TERM-002 |
 | 한국어 IME 조합 입력과 raw mode 상호작용 | Phase 1 실측 | SRS-TUI-011 |
 | ratatui 가로 축소 시 전체 화면 정리 동작 (0.30.2, main 브랜치 수정 미릴리스) | ratatui 차기 릴리스 | SRS-TERM-008 |
-| Zsh 지원 하한 버전 | Phase 2 실측 | SRS-CMP-002 |
+| Zsh 지원 하한 버전 | 부분 해소: 5.9 PTY E2E 통과 (Debian 12 컨테이너, CI). 5.1-5.8 미검증 | SRS-CMP-002 |
 | PowerShell 한국어 코드 페이지 환경 실제 값과 동작 | Phase 2 Windows 실측 | SRS-SH-004 |

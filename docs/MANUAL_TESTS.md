@@ -1,4 +1,4 @@
-# 수동 검증 절차 (Phase 1 게이트)
+# 수동 검증 절차 (Phase 1, Phase 2 게이트)
 
 - 작성일: 2026-10-22
 - 대상: 자동 테스트로 대체할 수 없는 TC (실계정, Windows 대화형, macOS 대화형)
@@ -59,3 +59,14 @@ Windows는 릴리스 시험 실행 산출물(`dist-all` 아티팩트) 또는 `ca
 | --- | --- | --- | --- |
 | (1) | Terminal.app 또는 iTerm2의 Zsh에서 `howtui` 실행, 질문, 편집, Enter | 화면 표시, 종료 후 프롬프트 정상 | TC-PLAT-001 |
 | (2) | `cmd=$(howtui); echo "$cmd"` | 명령어만 캡처 | TC-OUT-002 |
+
+## 5. 쉘 통합 대화형 검증 (Phase 2)
+
+준비: `~/.zshrc`(macOS) 또는 `~/.bashrc`(Linux) 끝에 `eval "$(howtui init zsh)"` 또는 `eval "$(howtui init bash)"` 추가 후 새 터미널. 제거는 해당 줄 삭제.
+
+| 순서 | 절차 | 확인 항목 | TC |
+| --- | --- | --- | --- |
+| (1) | 프롬프트에 `ls` 입력 후 Ctrl+G, 질문, Enter 2회 | 입력란이 생성 명령어로 교체, 자동 실행 없음 | TC-SH-001, TC-SH-002 |
+| (2) | 프롬프트에 `howtui 현재 폴더 용량` 입력 후 Enter, 확정 | 다음 프롬프트 입력란에 명령어, 자동 실행 없음 | TC-SH-016 |
+| (3) | VS Code 통합 터미널에서 Ctrl+G | 동작 여부 기록 (VS Code 단축키 충돌 시 `terminal.integrated.commandsToSkipShell` 안내 필요) | SRS 9.4절 |
+| (4) | Windows PowerShell 5.1과 PowerShell 7에서 `howtui init powershell \| Out-String \| Invoke-Expression` 후 (1), (2) 반복 | 입력란 교체, 다음 입력란 삽입, 한글 명령어 손상 여부 | TC-SH-003, TC-SH-013 (Windows 보류) |

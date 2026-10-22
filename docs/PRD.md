@@ -124,7 +124,7 @@
 
 | 키 | 질문 입력 영역 | 명령어 편집 영역 | 요청 중 |
 | --- | --- | --- | --- |
-| Enter | 요청 제출 (명령어 유무로 생성과 수정 구분) | 확정 (위험 높음 시 재확인) | 무시 |
+| Enter | 질문이 있으면 요청 제출 (명령어 유무로 생성과 수정 구분), 질문이 비어 있고 명령어가 있으면 확정 (CR-001) | 확정 (위험 높음 시 재확인) | 무시 |
 | Ctrl+J, Alt+Enter | 무시 | 줄바꿈 삽입 | 무시 |
 | Shift+Enter | 무시 | 줄바꿈 삽입 (키보드 확장 프로토콜 지원 터미널 한정, 권장) | 무시 |
 | Tab, Shift+Tab | 포커스 전환 | 포커스 전환 | 포커스 전환 (편집 잠금 유지) |
@@ -132,7 +132,7 @@
 | Ctrl+C | 취소 종료 | 취소 종료 | 요청 취소 후 종료 |
 | Ctrl+E | 무시 | 설명 요청 | 무시 |
 | Ctrl+Z, Ctrl+Y | 질문 Undo, Redo | 명령어 Undo, Redo | 무시 |
-| 방향키, Home, End | 커서 이동 | 커서 이동 (여러 줄 상하 이동 포함) | 이동만 허용 |
+| 방향키, Home, End | 커서 이동, ↓는 명령어 영역으로 이동 (CR-001) | 커서 이동 (여러 줄 상하 이동 포함), 첫 줄에서 ↑는 질문 영역으로 이동 | 이동만 허용 |
 | Ctrl+방향키, Alt+B, Alt+F | 단어 단위 이동 | 단어 단위 이동 | 이동만 허용 |
 | Backspace, Delete | 문자 삭제 | 문자 삭제 | 무시 |
 | Ctrl+W, Ctrl+U, Ctrl+K | 단어 삭제, 줄 앞 삭제, 줄 뒤 삭제 | 동일 | 무시 |
@@ -173,7 +173,7 @@
 | PRD-UI-009 | 최소 크기(가로 30열, 세로 3행) 미만 시 크기 부족 안내 1줄 표시, Esc와 Ctrl+C만 처리, 회복 시 재구성 | P1 | 필수 | MRD-SCP-001 |
 | PRD-UI-010 | 종료 시 Inline 영역 삭제, 커서 원위치, raw mode 해제, 커서 표시 복구. 정상 확정, 취소, 오류, panic, 종료 시그널 모두 적용 | P1 | 필수 | MRD-KPI-003 |
 | PRD-UI-011 | 프롬프트 줄 중간에서 시작 시 다음 줄부터 Inline 영역 표시, 종료 시 원래 커서 위치 복귀 | P1 | 필수 | MRD-KPI-001 |
-| PRD-UI-012 | 포커스 규칙: 시작 시 질문 영역, 생성 또는 수정 응답 수신 시 명령어 영역, Tab으로 전환 | P1 | 필수 | MRD-SCN-002 |
+| PRD-UI-012 | 포커스 규칙: 시작 시 질문 영역, 응답 수신 후에도 질문 영역 유지 (후속 요청 입력 또는 빈 질문에서 Enter 확정), Tab과 ↓로 명령어 편집 영역 이동 (CR-001) | P1 | 필수 | MRD-SCN-002 |
 | PRD-UI-013 | 3절 상태 전이 표 준수 | P1 | 필수 | MRD-SCP-001 |
 | PRD-UI-014 | GUI 팝업 오버레이와 동일한 표현을 주장하지 않음 (문서와 도움말 문구 기준) | P1 | 필수 | MRD-EXC-012 |
 
@@ -234,7 +234,7 @@
 | PRD-AUTH-003 | 설치별 host ID(`urn:uuid:<UUIDv4>`) 최초 1회 생성, 로그아웃과 재로그인 후에도 유지 | P1 | 필수 | MRD-SCP-004 |
 | PRD-AUTH-004 | ID 토큰 서명(RS256, JWKS)과 `iss`, `aud`, `exp`, `nonce` 검증, 플랜 사용 scope 부여 확인 | P1 | 필수 | MRD-SCP-004 |
 | PRD-AUTH-005 | GUI 브라우저 없는 환경: `--no-browser` URL 표시, `--port` 고정 포트와 SSH 포트 포워딩 안내 | P1 | 필수 | MRD-SCN-007, MRD-RSK-004 |
-| PRD-AUTH-006 | 리다이렉트 URL 수동 붙여넣기 입력: `--no-browser` 모드와 브라우저 실행 실패 시 루프백 대기와 병행 제공 (OpenAI 측 동작은 실계정 실측으로 확인) | P1 | 필수 | MRD-SCN-007 |
+| PRD-AUTH-006 | 리다이렉트 URL 수동 붙여넣기 입력: `--no-browser` 모드와 브라우저 실행 실패 시 루프백 대기와 병행 제공. 붙여넣기 즉시 자동 제출, 스킴 없는 주소(`127.0.0.1:<port>/auth/callback?...`) 허용 (CR-002, 2026-10-22 실계정 붙여넣기 로그인 성공) | P1 | 필수 | MRD-SCN-007 |
 | PRD-AUTH-007 | 공식 원격 장치 절차 대응: 자격증명 내보내기와 가져오기, 대상 장치 host ID 유지 | P4 | 권장 | MRD-SCN-007 |
 | PRD-AUTH-008 | 토큰 저장: OS 보안 저장소 우선, 사용 불가 시 소유자 전용 권한 파일(Unix 0600) 사용과 사용자 고지 | P1 | 필수 | MRD-SCP-004 |
 | PRD-AUTH-009 | 액세스 토큰 자동 갱신: 만료 60초 전, `earliest_refresh_at` 이전 갱신 보류, 프로세스 간 직렬화 | P1 | 필수 | MRD-SCP-004 |
@@ -242,7 +242,7 @@
 | PRD-AUTH-011 | `howtui auth status`: 로그인 여부, 마스킹 이메일, 플랜 사용 활성 여부, 액세스 토큰 만료 시각. 토큰 값 미출력 | P1 | 필수 | MRD-SCP-004 |
 | PRD-AUTH-012 | 플랜 사용 scope 미부여 시 안내: 재동의(`prompt=consent`) 재시도 경로 | P1 | 필수 | MRD-RSK-002 |
 | PRD-AUTH-019 | ChatGPT 플랜 사용 불가(scope 미부여, 비대상 계정, 앱 비활성, 지역 제한) 시 원인 안내 후 요청 중단. P1 범위에서 대체 Provider 미제공 | P1 | 필수 | MRD-RSK-001 |
-| PRD-AUTH-013 | TUI 시작 시 미로그인: TUI 내 로그인 안내, Enter로 로그인 시작, 진행 표시와 Esc 취소 | P1 | 필수 | MRD-SCN-001 |
+| PRD-AUTH-013 | TUI 시작 시 미로그인: 로그인 자동 시작(Enter 불필요), 번호 붙은 짧은 단계 안내, 진행 표시와 Esc 취소 (CR-002) | P1 | 필수 | MRD-SCN-001 |
 | PRD-AUTH-014 | 브랜딩: 로그인 동작 문구 "Continue with ChatGPT", 최초 로그인 후 "You're using your ChatGPT plan" 1회 안내, 상태줄 "Using ChatGPT plan"과 사용량 관리 URL(`https://chatgpt.com/settings/usage`) 안내 | P1 | 필수 | MRD-SCP-004 |
 | PRD-AUTH-015 | 로그인 전 개인정보 처리 고지: 수신 정보(이메일, 이름 클레임), 저장 위치, 전송 데이터 범위 | P1 | 필수 | MRD-SCP-004 |
 | PRD-AUTH-016 | 금지: Codex 인증 파일 읽기, 브라우저 쿠키 추출, `backend-api` 등 비공식 엔드포인트 사용, 비밀번호 요구 | P1 | 필수 | MRD-EXC-007 |
@@ -271,7 +271,7 @@
 | PRD-SH-001 | Bash 어댑터: readline `bind -x`, `READLINE_LINE`, `READLINE_POINT` 기반 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 |
 | PRD-SH-002 | Zsh 어댑터: ZLE 위젯, `BUFFER`, `CURSOR` 기반 (emacs, viins 키맵) | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 |
 | PRD-SH-003 | PowerShell 어댑터: PSReadLine `GetBufferState`, `Replace` 기반. Windows PowerShell 5.1과 PowerShell 7 지원 | P2 | 필수 | MRD-SCP-101, MRD-DIF-003 |
-| PRD-SH-004 | 선택적 단축키 호출: 기본 키 Ctrl+G (3개 쉘 공통), `init --key`로 변경, `init --no-bind`로 바인딩 생략 | P2 | 필수 | MRD-SCN-005 |
+| PRD-SH-004 | 선택적 단축키 호출: 기본 키 Ctrl+G (3개 쉘 공통), `init --key`로 변경, `init --no-bind`로 바인딩 생략, `init --no-wrap`으로 PRD-SH-013 함수 생략 (CR-003) | P2 | 필수 | MRD-SCN-005 |
 | PRD-SH-005 | 기존 입력란 내용 보존, 명령어 편집 초기값 활용 (PRD-EDIT-008) | P2 | 필수 | MRD-SCN-005 |
 | PRD-SH-006 | 확정 시 입력란 교체, 커서 끝 위치, 자동 실행 없음 | P2 | 필수 | MRD-DIF-002 |
 | PRD-SH-007 | 취소, 오류 시 입력란 무변경. 오류 원인 1줄 표시 | P2 | 필수 | MRD-KPI-005 |
@@ -280,6 +280,7 @@
 | PRD-SH-010 | 설치 과정의 rc 파일과 Profile 자동 변경 금지 | P1 | 필수 | MRD-EXC-004 |
 | PRD-SH-011 | 쉘 통합 사용 여부를 doctor가 판별할 수 있는 표식 제공 | P2 | 필수 | MRD-SCN-008 |
 | PRD-SH-012 | 쉘별 지원 상태는 테스트 결과 기준 표기 (검증 버전 명시) | P2 | 필수 | MRD-EXC-003 |
+| PRD-SH-013 | 쉘 통합 로드 후 프롬프트에서 `howtui`를 직접 입력해 실행한 경우에도 확정 명령어를 다음 프롬프트 입력란에 삽입, 자동 실행 없음. Bash와 PowerShell은 히스토리에도 추가(Bash 4.0 미만은 히스토리만). stdout이 터미널이 아니면(캡처, 파이프, 리디렉션) 기존 stdout 전달 유지 (CR-003) | P2 | 필수 | MRD-SCN-005 |
 
 ### 5.9 Fullscreen TUI
 
@@ -397,7 +398,15 @@
 
 ---
 
-## 6. 단계별 기능 우선순위 요약
+## 6. 요구사항 변경 기록
+
+| CR | 일자 | 요청 | 변경 내용 | 영향 요구사항 |
+| --- | --- | --- | --- | --- |
+| CR-001 | 2026-10-22 | 사용자 피드백 "생성 후 다음 입력에 안 들어감" | 응답 후 포커스를 질문 영역에 유지, 빈 질문에서 Enter 확정, ↓와 Tab으로 명령어 편집 | PRD-UI-012, PRD-KEY-001 |
+| CR-002 | 2026-10-22 | 사용자 피드백 "로그인 절차가 초보자에게 어려움" | TUI 로그인 자동 시작, 붙여넣기 자동 제출, 스킴 없는 주소 허용, 단계 안내 간소화 | PRD-AUTH-006, PRD-AUTH-013 |
+| CR-003 | 2026-10-22 | 사용자 피드백 "생성 후 다음 입력에 안 들어감" | 쉘 통합 로드 시 프롬프트에서 직접 실행한 결과도 다음 프롬프트 입력란으로 전달 (Zsh 버퍼 스택, Bash 터미널 상태 보고 응답 바인딩, PowerShell 유휴 이벤트), `init --no-wrap` 추가 | PRD-SH-013 신규, PRD-SH-004 |
+
+## 7. 단계별 기능 우선순위 요약
 
 | 단계 | 필수 요구사항 영역 | 비고 |
 | --- | --- | --- |
