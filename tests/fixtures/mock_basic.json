@@ -1,0 +1,16 @@
+{
+  "model": "mock-model",
+  "steps": [
+    {
+      "delay_ms": 800,
+      "command": "printf '%s\\n' \"안녕 세계 🌏\" \\\n  | grep -n '세계'",
+      "explanation": "Prints a greeting and keeps lines that contain the word.",
+      "notes": ["Example note from the model"]
+    },
+    {
+      "delay_ms": 600,
+      "command": "rm -rf ./build",
+      "explanation": "Deletes the build directory recursively."
+    }
+  ]
+}
