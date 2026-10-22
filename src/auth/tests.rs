@@ -430,3 +430,66 @@ fn email_masking() {
     assert_eq!(mask_email("kim@example.com"), "k***@example.com");
     assert_eq!(mask_email("x"), "***");
 }
+
+#[tokio::test]
+async fn reauthorization_rejects_different_client_id() {
+    let server = MockServer::start().await;
+    let dir = tempfile::tempdir().unwrap();
+    let auth = Arc::new(manager(dir.path(), &server));
+    seed_tokens(&auth, now() + 3600);
+    let (captured, progress) = progress_capture();
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+    let a = auth.clone();
+    let task = tokio::spawn(async move {
+        a.login(
+            LoginOptions {
+                no_browser: true,
+                port: None,
+            },
+            &*progress,
+            rx,
+            CancelToken::new(),
+        )
+        .await
+    });
+    let url = wait_url(&captured).await;
+    assert!(url.contains("client_id=oaiapp_1"));
+    tx.send(callback_from(&url, Some("oaiapp_other"), None).0)
+        .unwrap();
+    assert!(
+        matches!(task.await.unwrap(), Err(LoginFailure::Other(m)) if m.contains("different client_id"))
+    );
+    assert_eq!(
+        auth.registration().unwrap().client_id,
+        "oaiapp_1",
+        "기존 등록 유지"
+    );
+}
+
+/// OS 보안 저장소 실제 왕복 (TC-AUTH-011 (a)). 보안 저장소가 있는 데스크톱에서 수동 실행:
+/// cargo test --features mock-provider -- --ignored keyring_roundtrip
+#[test]
+#[ignore]
+fn keyring_roundtrip() {
+    assert!(
+        store::keyring_available(),
+        "OS credential store not available on this machine"
+    );
+    let dir = tempfile::tempdir().unwrap();
+    let s = CredentialStore::new(StoreKind::Keyring, dir.path());
+    let id = format!("test-{}", pkce::random_token());
+    let t = TokenSet {
+        access_token: Secret::new("a".repeat(1800)),
+        refresh_token: Secret::new("refresh"),
+        id_token: Some(Secret::new("i".repeat(1200))),
+        token_type: "Bearer".into(),
+        scope: vec![store::PLAN_SCOPE.into()],
+        expires_at: now() + 10,
+        earliest_refresh_at: None,
+        saved_at: now(),
+    };
+    s.save(&id, &t).unwrap();
+    assert_eq!(s.load(&id).unwrap().unwrap(), t);
+    s.delete(&id).unwrap();
+    assert_eq!(s.load(&id).unwrap(), None);
+}

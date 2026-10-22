@@ -134,7 +134,11 @@ fn localized_command() -> clap::Command {
         })
 }
 
+/// 프로세스 시작 시각 (첫 화면 표시 시간 측정용).
+pub static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+
 pub fn run() -> ExitCode {
+    let _ = START.set(std::time::Instant::now());
     install_panic_hook();
     let env = process_env;
     let config_path = paths::config_file(&env);

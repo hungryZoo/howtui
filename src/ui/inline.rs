@@ -401,3 +401,6 @@ fn render_status(frame: &mut Frame, state: &State, area: Rect) {
     }
     frame.render_widget(Paragraph::new(Line::from(spans)), area);
 }
+
+#[cfg(test)]
+mod tests;

@@ -120,6 +120,7 @@ pub fn run_tui(
     let mut login_task: Option<LoginTask> = None;
     let mut last_tick = Instant::now();
 
+    let mut first_frame = true;
     let outcome = 'main: loop {
         for effect in effects.drain(..) {
             match effect {
@@ -181,6 +182,15 @@ pub fn run_tui(
         }
         if let Err(e) = session.draw(|f| inline::render(f, &state)) {
             return Err(SessionError::Io(e));
+        }
+        if first_frame {
+            first_frame = false;
+            if let Some(start) = crate::cli::START.get() {
+                tracing::debug!(
+                    startup_us = start.elapsed().as_micros() as u64,
+                    "first frame"
+                );
+            }
         }
 
         let mut actions = Vec::new();

@@ -41,7 +41,14 @@ start() {
 }
 
 finish() {
-  wait_file "$OUT/$1.done" || { fail "$1" "timeout"; return 1; }
+  if ! wait_file "$OUT/$1.done"; then
+    fail "$1" "timeout"
+    snap "$1.timeout"
+    # 다음 케이스로 연쇄되지 않도록 정리
+    pkill -KILL -x howtui 2>/dev/null
+    sleep 0.3; send C-c; send "stty sane" Enter; sleep 0.3
+    return 1
+  fi
   if ! grep -q -- ' icanon' "$OUT/$1.stty" || ! grep -q -- ' echo' "$OUT/$1.stty"; then
     fail "$1" "terminal mode not restored"; return 1
   fi
@@ -182,7 +189,16 @@ if finish login; then
   if grep -q 'Sign-in required' "$OUT/login.screen" && [ "$(rc_of login)" = 130 ]; then pass login; else fail login "login screen"; fi
 fi
 
-# (15) 한국어 화면 (TC-I18N-004)
+# (15) --height 옵션 (TC-CLI-005): 상태줄이 시작 위치에서 4번째 줄
+start height "echo TOP; $ENV $MOCK $BIN --height 4 > /dev/null"
+snap height; send Escape
+if finish height; then
+  top=$(grep -n '^TOP$' "$OUT/height.screen" | head -1 | cut -d: -f1)
+  status=$(sed -n "$((top + 4))p" "$OUT/height.screen")
+  case "$status" in *"Enter submit"*) pass height ;; *) fail height "status line not at row 4: $status" ;; esac
+fi
+
+# (16) 한국어 화면 (TC-I18N-004)
 start korean "HOWTUI_LANG=ko HOWTUI_DATA_DIR=$OUT/data $MOCK $BIN > /dev/null"
 snap korean; send Escape
 if finish korean; then

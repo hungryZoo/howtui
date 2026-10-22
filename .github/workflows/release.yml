@@ -1,0 +1,177 @@
+# 릴리스 (SRS 13절): v* 태그 푸시 시 7개 타깃 빌드, 바이너리 검사, SHA256SUMS, 출처 증명, 초안 릴리스 생성.
+# 공개(publish)는 사용자 승인 후 수동 수행 (PRD-REL-007).
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  # 시험 실행: 7개 타깃 빌드, 검사, 체크섬만 수행 (릴리스 미생성)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: "1.99.1"
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: v
+        name: Tag matches Cargo.toml version
+        run: |
+          crate=$(grep -m1 '^version = ' Cargo.toml | cut -d '"' -f 2)
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            tag="${GITHUB_REF_NAME#v}"
+            [ "$tag" = "$crate" ] || { echo "tag $tag != Cargo.toml $crate"; exit 1; }
+          fi
+          echo "version=$crate" >> "$GITHUB_OUTPUT"
+
+  linux:
+    needs: version
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install toolchain
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup target add --toolchain "$RUST_TOOLCHAIN" x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu armv7-unknown-linux-gnueabihf
+      - uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
+      - name: Install cargo-zigbuild and zig (pinned)
+        run: |
+          uv venv "$RUNNER_TEMP/zig"
+          uv pip install --python "$RUNNER_TEMP/zig/bin/python" cargo-zigbuild==0.23.4 ziglang==0.17.0
+          echo "$RUNNER_TEMP/zig/bin" >> "$GITHUB_PATH"
+      - name: Build
+        run: |
+          for t in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu armv7-unknown-linux-gnueabihf; do
+            cargo zigbuild --locked --release --target "$t.2.17"
+          done
+      - name: Check binaries
+        run: scripts/ci/check_binaries.sh
+      - name: Package
+        run: scripts/ci/package.sh "${{ needs.version.outputs.version }}" x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu armv7-unknown-linux-gnueabihf
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-linux
+          path: dist/
+
+  macos:
+    needs: version
+    runs-on: macos-15
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install toolchain
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup target add --toolchain "$RUST_TOOLCHAIN" aarch64-apple-darwin x86_64-apple-darwin
+      - name: Build
+        run: |
+          cargo build --locked --release --target aarch64-apple-darwin
+          cargo build --locked --release --target x86_64-apple-darwin
+      - name: Check minos and signature
+        run: |
+          for t in aarch64-apple-darwin x86_64-apple-darwin; do
+            bin="target/$t/release/howtui"
+            minos=$(otool -l "$bin" | awk '/LC_BUILD_VERSION/ {f=1} f && /minos/ {print $2; exit}')
+            echo "$t minos=$minos"
+            [ "$minos" = "11.0" ] || { echo "unexpected minos $minos"; exit 1; }
+          done
+          codesign -v target/aarch64-apple-darwin/release/howtui
+          target/aarch64-apple-darwin/release/howtui --version
+      - name: Package
+        run: scripts/ci/package.sh "${{ needs.version.outputs.version }}" aarch64-apple-darwin x86_64-apple-darwin
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-macos
+          path: dist/
+
+  windows:
+    needs: version
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            runner: windows-2025
+          - target: aarch64-pc-windows-msvc
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install toolchain
+        shell: bash
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup target add --toolchain "$RUST_TOOLCHAIN" ${{ matrix.target }}
+      - name: Build
+        run: cargo build --locked --release --target ${{ matrix.target }}
+      - name: Check static CRT and run
+        shell: pwsh
+        run: |
+          $exe = "target/${{ matrix.target }}/release/howtui.exe"
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $dumpbin = & $vswhere -latest -products * -find "**\dumpbin.exe" | Select-Object -First 1
+          $deps = & $dumpbin /dependents $exe | Out-String
+          Write-Host $deps
+          if ($deps -match 'VCRUNTIME|MSVCP|api-ms-win-crt') { throw 'dynamic C runtime dependency found' }
+          & $exe --version
+      - name: Package
+        shell: pwsh
+        run: |
+          $v = "${{ needs.version.outputs.version }}"
+          $t = "${{ matrix.target }}"
+          $pkg = "pkg-$t"
+          New-Item -ItemType Directory -Path $pkg, dist -Force | Out-Null
+          Copy-Item "target/$t/release/howtui.exe", README.md, LICENSE $pkg
+          Compress-Archive -Path "$pkg/*" -DestinationPath "dist/howtui-$v-$t.zip"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/
+
+  release:
+    needs: [version, linux, macos, windows]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: |
+          cp scripts/install.sh scripts/install.ps1 dist/
+          cd dist
+          sha256sum howtui-* install.sh install.ps1 > SHA256SUMS
+          cat SHA256SUMS
+          test "$(grep -c 'howtui-' SHA256SUMS)" -eq 7
+      - name: Dry-run artifacts
+        if: github.event_name != 'push'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-all
+          path: dist/
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        if: github.event_name == 'push'
+        with:
+          subject-checksums: dist/SHA256SUMS
+      - name: Draft release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes=".github/release-notes/${GITHUB_REF_NAME}.md"
+          if [ -f "$notes" ]; then set -- --notes-file "$notes"; else set -- --generate-notes; fi
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "howtui ${GITHUB_REF_NAME}" "$@" dist/*

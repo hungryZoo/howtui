@@ -93,6 +93,9 @@ jobs:
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo build --locked --features mock-provider
+      - uses: astral-sh/setup-uv@18d369b23da25a81e9458561248e1aafff6a70fa # v10.3.1
+      - name: No cursor reply terminal
+        run: uv run tests/pty/no_dsr.py target/debug/howtui
       - name: PTY E2E
         run: tests/pty/run.sh
         env:
@@ -103,3 +106,41 @@ jobs:
         with:
           name: pty-logs-${{ matrix.os }}
           path: logs/
+
+  installers:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            shell: bash
+          - os: macos-15
+            shell: bash
+          - os: windows-2025
+            shell: powershell
+          - os: windows-2025
+            shell: pwsh
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install toolchain
+        shell: bash
+        run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Build
+        shell: bash
+        run: cargo build --locked --release
+      - name: install.sh
+        if: runner.os != 'Windows'
+        run: |
+          sh -n scripts/install.sh
+          tests/install/detect.sh
+          tests/install/run_unix.sh target/release/howtui
+      - name: install.ps1
+        if: runner.os == 'Windows'
+        run: tests/install/run_windows.ps1 -Exe target\release\howtui.exe

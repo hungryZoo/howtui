@@ -44,6 +44,10 @@ url = "2"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+# macOS kqueue는 /dev/tty 폴링 미지원: stdin 파이프 시 select 기반 이벤트 소스 사용
+[target.'cfg(target_os = "macos")'.dependencies]
+crossterm = { version = "0.29", features = ["bracketed-paste", "use-dev-tty"] }
+
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Globalization", "Win32_Storage_FileSystem", "Win32_System_Console"] }
 

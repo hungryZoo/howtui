@@ -444,3 +444,89 @@ mod chatgpt_e2e {
         assert!(String::from_utf8_lossy(&out.stderr).contains("not enabled"));
     }
 }
+
+mod signed_in {
+    use super::*;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    /// 로그인 상태 출력: 마스킹 이메일, 토큰 미출력 (TC-AUTH-015).
+    #[test]
+    fn auth_status_masks_email_and_hides_tokens() {
+        let dir = tempfile::tempdir().unwrap();
+        let data = dir.path().join("data");
+        chatgpt_e2e_seed(&data);
+        let out = run(bin(dir.path()).args(["auth", "status"]));
+        assert!(out.status.success());
+        let text = String::from_utf8(out.stdout).unwrap();
+        assert!(text.contains("k***@example.com"), "{text}");
+        assert!(
+            !text.contains("kim@example.com") && !text.contains("at-1") && !text.contains("rt-1"),
+            "{text}"
+        );
+        assert!(text.contains("UTC"));
+    }
+
+    /// doctor Provider 점검: 모델 목록 1회 조회, 추론 요청 없음 (TC-DOC-003).
+    #[tokio::test(flavor = "multi_thread")]
+    async fn doctor_lists_models_without_inference() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/v1/models"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(json!({"models": [{"slug": "model-a", "visibility": "list"}]})),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+        let dir = tempfile::tempdir().unwrap();
+        chatgpt_e2e_seed(&dir.path().join("data"));
+        let uri = server.uri();
+        let d = dir.path().to_path_buf();
+        let out = tokio::task::spawn_blocking(move || {
+            bin(&d)
+                .env("HOWTUI_TEST_API_BASE", format!("{uri}/v1"))
+                .args(["doctor", "--json"])
+                .output()
+                .unwrap()
+        })
+        .await
+        .unwrap();
+        let v: Value = serde_json::from_slice(&out.stdout).unwrap();
+        let provider = v["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["id"] == "provider")
+            .unwrap();
+        assert_eq!(provider["status"], "pass", "{provider}");
+        assert_eq!(provider["details"]["selected"], "model-a");
+        let text = String::from_utf8_lossy(&out.stdout);
+        assert!(
+            !text.contains("at-1") && !text.contains("kim@example.com"),
+            "토큰과 이메일 비공개"
+        );
+        let reqs = server.received_requests().await.unwrap();
+        assert!(reqs.iter().all(|r| r.url.path() != "/v1/responses"));
+    }
+
+    fn chatgpt_e2e_seed(data: &Path) {
+        std::fs::create_dir_all(data).unwrap();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        std::fs::write(
+            data.join("state.json"),
+            json!({"version": 1, "registration": {"client_id": "oaiapp_1", "email": "kim@example.com"}, "credential_store": "file"}).to_string(),
+        )
+        .unwrap();
+        std::fs::write(
+            data.join("credentials.json"),
+            json!({"oaiapp_1": {"access_token": "at-1", "refresh_token": "rt-1", "scope": ["chatgpt.tokens.use.direct"], "expires_at": now + 3600, "saved_at": now}})
+                .to_string(),
+        )
+        .unwrap();
+    }
+}
