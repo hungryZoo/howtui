@@ -104,7 +104,7 @@ fi
 # (6) 질문 인자 즉시 생성과 Ctrl+J, Alt+Enter 줄바꿈 (TC-CLI-001, TC-KEY-002)
 start multiline "$ENV $MOCK $BIN list files > $OUT/multiline.out"
 sleep 1.5; snap multiline_auto
-send End; send C-j; lit "echo one"; send M-Enter; lit "echo two"; sleep 0.3; send Enter
+send Down; send End; send C-j; lit "echo one"; send M-Enter; lit "echo two"; sleep 0.3; send Enter
 if finish multiline; then
   if grep -q 'list files' "$OUT/multiline_auto.screen" && grep -q '^echo one$' "$OUT/multiline.out" && grep -q '^echo two$' "$OUT/multiline.out"; then
     pass multiline
@@ -118,7 +118,7 @@ start paste "$ENV $MOCK $BIN > $OUT/paste.out"
 lit "q"; send Enter; sleep 1.5
 tmux set-buffer -b howtui "pasted-a
 pasted-b" 2>&1 | cat
-send End; send C-j
+send Down; send End; send C-j
 tmux paste-buffer -p -b howtui -t "$P" 2>&1 | cat
 sleep 0.3; snap paste_before_accept; send Enter
 if finish paste; then
@@ -182,11 +182,13 @@ for sig in TERM HUP; do
   fi
 done
 
-# (14) 로그인 필요 화면 (TC-UI-012)
+# (14) 로그인 자동 시작 화면 (TC-UI-012)
 start login "HOWTUI_NO_BROWSER=1 $ENV $BIN > $OUT/login.out"
-snap login; send Escape
+sleep 0.5; snap login; send Escape; sleep 0.3; snap login_cancelled; send Escape
 if finish login; then
-  if grep -q 'Sign-in required' "$OUT/login.screen" && [ "$(rc_of login)" = 130 ]; then pass login; else fail login "login screen"; fi
+  if grep -q 'Waiting for sign-in' "$OUT/login.screen" && grep -q '1. Sign in' "$OUT/login.screen" \
+    && grep -q 'auth.openai.com' "$OUT/login.screen" && grep -q 'Sign-in required' "$OUT/login_cancelled.screen" \
+    && [ "$(rc_of login)" = 130 ]; then pass login; else fail login "login screen"; fi
 fi
 
 # (15) --height 옵션 (TC-CLI-005): 상태줄이 시작 위치에서 4번째 줄

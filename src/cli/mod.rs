@@ -2,6 +2,7 @@
 
 mod no_tui;
 mod provider;
+mod widget;
 
 use std::io::Write;
 use std::process::ExitCode;
@@ -42,7 +43,7 @@ pub struct Cli {
     pub height: Option<u16>,
     #[arg(long, value_enum)]
     pub mode: Option<ModeArg>,
-    /// 쉘 어댑터 전용 (P2)
+    /// 쉘 통합 스크립트 전용 (SRS 9.2절)
     #[arg(long, hide = true)]
     pub widget: bool,
     #[command(subcommand)]
@@ -68,6 +69,16 @@ pub enum Command {
     Doctor {
         #[arg(long)]
         json: bool,
+    },
+    Init {
+        #[arg(value_enum)]
+        shell: ShellKind,
+        #[arg(long, value_name = "KEY")]
+        key: Option<String>,
+        #[arg(long)]
+        no_bind: bool,
+        #[arg(long)]
+        no_wrap: bool,
     },
 }
 
@@ -132,6 +143,15 @@ fn localized_command() -> clap::Command {
                 .arg(help_arg())
                 .mut_arg("json", |a| a.help(tr(Msg::HelpDoctorJson)))
         })
+        .mut_subcommand("init", |s| {
+            s.about(tr(Msg::HelpInit))
+                .disable_help_flag(true)
+                .arg(help_arg())
+                .mut_arg("shell", |a| a.help(tr(Msg::HelpInitShell)))
+                .mut_arg("key", |a| a.help(tr(Msg::HelpInitKey)))
+                .mut_arg("no_bind", |a| a.help(tr(Msg::HelpNoBind)))
+                .mut_arg("no_wrap", |a| a.help(tr(Msg::HelpNoWrap)))
+        })
 }
 
 /// 프로세스 시작 시각 (첫 화면 표시 시간 측정용).
@@ -154,6 +174,16 @@ pub fn run() -> ExitCode {
         Ok(c) => c,
         Err(e) => e.exit(),
     };
+    // rc 파일에서 매번 실행되므로 설정 파일 오류와 무관하게 동작
+    if let Some(Command::Init {
+        shell,
+        key,
+        no_bind,
+        no_wrap,
+    }) = &cli.command
+    {
+        return init_command(*shell, key.as_deref(), *no_bind, *no_wrap);
+    }
     let loaded = match loaded {
         Ok(l) => l,
         Err(e) => {
@@ -186,6 +216,34 @@ pub fn run() -> ExitCode {
             command: AuthCommand::Status,
         }) => provider::status_command(&loaded, &rt),
         Some(Command::Doctor { json }) => crate::doctor::run(&loaded, &rt, json),
+        Some(Command::Init { .. }) => unreachable!("handled before configuration loading"),
+    }
+}
+
+fn init_command(shell: ShellKind, key: Option<&str>, no_bind: bool, no_wrap: bool) -> ExitCode {
+    use crate::shell::init::{InitOptions, Key, KeyError};
+    let key = match key.map(Key::parse).unwrap_or(Ok(Key::default())) {
+        Ok(k) => k,
+        Err(e) => {
+            let text = key.unwrap_or_default();
+            let msg = match e {
+                KeyError::Format => Msg::ErrKeyFormat,
+                KeyError::Reserved => Msg::ErrKeyReserved,
+            };
+            eprintln!("{}", trf(msg, &[("key", text)]));
+            return ExitCode::from(2);
+        }
+    };
+    let script = crate::shell::init::script(InitOptions {
+        shell,
+        key,
+        bind: !no_bind,
+        wrap: !no_wrap,
+    });
+    let mut out = std::io::stdout().lock();
+    match out.write_all(script.as_bytes()).and_then(|_| out.flush()) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(_) => ExitCode::from(1),
     }
 }
 
@@ -202,6 +260,14 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
     let shell_version = env("HOWTUI_SHELL_VERSION");
     let ctx = EnvContext::current(shell, shell_version);
     let question = cli.question.join(" ");
+    let widget_input = if cli.widget {
+        match widget::WidgetInput::from_env(&env) {
+            Some(w) => Some(w),
+            None => return widget::missing_output(),
+        }
+    } else {
+        None
+    };
 
     let built = match provider::build(&loaded) {
         Ok(b) => b,
@@ -226,20 +292,17 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
         lang: i18n::lang(),
         env: ctx,
         logged_in: built.logged_in,
-        initial_question: (!question.trim().is_empty()).then_some(question),
-        initial_command: None,
+        initial_question: (widget_input.is_none() && !question.trim().is_empty())
+            .then_some(question),
+        initial_command: widget_input.as_ref().and_then(|w| w.initial_command()),
         startup_notice,
-        keep_paste: cli.widget,
+        keep_paste: widget_input.as_ref().is_some_and(|w| w.keep_paste),
     };
+    // TUI 시작 전 판정 (TUI 중에는 fd 1이 터미널로 전환됨)
+    let destination = widget::Destination::current(widget_input.as_ref(), &env);
     let login = built.login.clone();
     match runtime::run_tui(cfg, Arc::clone(&built.provider), login, rt.handle()) {
-        Ok(TuiOutcome::Accepted(cmd)) => match crate::output::emit_stdout(&cmd) {
-            Ok(()) => ExitCode::SUCCESS,
-            Err(e) => {
-                eprintln!("{}", trf(Msg::ErrInternal, &[("detail", &e.to_string())]));
-                ExitCode::from(1)
-            }
-        },
+        Ok(TuiOutcome::Accepted(cmd)) => destination.deliver(&cmd),
         Ok(TuiOutcome::Cancelled) => ExitCode::from(130),
         Ok(TuiOutcome::Signal(sig)) => ExitCode::from(128u8.saturating_add(sig as u8)),
         Err(SessionError::NoTerminal(_)) => {

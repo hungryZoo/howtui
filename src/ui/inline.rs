@@ -380,6 +380,7 @@ fn render_status(frame: &mut Frame, state: &State, area: Rect) {
             (Phase::LoginRequired, _) => Msg::HintLogin,
             (Phase::LoggingIn, _) => Msg::HintRequesting,
             (_, Focus::Command) if state.has_command() => Msg::HintCommand,
+            (_, Focus::Question) if state.has_command() => Msg::HintFollowUp,
             _ => Msg::HintQuestion,
         };
         (tr_in(lang, hint).to_string(), dim())

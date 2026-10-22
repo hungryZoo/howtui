@@ -39,10 +39,7 @@ pub fn update(state: &mut State, action: Action) -> Vec<Effect> {
             Vec::new()
         }
         Action::LoginDone(result) => on_login_done(state, result),
-        Action::Paste(text) => {
-            on_paste(state, &text);
-            Vec::new()
-        }
+        Action::Paste(text) => on_paste(state, &text),
         Action::Key(key) => on_key(state, key),
     }
 }
@@ -123,6 +120,10 @@ fn on_ready_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
             Vec::new()
         }
         KeyAction::Submit => match state.focus {
+            // 빈 질문에서 Enter는 현재 명령어 확정 (CR-001)
+            Focus::Question if state.question.is_blank() && state.has_command() => {
+                accept_command(state)
+            }
             Focus::Question => submit_question(state),
             Focus::Command => accept_command(state),
         },
@@ -139,16 +140,20 @@ fn on_ready_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
                 Vec::new()
             }
         }
-        KeyAction::Undo => {
-            let changed = focused(state).undo();
-            if changed && state.focus == Focus::Command {
-                after_command_edit(state);
-            }
-            Vec::new()
-        }
-        KeyAction::Redo => {
-            let changed = focused(state).redo();
-            if changed && state.focus == Focus::Command {
+        KeyAction::Undo | KeyAction::Redo => {
+            // 빈 질문 영역의 Undo/Redo는 명령어 대상 (AI 반영 되돌리기, CR-001)
+            let on_command = state.focus == Focus::Command || state.question.is_empty();
+            let buffer = if on_command {
+                &mut state.command
+            } else {
+                &mut state.question
+            };
+            let changed = if key == KeyAction::Undo {
+                buffer.undo()
+            } else {
+                buffer.redo()
+            };
+            if changed && on_command {
                 after_command_edit(state);
             }
             Vec::new()
@@ -156,6 +161,14 @@ fn on_ready_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
         KeyAction::Edit(op) => {
             // 질문 영역은 한 줄 입력
             if state.focus == Focus::Question && op == EditOp::Newline {
+                return Vec::new();
+            }
+            if state.focus == Focus::Question && op == EditOp::Down && state.has_command() {
+                state.focus = Focus::Command;
+                return Vec::new();
+            }
+            if state.focus == Focus::Command && op == EditOp::Up && state.command.cursor().0 == 0 {
+                state.focus = Focus::Question;
                 return Vec::new();
             }
             let changed = focused(state).apply(op);
@@ -168,9 +181,14 @@ fn on_ready_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
     }
 }
 
-fn on_paste(state: &mut State, text: &str) {
+fn on_paste(state: &mut State, text: &str) -> Vec<Effect> {
     match state.phase {
         Phase::LoggingIn => {
+            // 콜백 주소 붙여넣기는 Enter 없이 바로 제출 (CR-002)
+            if text.contains("/auth/callback") {
+                state.login_paste.clear();
+                return vec![Effect::SubmitRedirect(text.trim().to_string())];
+            }
             state.login_paste.insert_str(text.trim());
         }
         Phase::Ready | Phase::ConfirmDanger => {
@@ -193,6 +211,7 @@ fn on_paste(state: &mut State, text: &str) {
         }
         _ => {}
     }
+    Vec::new()
 }
 
 fn is_move(op: EditOp) -> bool {
@@ -321,7 +340,7 @@ fn on_llm_done(
                     if let Some(cmd) = response.command.as_deref().filter(|c| !c.trim().is_empty())
                     {
                         state.command.replace_undoable(cmd);
-                        state.focus = Focus::Command;
+                        state.focus = Focus::Question;
                     }
                     state.last_question = pending.question.clone();
                     state.question.clear();

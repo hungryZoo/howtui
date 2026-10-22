@@ -47,10 +47,19 @@ fn params_from_query(query: &str) -> CallbackParams {
 
 /// 붙여넣은 URL 검증: `http://127.0.0.1:<port>/auth/callback?...` 형식만 허용.
 pub fn parse_pasted_url(text: &str, port: u16) -> Result<CallbackParams, PasteError> {
-    let text = text
-        .trim()
-        .trim_matches(|c| c == '"' || c == '\'' || c == '<' || c == '>');
-    let url = url::Url::parse(text).map_err(|_| PasteError::NotUrl)?;
+    // 터미널 줄바꿈으로 끼어든 공백 제거, 주소창 복사 시 빠진 http:// 보완 (CR-002)
+    let text: String = text
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect::<String>()
+        .trim_matches(|c| c == '"' || c == '\'' || c == '<' || c == '>')
+        .to_string();
+    let text = if text.starts_with("127.0.0.1:") {
+        format!("http://{text}")
+    } else {
+        text
+    };
+    let url = url::Url::parse(&text).map_err(|_| PasteError::NotUrl)?;
     let ok = url.scheme() == "http"
         && url.host_str() == Some("127.0.0.1")
         && url.port() == Some(port)
@@ -155,6 +164,18 @@ mod tests {
             Err(PasteError::WrongTarget)
         );
         assert_eq!(parse_pasted_url("abc", 1455), Err(PasteError::NotUrl));
+    }
+
+    #[test]
+    fn pasted_url_without_scheme_or_with_line_breaks() {
+        let p = parse_pasted_url("127.0.0.1:1455/auth/callback?code=abc&state=xyz", 1455).unwrap();
+        assert_eq!(p.code.as_deref(), Some("abc"));
+        let p = parse_pasted_url(
+            "http://127.0.0.1:1455/auth/call\nback?code=abc&st\r\nate=xyz",
+            1455,
+        )
+        .unwrap();
+        assert_eq!(p.state.as_deref(), Some("xyz"));
     }
 
     #[test]

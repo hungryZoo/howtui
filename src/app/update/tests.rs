@@ -108,16 +108,23 @@ fn login_esc_and_failure_return_to_login_required() {
 fn login_paste_submits_redirect_and_invalid_paste_keeps_waiting() {
     let mut s = State::new(Lang::En, env(), false);
     key(&mut s, KeyAction::Submit);
-    update(
-        &mut s,
-        Action::Paste("  http://127.0.0.1:1455/auth/callback?code=x&state=y \n".into()),
-    );
+    // 콜백 주소 붙여넣기는 Enter 없이 제출 (CR-002)
     assert_eq!(
-        key(&mut s, KeyAction::Submit),
+        update(
+            &mut s,
+            Action::Paste("  http://127.0.0.1:1455/auth/callback?code=x&state=y \n".into()),
+        ),
         vec![Effect::SubmitRedirect(
             "http://127.0.0.1:1455/auth/callback?code=x&state=y".into()
         )]
     );
+    // 그 외 붙여넣기는 입력란에 넣고 Enter로 제출
+    assert!(update(&mut s, Action::Paste("abc".into())).is_empty());
+    assert_eq!(
+        key(&mut s, KeyAction::Submit),
+        vec![Effect::SubmitRedirect("abc".into())]
+    );
+    s.login_paste.clear();
     update(
         &mut s,
         Action::LoginStarted(LoginView {
@@ -194,11 +201,15 @@ fn empty_question_is_ignored() {
 }
 
 #[test]
-fn success_applies_command_and_moves_focus() {
+fn success_applies_command_and_keeps_question_focus() {
     let mut s = ready();
     generate(&mut s, "list", "ls -la");
     assert_eq!(s.phase, Phase::Ready);
-    assert_eq!(s.focus, Focus::Command);
+    assert_eq!(
+        s.focus,
+        Focus::Question,
+        "응답 후 다음 요청 입력 대기 (CR-001)"
+    );
     assert_eq!(s.command.text(), "ls -la");
     assert_eq!(
         s.explanation,
@@ -216,7 +227,9 @@ fn success_applies_command_and_moves_focus() {
 fn follow_up_revises_with_user_edit_and_undo_restores_edit() {
     let mut s = ready();
     generate(&mut s, "list", "ls -la");
-    // 사용자 직접 편집
+    // 사용자 직접 편집 (↓로 명령어 영역 이동)
+    key(&mut s, KeyAction::Edit(EditOp::Down));
+    assert_eq!(s.focus, Focus::Command);
     key(&mut s, KeyAction::Edit(EditOp::End));
     type_text(&mut s, " /tmp");
     assert!(s.explanation.stale, "편집 후 설명 갱신 필요 표시");
@@ -246,6 +259,7 @@ fn follow_up_revises_with_user_edit_and_undo_restores_edit() {
 fn explain_updates_only_explanation() {
     let mut s = ready();
     generate(&mut s, "list", "ls -la");
+    key(&mut s, KeyAction::Edit(EditOp::Down));
     key(&mut s, KeyAction::Edit(EditOp::Backspace));
     let req = request_of(&key(&mut s, KeyAction::Explain));
     assert_eq!(req.op, Operation::Explain);
@@ -271,7 +285,6 @@ fn explain_updates_only_explanation() {
 fn esc_cancels_request_and_late_response_is_dropped() {
     let mut s = ready();
     generate(&mut s, "list", "ls");
-    key(&mut s, KeyAction::ToggleFocus);
     type_text(&mut s, "more");
     let req = request_of(&key(&mut s, KeyAction::Submit));
     assert_eq!(
@@ -298,7 +311,6 @@ fn esc_cancels_request_and_late_response_is_dropped() {
 fn error_keeps_previous_state_and_reports() {
     let mut s = ready();
     generate(&mut s, "list", "ls");
-    key(&mut s, KeyAction::ToggleFocus);
     type_text(&mut s, "more");
     let req = request_of(&key(&mut s, KeyAction::Submit));
     update(
@@ -432,7 +444,6 @@ fn history_is_limited() {
     let mut s = ready();
     generate(&mut s, "q0", "c0");
     for i in 1..8 {
-        key(&mut s, KeyAction::ToggleFocus);
         type_text(&mut s, &format!("q{i}"));
         let req = request_of(&key(&mut s, KeyAction::Submit));
         update(
@@ -443,7 +454,6 @@ fn history_is_limited() {
             },
         );
     }
-    key(&mut s, KeyAction::ToggleFocus);
     type_text(&mut s, "last");
     let req = request_of(&key(&mut s, KeyAction::Submit));
     assert_eq!(req.history.len(), HISTORY_LIMIT);
@@ -503,8 +513,49 @@ fn findings_follow_edits() {
     let mut s = ready();
     generate(&mut s, "list", "ls");
     assert!(s.findings.is_empty());
+    key(&mut s, KeyAction::ToggleFocus);
     key(&mut s, KeyAction::Edit(EditOp::Home));
     key(&mut s, KeyAction::Edit(EditOp::KillToEnd));
     type_text(&mut s, "rm -r x");
     assert_eq!(crate::safety::max_level(&s.findings), Some(Level::High));
+}
+
+#[test]
+fn empty_question_enter_accepts_command() {
+    let mut s = ready();
+    generate(&mut s, "list", "ls -la");
+    assert_eq!(
+        key(&mut s, KeyAction::Submit),
+        vec![Effect::Exit(ExitOutcome::Accepted("ls -la".into()))]
+    );
+}
+
+#[test]
+fn empty_question_enter_on_high_risk_needs_second_enter() {
+    let mut s = ready();
+    generate(&mut s, "remove", "rm -rf build");
+    assert!(key(&mut s, KeyAction::Submit).is_empty());
+    assert_eq!(s.phase, Phase::ConfirmDanger);
+    assert_eq!(
+        key(&mut s, KeyAction::Submit),
+        vec![Effect::Exit(ExitOutcome::Accepted("rm -rf build".into()))]
+    );
+}
+
+#[test]
+fn arrows_move_between_question_and_command() {
+    let mut s = ready();
+    // 명령어가 없으면 ↓ 이동 없음
+    key(&mut s, KeyAction::Edit(EditOp::Down));
+    assert_eq!(s.focus, Focus::Question);
+    generate(&mut s, "two lines", "a\nb");
+    key(&mut s, KeyAction::Edit(EditOp::Down));
+    assert_eq!(s.focus, Focus::Command);
+    // 명령어 둘째 줄의 ↑는 줄 이동, 첫 줄의 ↑는 질문 영역 이동
+    key(&mut s, KeyAction::Edit(EditOp::Down));
+    assert_eq!((s.focus, s.command.cursor().0), (Focus::Command, 1));
+    key(&mut s, KeyAction::Edit(EditOp::Up));
+    assert_eq!((s.focus, s.command.cursor().0), (Focus::Command, 0));
+    key(&mut s, KeyAction::Edit(EditOp::Up));
+    assert_eq!(s.focus, Focus::Question);
 }

@@ -8,10 +8,11 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::LabelWarning => "Warning",
         Msg::LabelNotes => "Notes",
         Msg::PlaceholderQuestion => "Describe what you want to do",
-        Msg::PlaceholderFollowUp => "Ask for a change, or accept the command with Enter",
-        Msg::PlaceholderLoginPaste => "Paste the redirected URL here if the browser runs elsewhere",
+        Msg::PlaceholderFollowUp => "Type a change, or press Enter to accept the command",
+        Msg::PlaceholderLoginPaste => "Paste the address here (step 2 only)",
         Msg::HintQuestion => "Enter submit  Tab command  Esc quit",
         Msg::HintCommand => "Enter accept  Ctrl+J newline  Ctrl+E explain  Tab ask  Esc quit",
+        Msg::HintFollowUp => "Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit",
         Msg::HintRequesting => "Esc cancel",
         Msg::HintLogin => "Enter sign in  Esc quit",
         Msg::StatusGenerating => "Generating",
@@ -30,12 +31,15 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::PlanNotice => {
             "You're using your ChatGPT plan. Manage usage: https://chatgpt.com/settings/usage"
         }
-        Msg::LoginRequired => "Sign-in required. Press Enter to Continue with ChatGPT.",
-        Msg::LoginWaiting => "Waiting for sign-in in the browser",
-        Msg::LoginOpenUrl => "Open this URL to sign in:",
-        Msg::LoginPasteHint => {
-            "If the browser runs on another machine, paste the URL it was redirected to (starts with http://127.0.0.1) and press Enter."
+        Msg::LoginRequired => "Sign-in required. Press Enter to sign in with ChatGPT.",
+        Msg::LoginWaiting => "Waiting for sign-in",
+        Msg::LoginOpenUrl => {
+            "1. Sign in in the browser window and press Allow. If no browser opened, open this URL:"
         }
+        Msg::LoginPasteHint => {
+            "2. Only if the browser then shows an error page (127.0.0.1 can't be reached): copy the whole address bar and paste it here."
+        }
+        Msg::LoginPressEnter => "Then press Enter.",
         Msg::LoginSshHint => {
             "On a remote machine you can also forward the port first: ssh -L {port}:127.0.0.1:{port} <host>"
         }
@@ -101,6 +105,18 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::ErrInternal => "Internal error: {detail}",
         Msg::ErrNoCommand => "The model answered without a command. Ask for a shell command.",
         Msg::ErrNoQuestion => "A question is required with --no-tui.",
+        Msg::ErrKeyFormat => {
+            "Invalid key \"{key}\". Use ctrl+<letter> or alt+<letter>, for example ctrl+g."
+        }
+        Msg::ErrKeyReserved => {
+            "{key} is needed by the shell (Enter, Tab, Backspace, Ctrl+C, Ctrl+D, Ctrl+Z, Ctrl+S, Ctrl+Q). Choose another key."
+        }
+        Msg::ErrWidgetNoOutput => {
+            "--widget is used by shell integration scripts (HOWTUI_OUTPUT_FILE is not set). See `howtui init --help`."
+        }
+        Msg::ErrWidgetWrite => {
+            "Could not hand the command to the shell ({detail}). Copy it manually:"
+        }
         Msg::RiskHigh => "High risk",
         Msg::RiskCaution => "Caution",
         Msg::CatRecursiveDelete => "recursive delete",
@@ -139,6 +155,17 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::HelpAuthStatus => "Show sign-in status",
         Msg::HelpDoctor => "Check the environment and configuration",
         Msg::HelpDoctorJson => "Machine-readable JSON output",
+        Msg::HelpInit => {
+            "Print the shell integration script (key binding and next-prompt insertion). Add `eval \"$(howtui init bash)\"` to ~/.bashrc, `eval \"$(howtui init zsh)\"` to ~/.zshrc, or `howtui init powershell | Out-String | Invoke-Expression` to $PROFILE"
+        }
+        Msg::HelpInitShell => "Shell to integrate with",
+        Msg::HelpInitKey => {
+            "Key that opens howtui with the current command line (ctrl+<letter> or alt+<letter>)"
+        }
+        Msg::HelpNoBind => "Do not bind a key",
+        Msg::HelpNoWrap => {
+            "Do not define the howtui shell function (results then go to stdout only)"
+        }
         Msg::HelpNoBrowser => "Do not open a browser; print the URL (for SSH or headless machines)",
         Msg::HelpPort => "Fixed local callback port (for SSH port forwarding)",
         Msg::HelpForget => "Also forget the account registration",

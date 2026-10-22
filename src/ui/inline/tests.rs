@@ -198,7 +198,7 @@ fn login_screen_shows_url_and_paste_field() {
         "{lines:?}"
     );
     assert!(
-        lines[8].starts_with("> Paste the redirected URL"),
+        lines[8].starts_with("> Paste the address here"),
         "{lines:?}"
     );
     assert!(lines[9].contains("Esc cancel"));

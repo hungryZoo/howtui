@@ -88,7 +88,7 @@ jobs:
         run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
       - name: Install tmux
         run: |
-          if [ "$RUNNER_OS" = Linux ]; then sudo apt-get update -q && sudo apt-get install -y -q tmux; else brew install tmux; fi
+          if [ "$RUNNER_OS" = Linux ]; then sudo apt-get update -q && sudo apt-get install -y -q tmux zsh; else brew install tmux; fi
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
@@ -98,6 +98,25 @@ jobs:
         run: uv run tests/pty/no_dsr.py target/debug/howtui
       - name: PTY E2E
         run: tests/pty/run.sh
+        env:
+          PTY_LANG: ${{ runner.os == 'macOS' && 'en_US.UTF-8' || 'C.UTF-8' }}
+      # 쉘 통합 (SRS 9절): 각 쉘에서 init 등록 후 단축키, 다음 입력 전달, 캡처, 취소, 대체 경로
+      - name: Shell integration E2E (Bash)
+        run: bash --version | head -1 && tests/pty/shell.sh bash
+        env:
+          PTY_LANG: ${{ runner.os == 'macOS' && 'en_US.UTF-8' || 'C.UTF-8' }}
+      - name: Shell integration E2E (macOS Bash 3.2)
+        if: runner.os == 'macOS'
+        run: /bin/bash --version | head -1 && tests/pty/shell.sh bash
+        env:
+          PTY_LANG: en_US.UTF-8
+          PTY_SHELL_BIN: /bin/bash
+      - name: Shell integration E2E (Zsh)
+        run: zsh --version && tests/pty/shell.sh zsh
+        env:
+          PTY_LANG: ${{ runner.os == 'macOS' && 'en_US.UTF-8' || 'C.UTF-8' }}
+      - name: Shell integration E2E (PowerShell)
+        run: pwsh -NoLogo -NoProfile -Command '$PSVersionTable.PSVersion.ToString(); (Get-Module -ListAvailable PSReadLine | Select-Object -First 1).Version.ToString()' && tests/pty/shell.sh powershell
         env:
           PTY_LANG: ${{ runner.os == 'macOS' && 'en_US.UTF-8' || 'C.UTF-8' }}
       - name: Upload PTY logs

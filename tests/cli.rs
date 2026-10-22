@@ -82,6 +82,7 @@ fn help_lists_commands_and_exit_codes() {
         "logout",
         "auth",
         "doctor",
+        "init",
         "Exit codes",
         "never runs commands",
     ] {
@@ -253,6 +254,61 @@ fn auth_status_signed_out_exits_4() {
 }
 
 #[cfg(unix)]
+/// 쉘 통합 스크립트 출력과 키 검증 (TC-SH-008, TC-SH-004). 설정 파일 오류와 무관하게 동작.
+#[test]
+fn init_prints_scripts_and_validates_key() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("config.toml"), "[ui\n").unwrap();
+    for (shell, marker) in [
+        ("bash", "eval \"$(howtui init bash)\""),
+        ("zsh", "eval \"$(howtui init zsh)\""),
+        ("powershell", "Invoke-Expression"),
+        ("pwsh", "Invoke-Expression"),
+    ] {
+        let out = run(bin(dir.path()).args(["init", shell]));
+        assert!(out.status.success(), "{shell}");
+        let text = String::from_utf8(out.stdout).unwrap();
+        assert!(text.contains(marker), "{shell}: 등록 방법 주석");
+        assert!(text.contains("Disable:"), "{shell}: 제거 방법 주석");
+        assert!(text.contains("Ctrl+G"));
+        assert!(out.stderr.is_empty());
+    }
+    let ps = run(bin(dir.path()).args(["init", "powershell"]));
+    assert!(ps.stdout.is_ascii());
+    let out = run(bin(dir.path()).args(["init", "bash", "--key", "alt+x", "--no-wrap"]));
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(text.contains(r#""\ex": __howtui_widget"#));
+    assert!(!text.contains("howtui() {"));
+    for bad in [
+        ["init", "bash", "--key", "ctrl+c"],
+        ["init", "bash", "--key", "f5"],
+    ] {
+        let out = run(bin(dir.path()).args(bad));
+        assert_eq!(out.status.code(), Some(2), "{bad:?}");
+        assert!(out.stdout.is_empty());
+        assert!(!out.stderr.is_empty());
+    }
+    let out = run(bin(dir.path()).args(["init", "fish"]));
+    assert_eq!(out.status.code(), Some(2));
+}
+
+/// 위젯 모드는 쉘 스크립트가 만든 출력 파일 경로 필수 (SRS 9.2절).
+#[test]
+fn widget_without_output_file_exits_2() {
+    let dir = tempfile::tempdir().unwrap();
+    let out = run(bin(dir.path())
+        .env("HOWTUI_MOCK_SCENARIO", "echo")
+        .env("HOWTUI_BUFFER", "ls")
+        .arg("--widget"));
+    assert_eq!(out.status.code(), Some(2));
+    assert!(out.stdout.is_empty());
+    assert!(
+        String::from_utf8(out.stderr)
+            .unwrap()
+            .contains("HOWTUI_OUTPUT_FILE")
+    );
+}
+
 #[test]
 fn tui_without_controlling_terminal_exits_3() {
     use std::os::unix::process::CommandExt;

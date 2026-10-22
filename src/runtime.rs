@@ -23,6 +23,8 @@ use crate::ui::{inline, keymap};
 
 pub const TICK: Duration = Duration::from_millis(120);
 const IDLE_POLL: Duration = Duration::from_millis(500);
+/// 미로그인 시작 시 최소 높이: 로그인 URL 전체와 2단계 안내 표시 (CR-002)
+const LOGIN_HEIGHT: u16 = 14;
 
 /// 로그인 진행 알림.
 pub enum LoginProgress {
@@ -78,7 +80,12 @@ pub fn run_tui(
     login: Option<Arc<dyn LoginService>>,
     rt: &tokio::runtime::Handle,
 ) -> Result<TuiOutcome, SessionError> {
-    let mut session = TerminalSession::start(cfg.height, cfg.keep_paste)?;
+    let height = if cfg.logged_in {
+        cfg.height
+    } else {
+        cfg.height.max(LOGIN_HEIGHT)
+    };
+    let mut session = TerminalSession::start(height, cfg.keep_paste)?;
     let (tx, rx) = channel::<Msg>();
     spawn_signal_listener(rt, tx.clone());
 
@@ -114,6 +121,10 @@ pub fn run_tui(
         } else {
             state.auto_submit = true;
         }
+    }
+    // 미로그인 시 로그인 화면 대기 없이 바로 시작 (CR-002)
+    if !cfg.logged_in && login.is_some() {
+        effects.extend(app::update(&mut state, Action::Key(app::KeyAction::Submit)));
     }
 
     let mut requests: HashMap<RequestId, CancelToken> = HashMap::new();

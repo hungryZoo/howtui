@@ -8,10 +8,11 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::LabelWarning => "경고",
         Msg::LabelNotes => "참고",
         Msg::PlaceholderQuestion => "하고 싶은 작업을 입력",
-        Msg::PlaceholderFollowUp => "수정 요청 입력, 또는 명령에서 Enter로 확정",
-        Msg::PlaceholderLoginPaste => "브라우저가 다른 기기에 있으면 이동된 URL을 여기에 붙여넣기",
+        Msg::PlaceholderFollowUp => "수정 요청 입력, 또는 바로 Enter로 명령어 확정",
+        Msg::PlaceholderLoginPaste => "여기에 주소 붙여넣기 (2단계에 해당할 때만)",
         Msg::HintQuestion => "Enter 제출  Tab 명령  Esc 종료",
         Msg::HintCommand => "Enter 확정  Ctrl+J 줄바꿈  Ctrl+E 설명  Tab 질문  Esc 종료",
+        Msg::HintFollowUp => "Enter 확정 또는 수정 요청  ↓ 명령 편집  Ctrl+E 설명  Esc 종료",
         Msg::HintRequesting => "Esc 취소",
         Msg::HintLogin => "Enter 로그인  Esc 종료",
         Msg::StatusGenerating => "생성 중",
@@ -28,12 +29,15 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::PlanNotice => {
             "You're using your ChatGPT plan. 사용량 관리: https://chatgpt.com/settings/usage"
         }
-        Msg::LoginRequired => "로그인 필요. Enter: Continue with ChatGPT",
-        Msg::LoginWaiting => "브라우저 로그인 대기 중",
-        Msg::LoginOpenUrl => "로그인 URL:",
-        Msg::LoginPasteHint => {
-            "브라우저가 다른 기기에서 실행 중이면 이동된 주소(http://127.0.0.1 로 시작)를 붙여넣고 Enter"
+        Msg::LoginRequired => "로그인 필요. Enter로 ChatGPT 로그인 시작",
+        Msg::LoginWaiting => "로그인 대기 중",
+        Msg::LoginOpenUrl => {
+            "1. 열린 브라우저 창에서 로그인 후 허용 클릭. 브라우저가 열리지 않았으면 아래 URL 열기"
         }
+        Msg::LoginPasteHint => {
+            "2. 그 뒤 브라우저에 오류 화면(127.0.0.1 연결 불가)이 나올 때만: 주소창 전체를 복사해 여기에 붙여넣기"
+        }
+        Msg::LoginPressEnter => "붙여넣은 뒤 Enter",
         Msg::LoginSshHint => {
             "원격 장치에서는 포트 포워딩도 가능: ssh -L {port}:127.0.0.1:{port} <host>"
         }
@@ -94,6 +98,16 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::ErrInternal => "내부 오류: {detail}",
         Msg::ErrNoCommand => "모델 응답에 명령어 없음. 쉘 명령어를 요청",
         Msg::ErrNoQuestion => "--no-tui에는 질문 필요",
+        Msg::ErrKeyFormat => {
+            "잘못된 키 \"{key}\". ctrl+<영문자> 또는 alt+<영문자> 형식 사용 (예: ctrl+g)"
+        }
+        Msg::ErrKeyReserved => {
+            "{key}는 쉘 기본 동작용 키 (Enter, Tab, Backspace, Ctrl+C, Ctrl+D, Ctrl+Z, Ctrl+S, Ctrl+Q). 다른 키 선택"
+        }
+        Msg::ErrWidgetNoOutput => {
+            "--widget은 쉘 통합 스크립트 전용 (HOWTUI_OUTPUT_FILE 미설정). `howtui init --help` 참고"
+        }
+        Msg::ErrWidgetWrite => "쉘에 명령어 전달 실패 ({detail}). 아래 명령어를 직접 복사:",
         Msg::RiskHigh => "위험 높음",
         Msg::RiskCaution => "주의",
         Msg::CatRecursiveDelete => "재귀 삭제",
@@ -130,6 +144,13 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::HelpAuthStatus => "로그인 상태 표시",
         Msg::HelpDoctor => "환경과 설정 점검",
         Msg::HelpDoctorJson => "JSON 출력",
+        Msg::HelpInit => {
+            "쉘 통합 스크립트 출력 (단축키와 다음 입력란 삽입). ~/.bashrc에 `eval \"$(howtui init bash)\"`, ~/.zshrc에 `eval \"$(howtui init zsh)\"`, $PROFILE에 `howtui init powershell | Out-String | Invoke-Expression` 추가"
+        }
+        Msg::HelpInitShell => "통합 대상 쉘",
+        Msg::HelpInitKey => "현재 입력 줄로 howtui를 여는 키 (ctrl+<영문자> 또는 alt+<영문자>)",
+        Msg::HelpNoBind => "단축키 미등록",
+        Msg::HelpNoWrap => "howtui 쉘 함수 미정의 (결과는 stdout으로만 전달)",
         Msg::HelpNoBrowser => "브라우저를 열지 않고 URL만 표시 (SSH, 헤드리스 장치용)",
         Msg::HelpPort => "고정 로컬 콜백 포트 (SSH 포트 포워딩용)",
         Msg::HelpForget => "계정 등록 정보도 삭제",

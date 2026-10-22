@@ -93,7 +93,7 @@ pub fn login_command(
                 tr(Msg::LoginOpenUrl),
                 view.url.unwrap_or_default()
             );
-            println!("{}", tr(Msg::LoginPasteHint));
+            println!("{} {}", tr(Msg::LoginPasteHint), tr(Msg::LoginPressEnter));
             if let Some(port) = view.port {
                 println!("{}", trf(Msg::LoginSshHint, &[("port", &port.to_string())]));
             }
