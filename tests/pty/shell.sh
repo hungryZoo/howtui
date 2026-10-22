@@ -76,7 +76,7 @@ esac
 if [ -n "${PTY_DOCKER_IMAGE:-}" ]; then
   BIN_DIR=/opt/howtui
 fi
-ENVS="HOME=$OUT/home ZDOTDIR=$OUT/home PATH=$BIN_DIR:/usr/bin:/bin TERM=xterm-256color LANG=${PTY_LANG:-C.UTF-8} TMPDIR=$OUT/tmp \
+ENVS="HOME=$OUT/home ZDOTDIR=$OUT/home PATH=$BIN_DIR:/usr/bin:/bin TERM=xterm-256color LANG=${PTY_LANG:-C.UTF-8} TMPDIR=$OUT/tmp BASH_SILENCE_DEPRECATION_WARNING=1 \
 HOWTUI_LANG=en HOWTUI_MOCK_SCENARIO=echo HOWTUI_DATA_DIR=$OUT/data HOWTUI_CONFIG=$OUT/none.toml"
 if [ -n "${PTY_DOCKER_IMAGE:-}" ]; then
   # 결과 디렉터리는 같은 경로로 연결, 바이너리는 읽기 전용
@@ -105,7 +105,8 @@ if ! wait_prompt; then
   snap start; fail start "no prompt"; exit 1
 fi
 snap start
-nonempty=$(sed '/^[[:space:]]*$/d' "$OUT/start.screen" | wc -l | tr -d ' ')
+# 컨테이너의 사용자 그룹 이름 경고는 시험 환경 출력이므로 제외
+nonempty=$(sed '/^[[:space:]]*$/d; /^groups: cannot find name/d' "$OUT/start.screen" | wc -l | tr -d ' ')
 if [ "$LEGACY" = 1 ]; then
   # (L) Bash 3.2: 바인딩 생략 경고 1줄, 쉘 정상, 직접 실행 결과는 히스토리(↑)로 전달 (TC-SH-015)
   if grep -q 'needs Bash 4.0 or newer' "$OUT/start.screen" && [ "$nonempty" = 2 ]; then pass legacy_warning; else fail legacy_warning "warning line"; fi

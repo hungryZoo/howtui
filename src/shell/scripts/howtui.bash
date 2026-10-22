@@ -12,6 +12,17 @@
 # Nothing is executed automatically. This script never edits rc files.
 if [[ $- == *i* ]]; then
 
+# Cursor to the end of READLINE_LINE. Bash 5.0+ counts characters, older versions count bytes;
+# out-of-range values are not clamped by every version (5.2 corrupts the next line).
+__howtui_point_end() {
+    if ((BASH_VERSINFO[0] >= 5)); then
+        READLINE_POINT=${#READLINE_LINE}
+    else
+        local LC_ALL=C
+        READLINE_POINT=${#READLINE_LINE}
+    fi
+}
+
 #@wrap
 howtui() {
     local __howtui_file __howtui_rc
@@ -21,7 +32,7 @@ howtui() {
     __howtui_rc=$?
     if [[ -n $__howtui_file ]]; then
         if [[ $__howtui_rc == 0 && -s $__howtui_file ]]; then
-            __howtui_next=$(<"$__howtui_file")
+            IFS= read -r -d '' __howtui_next <"$__howtui_file"
             # replaces this howtui line in history
             history -s -- "$__howtui_next"
         fi
@@ -42,7 +53,7 @@ if ((BASH_VERSINFO[0] >= 4)); then
         if [[ -n ${__howtui_next+set} ]]; then
             if [[ -z $READLINE_LINE ]]; then
                 READLINE_LINE=$__howtui_next
-                READLINE_POINT=2147483647
+                __howtui_point_end
             fi
             unset __howtui_next
         fi
@@ -73,8 +84,9 @@ if ((BASH_VERSINFO[0] >= 4)); then
             HOWTUI_BRACKETED_PASTE=$paste command howtui --widget </dev/tty >/dev/tty 2>/dev/tty
         rc=$?
         if [[ $rc == 0 && -s $file ]]; then
-            READLINE_LINE=$(<"$file")
-            READLINE_POINT=2147483647
+            # not $(<file): in Bash 5.2 that substitution inside bind -x truncates the next command line
+            IFS= read -r -d '' READLINE_LINE <"$file"
+            __howtui_point_end
         fi
         command rm -f -- "$file"
     }

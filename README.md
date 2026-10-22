@@ -332,7 +332,7 @@ Shell integration, as tested (PTY end-to-end: Ctrl+G, next-prompt insertion, cap
 
 | Shell | Tested | Not tested yet |
 | --- | --- | --- |
-| Bash | 5.0 (Ubuntu 20.04); script loading on 3.2, 4.0, 4.4, 5.1, 5.2 | |
+| Bash | 5.0 (Ubuntu 20.04), 5.2 (Ubuntu 24.04); script loading on 3.2, 4.0, 4.4, 5.1 | |
 | Zsh | 5.9 (Debian 12) | 5.1-5.8 |
 | PowerShell | 7.4 on Linux (PSReadLine 2.3.5) | Windows PowerShell 5.1 and PowerShell 7 on Windows |
 

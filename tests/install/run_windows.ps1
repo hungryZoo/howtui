@@ -19,7 +19,17 @@ Copy-Item (Join-Path $dist "v$version\SHA256SUMS") (Join-Path $dist 'latest\SHA2
 
 $port = 18765
 $server = Start-Process -FilePath python -ArgumentList '-m', 'http.server', $port, '--bind', '127.0.0.1', '--directory', $dist -PassThru -WindowStyle Hidden
-Start-Sleep -Seconds 2
+# wait until the server answers (a fixed sleep raced on slow runners)
+$ready = $false
+for ($i = 0; $i -lt 60 -and -not $ready; $i++) {
+    try {
+        Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:$port/latest/SHA256SUMS" -TimeoutSec 2 | Out-Null
+        $ready = $true
+    } catch {
+        Start-Sleep -Milliseconds 500
+    }
+}
+if (-not $ready) { throw "test HTTP server on port $port did not start" }
 $failed = $false
 function Fail([string]$m) { Write-Host "FAIL $m"; $script:failed = $true }
 $script = Get-Content -Raw -LiteralPath (Join-Path $root 'scripts\install.ps1')

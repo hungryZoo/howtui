@@ -452,7 +452,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | `TC-UI-018` | 통과 | 단위 `cargo test` | follow_up_revises_with_user_edit_and_undo_restores_edit |
 | `TC-CLI-007` | 통과 | 통합 `tests/cli.rs` | init_prints_scripts_and_validates_key (bash, zsh, powershell, pwsh 별칭, fish 종료 코드 2) |
 | `TC-EDIT-009` | 통과 | 단위 `cargo test`, PTY `tests/pty/shell.sh` | widget_input_requires_output_file, widget_open 화면 (명령어 초기값, 질문 영역 포커스 안내) |
-| `TC-SH-001` | 통과 | PTY `tests/pty/shell.sh bash` | Bash 5.0 로컬: widget_replace, widget_bottom |
+| `TC-SH-001` | 통과 | PTY `tests/pty/shell.sh bash` | Bash 5.0 로컬, Bash 5.2 (Ubuntu 24.04 컨테이너): widget_replace, widget_bottom. 5.2의 `$(<file)` 결함 발견 후 `read` 방식으로 수정, 재실행 통과 |
 | `TC-SH-002` | 통과 | PTY `tests/pty/shell.sh zsh` | Zsh 5.9 (Debian 12 컨테이너): widget_replace, widget_bottom |
 | `TC-SH-004` | 통과 | PTY `tests/pty/shell.sh` | key_option (alt+h, `--no-wrap`), 3개 쉘 |
 | `TC-SH-005` | 통과 | PTY `tests/pty/shell.sh` | widget_cancel, 3개 쉘 |
@@ -462,7 +462,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | `TC-SH-010` | 통과 | PTY `tests/pty/shell.sh` | doctor (`shell integration: <쉘>`), 3개 쉘 |
 | `TC-SH-012` | 통과 | PTY `tests/pty/shell.sh`, 통합 `tests/cli.rs` | widget_replace 3개 쉘, widget_without_output_file_exits_2 |
 | `TC-SH-014` | 통과 | PTY `tests/pty/shell.sh` | widget_multiline 3개 쉘 (PowerShell 연속 프롬프트 `>>`) |
-| `TC-SH-016` | 통과 | PTY `tests/pty/shell.sh` | next_input: Bash 5.0, Zsh 5.9, PowerShell 7.4 |
+| `TC-SH-016` | 통과 | PTY `tests/pty/shell.sh` | next_input: Bash 5.0, Bash 5.2, Zsh 5.9, PowerShell 7.4 |
 | `TC-SH-017` | 통과 | PTY `tests/pty/shell.sh` | wrapper_capture, wrapper_cancel, 3개 쉘 |
 | `TC-SH-018` | 통과 | PTY `tests/pty/shell.sh powershell` | mcr.microsoft.com/powershell 7.4.2 (Ubuntu 22.04 컨테이너), 12건 |
 | `TC-SH-019` | 통과 | 컨테이너 `bash:3.2`, `bash:4.0`, `bash:4.4`, `bash:5.1`, `bash:5.2` | 5개 버전 문법 검사와 적재, 3.2만 바인딩 생략 경고 |

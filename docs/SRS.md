@@ -568,7 +568,7 @@ ADR-0003 표 적용.
 | --- | --- | --- | --- |
 | 최소 버전 | 4.0 (`READLINE_LINE`), 미만은 바인딩 생략과 경고. `HOWTUI_LBUFFER`는 5.0 이상 (`READLINE_POINT` 문자 단위 실측) | 5.1 이상 (검증 5.9) | Windows PowerShell 5.1 (PSReadLine 2.0.0), PowerShell 7.x (검증 Linux 7.4, PSReadLine 2.3.5) |
 | 바인딩 | `bind -m <keymap> -x` (emacs, vi-insert, vi-command). Bash 5.1은 `bind -r` 선행 (기존 바인딩 덮어쓰기 결함) | `zle -N howtui-widget`, `bindkey -M emacs/viins/vicmd` | `Set-PSReadLineKeyHandler -Chord` (Vi 모드는 Insert, Command 각각) |
-| 버퍼 교체 | `READLINE_LINE=$(<tmp)`, `READLINE_POINT=2147483647` (10진수만 해석, 입력 길이로 보정) | `BUFFER=$(<tmp)`, `CURSOR=$#BUFFER`, `zle reset-prompt` | `Replace(0, $line.Length, $new)` (빈 입력은 `Insert`), `SetCursorPosition`, CRLF를 LF로 정규화 (PSReadLine 2.0.0 대응) |
+| 버퍼 교체 | `IFS= read -r -d '' READLINE_LINE <tmp` (Bash 5.2는 `bind -x` 안의 `$(<tmp)` 치환 후 다음 명령 줄 절단, 실측), `READLINE_POINT=${#READLINE_LINE}` (5.0 이상 문자 단위, 4.x는 `LC_ALL=C` 바이트 단위. 범위 밖 값은 5.2에서 미보정) | `BUFFER=$(<tmp)`, `CURSOR=$#BUFFER`, `zle reset-prompt` | `Replace(0, $line.Length, $new)` (빈 입력은 `Insert`), `SetCursorPosition`, CRLF를 LF로 정규화 (PSReadLine 2.0.0 대응) |
 | 화면 재그림 | 자동 (4.4 이상 마지막 프롬프트 줄) | `zle reset-prompt` (바이너리의 정확한 커서 복원 전제) | `InvokePrompt($null, $y)`, `$y = CursorTop - ExtraPromptLineCount`를 TUI 종료 직후, 입력 교체 전에 계산 (화면 스크롤과 여러 줄 교체 대응), 0과 `BufferHeight - 1` 사이 보정 |
 | 바이너리 조회 | `command howtui` | `command howtui` | `Get-Command howtui -CommandType Application` 실행 시점 조회 (경로 내장 금지, 한글 사용자 폴더 대응) |
 | 스크립트 문자 집합 | 제한 없음 | 제한 없음 | ASCII 전용 (5.1의 BOM 없는 스크립트 ANSI 해석) |
