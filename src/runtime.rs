@@ -23,8 +23,8 @@ use crate::ui::{inline, keymap};
 
 pub const TICK: Duration = Duration::from_millis(120);
 const IDLE_POLL: Duration = Duration::from_millis(500);
-/// 미로그인 시작 시 최소 높이: 로그인 URL 전체와 2단계 안내 표시 (CR-002)
-const LOGIN_HEIGHT: u16 = 14;
+/// 미로그인 시작 시 최소 높이: 전송 범위 고지, 2단계 안내, 로그인 URL 전체 표시 (CR-002, PRD-PRIV-003)
+const LOGIN_HEIGHT: u16 = 18;
 
 /// 로그인 진행 알림.
 pub enum LoginProgress {

@@ -466,7 +466,7 @@ ADR-0015: `app::editor::TextBuffer` 자체 구현 (ratatui-textarea 미사용).
 | SRS-TUI-006 | 위험 확인 상태: 높음 판정 명령어 확정 시 진입, Enter 외 키 입력 시 해제 | PRD-SAFE-003 | `src/app/update.rs` |
 | SRS-TUI-007 | 7.3절 Fullscreen 렌더러와 Alternate Screen 처리 | PRD-FS-001-005 | `src/ui/fullscreen.rs` |
 | SRS-TUI-008 | Shift+Enter: crossterm 키보드 확장 플래그 지원 판정 후 활성화 | PRD-KEY-002 | `src/ui/terminal.rs` |
-| SRS-TUI-009 | 미로그인 시작 시 로그인 자동 시작, 높이 최소 14행. 로그인 진행 화면: 진행 표시, 단계 안내 2개((1) 브라우저 로그인과 허용, (2) 오류 화면 시 주소 붙여넣기), 인가 URL 전체, 붙여넣기 입력란. Esc 취소 후 로그인 필요 화면, 다시 Esc 종료 (CR-002) | PRD-AUTH-013 | `src/ui/inline.rs`, `src/runtime.rs` |
+| SRS-TUI-009 | 미로그인 시작 시 로그인 자동 시작, 높이 최소 18행. 로그인 진행 화면: 진행 표시, 전송 범위 고지 (PRD-PRIV-003), 단계 안내 2개((1) 브라우저 로그인과 허용, (2) 오류 화면 시 주소 붙여넣기), 인가 URL 전체, 붙여넣기 입력란. Esc 취소 후 로그인 필요 화면, 다시 Esc 종료 (CR-002) | PRD-AUTH-013 | `src/ui/inline.rs`, `src/runtime.rs` |
 | SRS-TUI-010 | 상태줄 플랜 사용 표시와 최초 1회 안내 | PRD-AUTH-014 | `src/ui/inline.rs`, `src/auth/state.rs` |
 | SRS-TUI-011 | 7.4절 자체 편집 버퍼와 ui 계층 줄바꿈, 스크롤, 실제 커서 배치 | PRD-EDIT-001, PRD-EDIT-002, PRD-EDIT-004, PRD-EDIT-005 | `src/app/editor.rs`, `src/ui/widgets.rs` |
 | SRS-TUI-012 | 키 바인딩 재정의 설정 미제공 (설정 스키마에 키 항목 부재) | PRD-KEY-003 | `src/config/mod.rs` |

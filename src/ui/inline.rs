@@ -269,6 +269,10 @@ fn render_login(frame: &mut Frame, state: &State, area: Rect) {
             format!("{spin} {}", tr_in(state.lang, Msg::LoginWaiting)),
             Style::default().fg(Color::Yellow),
         ));
+        // 로그인 전 전송 범위 고지 (PRD-PRIV-003)
+        for part in wrap_words(tr_in(state.lang, Msg::LoginPrivacyShort), width) {
+            lines.push(Line::styled(part, dim()));
+        }
         if let Some(url) = &state.login.url {
             lines.push(Line::raw(truncate(
                 tr_in(state.lang, Msg::LoginOpenUrl),

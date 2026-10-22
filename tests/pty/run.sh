@@ -186,7 +186,7 @@ done
 start login "HOWTUI_NO_BROWSER=1 $ENV $BIN > $OUT/login.out"
 sleep 0.5; snap login; send Escape; sleep 0.3; snap login_cancelled; send Escape
 if finish login; then
-  if grep -q 'Waiting for sign-in' "$OUT/login.screen" && grep -q '1. Sign in' "$OUT/login.screen" \
+  if grep -q 'Waiting for sign-in' "$OUT/login.screen" && grep -q '1. Sign in' "$OUT/login.screen" && grep -q 'to OpenAI' "$OUT/login.screen" \
     && grep -q 'auth.openai.com' "$OUT/login.screen" && grep -q 'Sign-in required' "$OUT/login_cancelled.screen" \
     && [ "$(rc_of login)" = 130 ]; then pass login; else fail login "login screen"; fi
 fi

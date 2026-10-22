@@ -167,8 +167,8 @@
 | PRD-SAFE-007 | P1 | 필수 | MRD-SCP-008 | SRS-SAFE-005, SRS-TEST-003 | TC-SAFE-006 | `src/safety/`<br>`src/safety/tests.rs` | 통과 1 |
 | PRD-PRIV-001 | P1 | 필수 | MRD-EXC-006 | SRS-SEC-004 | TC-PRIV-001 | `src/llm/prompt.rs` | 통과 1 |
 | PRD-PRIV-002 | P1 | 필수 | MRD-EXC-006 | SRS-SEC-004 | TC-PRIV-001 | `src/llm/prompt.rs` | 통과 1 |
-| PRD-PRIV-003 | P1 | 필수 | MRD-EXC-006 | SRS-CLI-004, SRS-AUTH-013 | TC-AUTH-018, TC-PRIV-002 | `src/auth/notice.rs`<br>`src/cli/mod.rs` | 미실행 1, 통과 1 |
-| PRD-PRIV-004 | P1 | 필수 | MRD-EXC-006 | SRS-SEC-007 | TC-PRIV-002, TC-PRIV-005 | `src/app/update.rs`, `src/llm/prompt.rs` | 미실행 2 |
+| PRD-PRIV-003 | P1 | 필수 | MRD-EXC-006 | SRS-CLI-004, SRS-AUTH-013 | TC-AUTH-018, TC-PRIV-002 | `src/auth/notice.rs`<br>`src/cli/mod.rs` | 통과 2 |
+| PRD-PRIV-004 | P1 | 필수 | MRD-EXC-006 | SRS-SEC-007 | TC-PRIV-002, TC-PRIV-005 | `src/app/update.rs`, `src/llm/prompt.rs` | 미실행 1, 통과 1 |
 | PRD-PRIV-005 | P1 | 필수 | MRD-EXC-006 | SRS-OUT-004, SRS-AUTH-012 | TC-OUT-011, TC-PRIV-003 | `src/auth/secret.rs`<br>`src/main.rs` | 통과 2 |
 | PRD-PRIV-006 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-007, SRS-CFG-008, SRS-SEC-003 | TC-CFG-007, TC-PRIV-004 | `src/auth/store.rs`<br>`src/platform/fs.rs` | 통과 2 |
 | PRD-PLAT-001 | P1 | 필수 | MRD-PLT-001, MRD-PLT-002, MRD-PLT-003 | SRS-ARC-004, SRS-CMP-004, SRS-CMP-006 | TC-PLAT-001 | `README.md`<br>`src/platform/`, `src/shell/`<br>`src/platform/tty.rs` | 미실행 1 |

@@ -60,7 +60,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-UI-009 | 최소 크기 미만 | PRD-UI-009, SRS-TERM-007 | 터미널 25x3 | 실행, Enter, Esc | 크기 부족 안내 1줄, Enter 무시, Esc 종료 130 | PTY | Unix | 통과 | - |
 | TC-UI-010 | 종료 시 복구 | PRD-UI-010, SRS-TERM-001, SRS-TERM-006 | 없음 | 확정, Esc, Ctrl+C, 오류, panic 주입 각각 | 종료 후 `stty -a`에 icanon, echo, isig 존재, 커서 표시, Inline 영역 삭제 | PTY | Unix | 통과 | - |
 | TC-UI-011 | 프롬프트 줄 중간 시작 | PRD-UI-011, SRS-TERM-005 | 커서 열 10에서 실행 | 실행 후 취소 | 시작 시 다음 줄부터 영역 표시, 종료 후 커서 열 10 원위치 | PTY | Unix | 통과 | - |
-| TC-UI-012 | 로그인 자동 시작 화면 | PRD-AUTH-013, SRS-TUI-009 | 자격증명 없음, `HOWTUI_NO_BROWSER=1` | 실행, Esc, Esc | Enter 없이 로그인 진행 화면(단계 안내 1, 2와 URL 전체), 첫 Esc 후 로그인 필요 화면, 두 번째 Esc 종료 130 | PTY | Unix | 통과 | - |
+| TC-UI-012 | 로그인 자동 시작 화면 | PRD-AUTH-013, SRS-TUI-009 | 자격증명 없음, `HOWTUI_NO_BROWSER=1` | 실행, Esc, Esc | Enter 없이 로그인 진행 화면(전송 범위 고지, 단계 안내 1, 2와 URL 전체), 첫 Esc 후 로그인 필요 화면, 두 번째 Esc 종료 130 | PTY | Unix | 통과 | - |
 | TC-UI-013 | 팝업 표현 문구 부재 | PRD-UI-014, SRS-TUI-013 | 없음 | `--help`, README에서 "popup", "팝업" 검색 | 팝업 오버레이 동등 표현 없음 | 수동 | 전체 | 통과 | - |
 | TC-UI-015 | 커서 질의 무응답 터미널 | SRS-CMP-003, PRD-UI-001, PRD-OUT-007 | 커서 위치 질의에 응답하지 않는 PTY 하네스 | 실행 | 2초 이내 TUI 미시작, 종료 코드 3, 터미널 모드 복구, stdout 0바이트 | PTY | Unix | 통과 | - |
 | TC-UI-014 | Windows Inline 렌더링 | PRD-UI-001, PRD-UI-010, SRS-TERM-003, SRS-CMP-004 | Windows Terminal, conhost | 실행, 편집, 확정, 취소 | 렌더링 정상, 종료 후 콘솔 모드 복구 | 수동 | Windows | 미실행 | - |
@@ -255,7 +255,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-SAFE-006 | 문자열 판정 한정 | PRD-SAFE-007, SRS-SAFE-005, SRS-TEST-003 | 테스트 코드 | 안전 테스트 코드 검사 | 프로세스 실행과 파일 변경 코드 부재 | 단위 | 전체 | 통과 | - |
 | TC-SAFE-007 | 판정 시점 | SRS-SAFE-003, PRD-SAFE-002 | 편집 중 | 응답 반영, 편집 후 300ms, 확정 직전 | 각 시점 재판정 | 단위 | 전체 | 통과 | - |
 | TC-PRIV-001 | 전송 필드 한정 | PRD-PRIV-001, PRD-PRIV-002, SRS-SEC-004, SRS-SEC-007 | 비밀 환경변수, 작업 디렉터리 파일 존재 | 요청 페이로드 캡처 | 허용 필드만, 환경변수 값과 파일 내용 부재 | 통합 | 전체 | 통과 | - |
-| TC-PRIV-002 | 전송 고지 | PRD-PRIV-003, PRD-PRIV-004 | 없음 | 문서, 로그인 고지, `--help` 확인 | 전송 범위와 수정 명령어 전송 고지 존재 | 수동 | 전체 | 미실행 | - |
+| TC-PRIV-002 | 전송 고지 | PRD-PRIV-003, PRD-PRIV-004 | 없음 | 문서, 로그인 고지, `--help` 확인 | 전송 범위와 수정 명령어 전송 고지 존재 | 수동 | 전체 | 통과 | - |
 | TC-PRIV-003 | 로그 내용 | PRD-PRIV-005, SRS-AUTH-012 | `HOWTUI_LOG=trace` | 로그인, 추론 | 로그에 토큰, 질문, 명령어 본문 부재 | 통합 | 전체 | 통과 | - |
 | TC-PRIV-004 | 파일 권한 | PRD-PRIV-006, SRS-AUTH-007 | 파일 대체 저장소 | 로그인 | credentials.json 0600 | 통합 | Unix | 통과 | - |
 | TC-PRIV-005 | 제출 전 전송 없음 | PRD-PRIV-004, SRS-SEC-007 | Mock HTTP 서버 요청 기록, `HOWTUI_BUFFER` 설정 위젯 모드 | 실행 후 10초 대기, 질문 제출 | 제출 전 추론 요청 0건(모델 목록 조회만), 제출 후 요청에 버퍼 내용 포함 | 통합 | 전체 | 미실행 | - |
@@ -471,6 +471,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | `TC-SH-019` | 통과 | 컨테이너 `bash:3.2`, `bash:4.0`, `bash:4.4`, `bash:5.1`, `bash:5.2` | 5개 버전 문법 검사와 적재, 3.2만 바인딩 생략 경고 |
 | `TC-SH-020` | 통과 | 통합 `tests/cli.rs`, 단위 `cargo test` | init_install_edits_only_the_marked_block, install_appends_once_and_updates_in_place, uninstall_restores_original_text, rewrite_keeps_symlink_and_mode |
 | `TC-INS-011` | 통과 | `tests/install/run_unix.sh`, 로컬 tmux | answer no, answer yes 2회, uninstall, `--shell-integration`, `--no-shell-integration`. `cat install.sh \| sh` 실행에서 질문 표시와 Enter 동의 확인, 새 쉘에서 함수와 바인딩 적재 |
+| `TC-PRIV-002` | 통과 | 문서 검토, PTY `tests/pty/run.sh` | README 7절, `howtui login` 고지(PrivacyNotice), TUI 로그인 화면 고지(login 화면 `to OpenAI`), `--help` 끝 문단. TUI 고지 누락은 CR-002 이후 발견해 추가 |
 
 CI 실행 기록 (run 39766949660, 커밋 3108a88, 13개 작업 전체 통과):
 

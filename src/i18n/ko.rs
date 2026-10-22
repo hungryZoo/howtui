@@ -31,6 +31,9 @@ pub fn text(msg: Msg) -> &'static str {
         }
         Msg::LoginRequired => "로그인 필요. Enter로 ChatGPT 로그인 시작",
         Msg::LoginWaiting => "로그인 대기 중",
+        Msg::LoginPrivacyShort => {
+            "요청 시 OpenAI 전송 정보: 질문, 현재 명령어, OS, CPU, 쉘 이름. 파일, 환경변수, 히스토리 미전송. 명령어 실행 없음"
+        }
         Msg::LoginOpenUrl => {
             "1. 열린 브라우저 창에서 로그인 후 허용 클릭. 브라우저가 열리지 않았으면 아래 URL 열기"
         }

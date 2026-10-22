@@ -198,6 +198,10 @@ fn login_screen_shows_url_and_paste_field() {
         "{lines:?}"
     );
     assert!(
+        lines.iter().any(|l| l.contains("OpenAI")),
+        "로그인 전 전송 범위 고지: {lines:?}"
+    );
+    assert!(
         lines[8].starts_with("> Paste the address here"),
         "{lines:?}"
     );

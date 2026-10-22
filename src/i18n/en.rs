@@ -33,6 +33,9 @@ pub fn text(msg: Msg) -> &'static str {
         }
         Msg::LoginRequired => "Sign-in required. Press Enter to sign in with ChatGPT.",
         Msg::LoginWaiting => "Waiting for sign-in",
+        Msg::LoginPrivacyShort => {
+            "Requests send your question, the current command, OS, CPU and shell name to OpenAI. No files, environment variables or history. howtui never runs commands."
+        }
         Msg::LoginOpenUrl => {
             "1. Sign in in the browser window and press Allow. If no browser opened, open this URL:"
         }

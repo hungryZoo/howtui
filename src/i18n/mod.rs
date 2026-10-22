@@ -77,6 +77,7 @@ messages! {
     // 로그인
     LoginRequired,
     LoginWaiting,
+    LoginPrivacyShort,
     LoginOpenUrl,
     LoginPasteHint,
     LoginPressEnter,
