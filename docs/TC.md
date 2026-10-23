@@ -63,9 +63,11 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-UI-012 | 로그인 자동 시작 화면 | PRD-AUTH-013, SRS-TUI-009 | 자격증명 없음, `HOWTUI_NO_BROWSER=1` | 실행, Esc, Esc | Enter 없이 로그인 진행 화면(전송 범위 고지, 단계 안내 1, 2와 URL 전체), 첫 Esc 후 로그인 필요 화면, 두 번째 Esc 종료 130 | PTY | Unix | 통과 | - |
 | TC-UI-013 | 팝업 표현 문구 부재 | PRD-UI-014, SRS-TUI-013 | 없음 | `--help`, README에서 "popup", "팝업" 검색 | 팝업 오버레이 동등 표현 없음 | 수동 | 전체 | 통과 | - |
 | TC-UI-015 | 커서 질의 무응답 터미널 | SRS-CMP-003, PRD-UI-001, PRD-OUT-007 | 커서 위치 질의에 응답하지 않는 PTY 하네스 | 실행 | 2초 이내 TUI 미시작, 종료 코드 3, 터미널 모드 복구, stdout 0바이트 | PTY | Unix | 통과 | - |
-| TC-UI-014 | Windows Inline 렌더링 | PRD-UI-001, PRD-UI-010, SRS-TERM-003, SRS-CMP-004 | Windows Terminal, conhost | 실행, 편집, 확정, 취소 | 렌더링 정상, 종료 후 콘솔 모드 복구 | 수동 | Windows | 미실행 | - |
+| TC-UI-014 | Windows Inline 렌더링 | PRD-UI-001, PRD-UI-010, SRS-TERM-003, SRS-CMP-004 | Windows Terminal, conhost | 실행, 편집, 확정, 취소 | 렌더링 정상, 종료 후 콘솔 모드 복구 | 수동 | Windows | 통과 | - |
 | TC-UI-017 | 빈 질문 Enter 확정 | PRD-UI-012, SRS-TUI-005 | Mock 응답 | 응답 수신 후 질문 영역에서 Enter, 위험 높음 명령어는 Enter 2회 | 명령어 확정, 위험 높음은 재확인 후 확정 | 단위 | 전체 | 통과 | - |
 | TC-UI-018 | 빈 질문 영역 Undo | PRD-EDIT-007, SRS-TUI-005 | Mock 응답 | 후속 수정 응답 후 질문 영역에서 Ctrl+Z | AI 반영 직전 명령어 복원 | 단위 | 전체 | 통과 | - |
+| TC-UI-019 | 설정 화면 키보드 조작 | PRD-UI-015, SRS-TUI-014, SRS-LLM-013 | Mock Provider | Ctrl+O, `/model`, 위아래, Enter, Esc, 현재 모델 Enter, 목록 오류, 인증 오류 | 목록과 현재 모델 표시, 선택 반영과 저장 안내, Esc 닫기(종료 아님), 오류 표시, 인증 오류는 로그인 필요 화면 | 단위, PTY | 전체 | 통과 | - |
+| TC-UI-020 | 클릭 입력 | PRD-UI-016, SRS-TUI-015 | Mock Provider, SGR 마우스 시퀀스 | 상태줄 `[모델]` 클릭, 항목 클릭, 질문과 명령어 칸 클릭, 휠, 종료 | 설정 화면 열림, 모델 변경, 포커스 이동, 커서 이동, 종료 후 마우스 보고 해제(`?1000l`) | 단위, PTY | Unix | 통과 | - |
 | TC-UI-016 | Windows ConPTY 자동 E2E | PRD-UI-001, PRD-UI-010, SRS-TERM-003, SRS-TEST-006 | windows-2025, windows-11-arm 러너, Mock 시나리오 | `tests/conpty.rs`: 의사 콘솔에서 질문 입력, 응답 표시 확인, 확정, Ctrl+C 취소 | 화면 렌더링(한글, 이모지 포함), 확정 0, 취소 130 | PTY | Windows | 통과 | - |
 
 ## 4. 키 바인딩과 편집
@@ -112,6 +114,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-LLM-019 | Provider 전환 | PRD-LLM-017, SRS-LLM-011 | P5 | 설정과 CLI 옵션으로 전환 | 선택 Provider로 요청 | 통합 | 전체 | 미실행 | - |
 | TC-LLM-020 | 로컬 서버 연동 | PRD-LLM-018, PRD-LLM-019, SRS-LLM-012 | P6, Ollama와 llama-server 실행 | 생성, 수정, 취소 | 두 서버 모두 성공, 취소 시 연결 종료 | 실연동 | Linux | 미실행 | - |
 | TC-LLM-021 | 로컬 모델 평가 | PRD-LLM-020, SRS-LLM-012 | P6, Gemma 4 E2B와 E4B | research/local-llm.md 평가 계획 실행 | 지표별 측정값 기록 (평가 전 성능 단정 없음) | 수동 | Linux, RPi | 미실행 | - |
+| TC-LLM-022 | 모델 선택 순서와 저장 | PRD-LLM-009, SRS-LLM-006, SRS-LLM-013 | Mock HTTP 서버, 숨김 모델 포함 목록 | 설정 조회, 숨김 모델 선택, 표시 모델 선택, 새 Provider로 준비 | 기본 `gpt-6-luna`, 숨김 모델 거부, 선택 저장과 다음 실행 유지, 설정 파일 값보다 우선 | 단위 | 전체 | 통과 | - |
 
 ## 6. 인증
 
@@ -155,7 +158,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-OUT-006 | 제어 터미널 없음 | PRD-OUT-007, SRS-TERM-004 | 제어 터미널 없는 프로세스 (`setsid -w`, CI 비대화형) | `howtui < /dev/null` | 종료 코드 3, stdout 0바이트, stderr ESC 0건 | 통합 | Unix | 통과 | - |
 | TC-OUT-007 | stdin 파이프 | PRD-OUT-006 | PTY | `echo x \| howtui` | TUI 정상 동작, 확정 출력 정상 | PTY | Unix | 통과 | - |
 | TC-OUT-008 | 렌더링 대상 분리 | PRD-OUT-002, SRS-TERM-001 | PTY, stderr 파일 리디렉션 | `howtui 2> e \| cat > o` | e 0바이트(TUI 미출력), o 명령어만 | PTY | Unix | 통과 | - |
-| TC-OUT-009 | Windows 리디렉션 | PRD-OUT-001, PRD-OUT-006, SRS-TERM-003 | Windows Terminal | `howtui > out.txt`, `$x = howtui` | out.txt 명령어 UTF-8 + LF, TUI 정상 표시 | 수동 | Windows | 미실행 | - |
+| TC-OUT-009 | Windows 리디렉션 | PRD-OUT-001, PRD-OUT-006, SRS-TERM-003 | Windows Terminal | `howtui > out.txt`, `$x = howtui` | out.txt 명령어 UTF-8 + LF, TUI 정상 표시 | 수동 | Windows | 통과 | - |
 | TC-OUT-010 | 출력 파일 대상 | PRD-OUT-009, SRS-OUT-005 | P2 | `--output-file` 지정 확정과 취소 | 확정: 파일에 명령어(UTF-8, LF 미추가), 취소: 파일 미생성 | 통합 | 전체 | 미실행 | - |
 | TC-OUT-011 | 로그 비출력 | PRD-OUT-010, SRS-OUT-004, PRD-PRIV-005 | `HOWTUI_LOG=debug` | 확정 실행 | stdout과 stderr에 로그 없음, 로그 파일에 토큰과 질문 본문 없음 | 통합 | 전체 | 통과 | - |
 | TC-OUT-012 | Windows stdout 리디렉션 자동 검증 | PRD-OUT-001, PRD-OUT-006, SRS-TERM-003 | ConPTY, `cmd /c howtui > out` 와 `> out 2> err` | `tests/conpty.rs` 2개 경로 실행 후 확정 | out에 명령어 UTF-8 + LF만, ESC 0건, err 0바이트 (TUI는 stderr 콘솔 또는 CONOUT$) | PTY | Windows | 통과 | - |
@@ -166,7 +169,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | TC-SH-001 | Bash 삽입 | PRD-SH-001, PRD-SH-006, SRS-SH-002 | Bash 4.0 이상, init 등록 | 입력 "ls -l" 후 단축키, 질문, 확정. 화면 맨 아래에서 반복 | 명령어 초기값 "ls -l", 입력란 교체, 커서 끝, 미실행. 화면 스크롤 후 입력 줄 1개 | PTY | Linux | 통과 | - |
 | TC-SH-002 | Zsh 삽입 | PRD-SH-002, PRD-SH-006, SRS-SH-003 | Zsh 5.9, emacs 키맵 | 동일 | 동일 | PTY | Unix | 통과 | - |
-| TC-SH-003 | PowerShell 삽입 | PRD-SH-003, PRD-SH-006, SRS-SH-004, SRS-SH-011 | PowerShell 5.1과 7, PSReadLine | 입력 후 단축키, 확정 | 입력란 교체, 미실행 | 수동 | Windows | 미실행 | - |
+| TC-SH-003 | PowerShell 삽입 | PRD-SH-003, PRD-SH-006, SRS-SH-004, SRS-SH-011 | PowerShell 5.1과 7, PSReadLine | 입력 후 단축키, 확정 | 입력란 교체, 미실행 | 수동 | Windows | 통과 | - |
 | TC-SH-004 | 단축키와 변경 | PRD-SH-004, SRS-SH-006 | init 기본값, 키 지정 옵션 | 기본 키, 지정 키 입력 | 각각 호출 | PTY | Unix | 통과 | - |
 | TC-SH-005 | 취소 시 보존 | PRD-SH-005, PRD-SH-007, SRS-SH-005 | 입력 "echo keep" | 단축키 후 Esc | 입력란 무변경 | PTY | Unix | 통과 | - |
 | TC-SH-006 | 오류 시 보존 | PRD-SH-007, SRS-SH-009 | Mock 오류 후 종료, 바이너리 경로 오류 | 단축키 | 입력란 무변경, 원인 1줄 표시 | PTY | Unix | 통과 | - |
@@ -183,6 +186,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-SH-018 | PowerShell 7 자동 E2E (Linux) | PRD-SH-003, SRS-SH-004 | Linux pwsh 7.4, PSReadLine 2.3.5 | TC-SH-001, 004-007, 012, 014, 016, 017과 같은 절차 | 같은 기대 결과 | PTY | Linux | 통과 | - |
 | TC-SH-019 | Bash 버전별 스크립트 적재 | SRS-SH-002, SRS-CMP-002 | Bash 3.2, 4.0, 4.4, 5.1, 5.2 컨테이너 | `bash -n`, 대화형 쉘에서 init 스크립트 적재 | 문법 오류 없음, 3.2만 경고 1줄, 함수 정의 | 통합 | Linux | 통과 | - |
 | TC-SH-020 | rc 파일 표식 구간 편집 | PRD-SH-014, SRS-SH-015 | 임시 HOME, 기존 rc 내용 | `init zsh --install` 2회, `--key alt+h --install`, `--uninstall`, 심볼릭 링크 rc, PowerShell `--install` | 구간 1개, 재실행은 "이미 있음", 키 변경은 구간 교체, 제거 후 원래 내용, 링크와 권한 유지, PowerShell 종료 코드 2 | 통합 | Unix | 통과 | - |
+| TC-SH-021 | PowerShell Profile 등록 | PRD-SH-014, SRS-SH-015 | 임시 HOME, Profile 폴더 없음 | `init powershell --install`, `--uninstall`, 키 옵션 | Profile 폴더 생성, ASCII 구간, 제거 후 빈 파일, Windows는 7과 5.1 두 경로 | 단위, 통합 | 전체 | 통과 | - |
 | TC-SH-014 | 여러 줄 삽입 | PRD-SH-006, SRS-SH-002, SRS-SH-003, SRS-SH-004 | 3개 쉘 | 2줄 명령어 확정 | 입력란 2줄 유지 (PowerShell 연속 프롬프트) | PTY | 전체 | 통과 | - |
 
 ## 9. Fullscreen
@@ -235,6 +239,8 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-INS-009 | 제거 문서 | PRD-INS-008, SRS-INS-013 | P4 | 문서 절차 수행 | 바이너리, 설정, 자격증명, 쉘 통합 줄 제거 | 수동 | 전체 | 미실행 | - |
 | TC-INS-010 | 원격 코드 실행 부재 | PRD-INS-009, SRS-INS-004 | 스크립트 원문 | 다운로드 대상 검사 | 릴리스 자산과 SHA256SUMS 외 다운로드 없음, 다운로드 내용 실행 없음 | 단위 | 전체 | 통과 | - |
 | TC-INS-011 | 설치 후 쉘 통합 확인 질문 | PRD-INS-001, PRD-SH-014, SRS-INS-014 | 임시 HOME, PATH 밖 설치 디렉터리 | 질문에 y 2회, `--shell-integration`(zsh), `--no-shell-integration`, `cat install.sh \| sh`로 실제 터미널 질문에 Enter | 구간 1개와 PATH 추가 줄, 재실행 중복 없음, zsh는 `.zshrc`, 거부 옵션은 무변경, 파이프 실행에서도 질문 표시 | 통합 | Unix | 통과 | - |
+| TC-INS-012 | 제거 스크립트 | PRD-INS-008, SRS-INS-013 | 임시 HOME, 설치와 쉘 통합 상태, 데이터와 설정 파일 | 설치 후 `howtui-uninstall.sh` 존재 확인, 터미널 없이 실행, `-y` 실행 | 확인 없이는 중단, 바이너리와 스크립트와 rc 구간과 데이터 삭제, 설정 유지 | 통합 | Unix | 통과 | - |
+| TC-INS-013 | Windows 설치 질문과 제거 스크립트 | PRD-INS-002, PRD-INS-008, SRS-INS-015, SRS-INS-013 | Windows PowerShell 5.1과 PowerShell 7, 시험용 Profile 경로 | 질문에 n, yes 2회, `howtui-uninstall.ps1` 확인 없이와 `-Yes` 실행 | 거절 시 Profile 미작성, 구간 1개, 확인 없이는 중단, 실행 후 설치 폴더와 PATH 항목과 Profile 구간과 데이터 삭제 | 통합 | Windows | 미실행 | - |
 | TC-REL-001 | 태그 릴리스 | PRD-REL-001, PRD-REL-007, SRS-BLD-008 | 테스트 저장소 또는 초안 릴리스 | `vX.Y.Z` 태그 | 빌드 성공, 초안 릴리스 생성, 공개는 수동 | 수동 | 전체 | 미실행 | - |
 | TC-REL-002 | 자산 명명과 체크섬 | PRD-REL-002, SRS-BLD-006 | 릴리스 산출물 | 파일명 규칙 검사, `sha256sum -c SHA256SUMS` | 규칙 일치, 검증 통과 | 통합 | Linux | 통과 | - |
 | TC-REL-003 | 7개 타깃 | PRD-REL-003, PRD-PLAT-002, SRS-BLD-001, SRS-BLD-003, SRS-BLD-004, SRS-BLD-009, SRS-CMP-005 | P4 | 릴리스 산출물 검사 (`file`, ELF 속성, PE 머신 타입과 임포트 DLL, Mach-O minos와 `codesign -v`) | 7개 타깃 형식 일치, Windows VCRUNTIME 임포트 없음, macOS minos 11.0과 서명 유효 | 통합 | Linux, macOS, Windows | 통과 | - |
@@ -481,3 +487,16 @@ CI 실행 기록 (run 39766949660, 커밋 3108a88, 13개 작업 전체 통과):
 | pty (macos-15) | Bash 3.2.57 (2회), Zsh 5.9, PowerShell 7.6.5 (PSReadLine 2.4.5) | Bash 3.2 각 2건, Zsh와 PowerShell 각 12건 통과 |
 
 CI 도입 중 발견과 수정: (1) Bash 5.2의 `bind -x` 안 `$(<file)` 치환 결함 (2) macOS Bash 3.2 전환 안내 출력 (3) Ubuntu `/etc/zsh/zshrc` compinit 확인 질문 (4) 고정 대기 경합 (5) Windows 설치 시험 HTTP 서버 기동 경합.
+
+## 19. 실행 기록 (CR-005, CR-006, Windows 사용자 확인, 2026-10-23)
+
+| TC | 결과 | 실행 수단 | 근거 |
+| --- | --- | --- | --- |
+| `TC-UI-014` | 통과 | 사용자 수동 확인 (Windows) | Windows Terminal과 PowerShell 창 화면 정상 (사용자 보고, 2026-10-23) |
+| `TC-OUT-009` | 통과 | 사용자 수동 확인 (Windows) | 리디렉션과 캡처 명령어 정상 (사용자 보고). 한국어 코드 페이지 949 조건은 별도 확인 대기 (TC-SH-013) |
+| `TC-SH-003` | 통과 | 사용자 수동 확인 (Windows) | Ctrl+G 입력란 교체와 직접 실행 결과 다음 입력 전달 정상 (사용자 보고) |
+| `TC-UI-019` | 통과 | 단위 `cargo test`, PTY `tests/pty/run.sh` | settings_select_model_flow, settings_close_and_slash_command, settings_load_errors, settings_view_lists_models_and_click_targets, settings |
+| `TC-UI-020` | 통과 | 단위 `cargo test`, PTY `tests/pty/run.sh` | settings_clicks_and_sign_out, settings (SGR 클릭 2회, 원시 출력 `?1000h`와 `?1000l`) |
+| `TC-LLM-022` | 통과 | 단위 `cargo test` | model_choice_order_with_selection_and_default, settings_list_models_and_selection_persists |
+| `TC-INS-012` | 통과 | `tests/install/run_unix.sh` | uninstall script |
+| `TC-SH-021` | 통과 | 단위 `cargo test`, 통합 `tests/cli.rs` | rc_path_rules, powershell_block_is_ascii_and_creates_profile_dir, init_install_edits_only_the_marked_block |

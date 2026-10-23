@@ -176,6 +176,8 @@
 | PRD-UI-012 | 포커스 규칙: 시작 시 질문 영역, 응답 수신 후에도 질문 영역 유지 (후속 요청 입력 또는 빈 질문에서 Enter 확정), Tab과 ↓로 명령어 편집 영역 이동 (CR-001) | P1 | 필수 | MRD-SCN-002 |
 | PRD-UI-013 | 3절 상태 전이 표 준수 | P1 | 필수 | MRD-SCP-001 |
 | PRD-UI-014 | GUI 팝업 오버레이와 동일한 표현을 주장하지 않음 (문서와 도움말 문구 기준) | P1 | 필수 | MRD-EXC-012 |
+| PRD-UI-015 | 설정 화면 (CR-005): Ctrl+O, 상태줄 모델 이름 클릭, 질문 칸 `/model` 입력으로 열기. 현재 에이전트(Provider)와 계정, 모델 목록, 로그아웃(계정 변경) 표시. 키보드와 클릭으로 선택, 선택 모델은 다음 실행에도 유지 | P2 | 필수 | MRD-SCN-002 |
+| PRD-UI-016 | 클릭 입력 (CR-005): 질문과 명령어 칸 클릭으로 포커스 이동, 설정 화면 항목 클릭과 휠 이동. 로그인 진행 중에는 URL 복사를 위해 해제. 설정 `ui.mouse = false`로 끄기 | P2 | 필수 | MRD-SCN-002 |
 
 ### 5.3 키 바인딩
 
@@ -210,7 +212,7 @@
 | PRD-LLM-006 | 대상 쉘(Bash, Zsh, PowerShell)과 OS에 맞는 문법 생성 지시 | P1 | 필수 | MRD-SCN-001 |
 | PRD-LLM-007 | 세션 내 대화 이력 유지(질문, 명령어, 사용자 수정본), 종료 시 폐기, 디스크 미저장 | P1 | 필수 | MRD-SCN-003 |
 | PRD-LLM-008 | 설명 언어는 사용자 질문 언어와 동일하게 지시 | P1 | 권장 | MRD-SCN-001 |
-| PRD-LLM-009 | ChatGPT 계정 모델 목록 조회, `visibility == "list"` 모델 중 설정값 또는 서버 순서 첫 모델 사용 | P1 | 필수 | MRD-SCP-004 |
+| PRD-LLM-009 | ChatGPT 계정 모델 목록 조회, `visibility == "list"` 모델 중 선택 순서: 설정 화면 선택(저장값) > 설정 파일 값 > 기본 모델 `gpt-6-luna`(목록에 있을 때) > 서버 순서 첫 모델 (CR-005) | P1 | 필수 | MRD-SCP-004 |
 | PRD-LLM-010 | 응답 형식 오류 시 자동 재시도 1회, 재실패 시 형식 오류 표시 | P1 | 필수 | MRD-RSK-003 |
 | PRD-LLM-011 | 요청 제한 시간: 연결 10초, 첫 응답 이벤트 60초, 전체 120초 (기본값, SRS에서 조정 가능) | P1 | 필수 | MRD-SCP-003 |
 | PRD-LLM-012 | Mock Provider: 재현 가능한 고정 응답, 지연, 오류 주입. 테스트 빌드 전용 | P1 | 필수 | MRD-KPI-002 |
@@ -281,7 +283,7 @@
 | PRD-SH-011 | 쉘 통합 사용 여부를 doctor가 판별할 수 있는 표식 제공 | P2 | 필수 | MRD-SCN-008 |
 | PRD-SH-012 | 쉘별 지원 상태는 테스트 결과 기준 표기 (검증 버전 명시) | P2 | 필수 | MRD-EXC-003 |
 | PRD-SH-013 | 쉘 통합 로드 후 프롬프트에서 `howtui`를 직접 입력해 실행한 경우에도 확정 명령어를 다음 프롬프트 입력란에 삽입, 자동 실행 없음. Bash와 PowerShell은 히스토리에도 추가(Bash 4.0 미만은 히스토리만). stdout이 터미널이 아니면(캡처, 파이프, 리디렉션) 기존 stdout 전달 유지 (CR-003) | P2 | 필수 | MRD-SCN-005 |
-| PRD-SH-014 | `howtui init <bash\|zsh> --install`과 `--uninstall`: rc 파일에 표식 구간 추가, 갱신, 제거. 구간 밖 내용 무변경, 재실행 시 중복 없음, 설치 직후 PATH 미포함 디렉터리는 구간 안에서 PATH 추가. 설치 스크립트는 대화형 터미널에서 확인 질문 후에만 호출 (CR-004) | P2 | 필수 | MRD-SCN-009, MRD-EXC-004 |
+| PRD-SH-014 | `howtui init <쉘> --install`과 `--uninstall`: rc 파일(PowerShell은 Profile)에 표식 구간 추가, 갱신, 제거. 구간 밖 내용 무변경, 재실행 시 중복 없음, 설치 직후 PATH 미포함 디렉터리는 구간 안에서 PATH 추가. 설치 스크립트는 대화형 터미널에서 확인 질문 후에만 호출 (CR-004, CR-006) | P2 | 필수 | MRD-SCN-009, MRD-EXC-004 |
 
 ### 5.9 Fullscreen TUI
 
@@ -324,13 +326,13 @@
 | ID | 요구사항 | 단계 | 우선순위 | MRD |
 | --- | --- | --- | --- | --- |
 | PRD-INS-001 | `scripts/install.sh` (POSIX sh): OS와 아키텍처 감지, 릴리스 자산 선택, 버전 고정 옵션, SHA-256 검증, 실패 시 임시 파일 정리, `~/.local/bin` 기본 설치, 설치 경로 옵션, PATH 안내, 재설치 덮어쓰기, 설치 후 `howtui --version` 확인, 설치 후 쉘 통합 확인 질문 (CR-004, PRD-SH-014) | P1 | 필수 | MRD-SCP-007, MRD-SCN-009 |
-| PRD-INS-002 | `scripts/install.ps1`: Windows PowerShell 5.1과 PowerShell 7 호환, 아키텍처 감지(ARM64 에뮬레이션 고려), SHA-256 검증, 사용자 범위 설치, 사용자 PATH 등록(해제 옵션 제공), 설치 후 버전 확인 | P1 | 필수 | MRD-SCP-007 |
+| PRD-INS-002 | `scripts/install.ps1`: 설치 후 PowerShell 쉘 통합 확인 질문 (CR-006), Windows PowerShell 5.1과 PowerShell 7 호환, 아키텍처 감지(ARM64 에뮬레이션 고려), SHA-256 검증, 사용자 범위 설치, 사용자 PATH 등록(해제 옵션 제공), 설치 후 버전 확인 | P1 | 필수 | MRD-SCP-007 |
 | PRD-INS-003 | ARMv7 판별: `armv6l` 거부, 64비트 커널과 32비트 사용자 공간 조합(Raspberry Pi 4, 400, CM4, 5의 32비트 OS)은 사용자 공간 기준 armv7 선택 | P1 | 필수 | MRD-PLT-004 |
 | PRD-INS-004 | 미지원 시스템: 설치 없이 명확한 오류로 종료 | P1 | 필수 | MRD-SCP-007 |
 | PRD-INS-005 | 관리자 권한 불필요 (사용자 범위 설치 우선) | P1 | 필수 | MRD-EXC-005 |
 | PRD-INS-006 | 대안 경로 문서화: 스크립트 다운로드 후 검토 실행, 릴리스 바이너리 직접 다운로드, 체크섬 독립 검증 절차, 버전 고정 URL | P1 | 필수 | MRD-SCN-009 |
 | PRD-INS-007 | 업데이트: 같은 설치 방식 재실행 (기존 설치 경로 유지) | P4 | 필수 | MRD-SCN-009 |
-| PRD-INS-008 | 제거 방법 문서화 (바이너리, 설정, 자격증명, 쉘 통합 줄) | P4 | 필수 | MRD-SCN-009 |
+| PRD-INS-008 | 제거 방법 문서화와 제거 스크립트 함께 설치 (CR-006): `howtui-uninstall.sh`, `howtui-uninstall.ps1`. 확인 후 로그아웃, 쉘 통합 구간 제거, 바이너리와 데이터 삭제, 설정은 `--purge`(`-Purge`)일 때만 | P2 | 필수 | MRD-SCN-009 |
 | PRD-INS-009 | 설치 스크립트가 검증되지 않은 원격 코드를 실행하지 않음 (다운로드 대상은 릴리스 자산과 체크섬 파일만) | P1 | 필수 | MRD-SCN-009 |
 
 ### 5.13 릴리스
@@ -407,6 +409,8 @@
 | CR-002 | 2026-10-22 | 사용자 피드백 "로그인 절차가 초보자에게 어려움" | TUI 로그인 자동 시작, 붙여넣기 자동 제출, 스킴 없는 주소 허용, 단계 안내 간소화 | PRD-AUTH-006, PRD-AUTH-013 |
 | CR-003 | 2026-10-22 | 사용자 피드백 "생성 후 다음 입력에 안 들어감" | 쉘 통합 로드 시 프롬프트에서 직접 실행한 결과도 다음 프롬프트 입력란으로 전달 (Zsh 버퍼 스택, Bash 터미널 상태 보고 응답 바인딩, PowerShell 유휴 이벤트), `init --no-wrap` 추가 | PRD-SH-013 신규, PRD-SH-004 |
 | CR-004 | 2026-10-22 | 사용자 피드백 "처음 설치할 때 eval 줄이 설정되면 좋겠음" | 설치 스크립트의 쉘 통합 확인 질문(동의 시에만 rc 파일 표식 구간 추가), `howtui init <bash\|zsh> --install`, `--uninstall`, doctor 등록 안내 | PRD-SH-010, PRD-SH-014 신규, PRD-INS-001 |
+| CR-005 | 2026-10-23 | 사용자 요청 "TUI에서 클릭해서 모델 변경, GPT-6 Luna 기본값, 에이전트 옵션을 TUI에서 변경" | 설정 화면(에이전트, 모델, 로그아웃), 클릭 입력, 모델 선택 저장, 기본 모델 `gpt-6-luna`. Codex CLI 에이전트는 실험 후 미채택 (ADR-0017) | PRD-UI-015, PRD-UI-016 신규, PRD-LLM-009 |
+| CR-006 | 2026-10-23 | 사용자 요청 "설치 시 쉘 통합, uninstall.sh 함께 설치, README 설치 제거 방법" | 제거 스크립트 함께 설치, Windows 설치 스크립트의 PowerShell Profile 쉘 통합 질문, `init powershell --install`, README 설치와 제거 절차 | PRD-INS-002, PRD-INS-008, PRD-SH-014 |
 
 ## 7. 단계별 기능 우선순위 요약
 

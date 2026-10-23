@@ -69,4 +69,5 @@ Windows는 릴리스 시험 실행 산출물(`dist-all` 아티팩트) 또는 `ca
 | (1) | 프롬프트에 `ls` 입력 후 Ctrl+G, 질문, Enter 2회 | 입력란이 생성 명령어로 교체, 자동 실행 없음 | TC-SH-001, TC-SH-002 |
 | (2) | 프롬프트에 `howtui 현재 폴더 용량` 입력 후 Enter, 확정 | 다음 프롬프트 입력란에 명령어, 자동 실행 없음 | TC-SH-016 |
 | (3) | VS Code 통합 터미널에서 Ctrl+G | 동작 여부 기록 (VS Code 단축키 충돌 시 `terminal.integrated.commandsToSkipShell` 안내 필요) | SRS 9.4절 |
-| (4) | Windows PowerShell 5.1과 PowerShell 7에서 `howtui init powershell \| Out-String \| Invoke-Expression` 후 (1), (2) 반복 | 입력란 교체, 다음 입력란 삽입, 한글 명령어 손상 여부 | TC-SH-003, TC-SH-013 (Windows 보류) |
+| (4) | Windows PowerShell 5.1과 PowerShell 7에서 `howtui init powershell \| Out-String \| Invoke-Expression` 후 (1), (2) 반복 | 입력란 교체, 다음 입력란 삽입, 한글 명령어 손상 여부 | TC-SH-003 (사용자 확인 완료), TC-SH-013 |
+| (5) | 사용 중인 터미널에서 Ctrl+O 후 모델 클릭, 상태줄 `[모델]` 클릭, Shift+드래그 텍스트 선택 | 클릭 동작, 종료 후 일반 마우스 선택과 스크롤 복구 | TC-UI-020 |

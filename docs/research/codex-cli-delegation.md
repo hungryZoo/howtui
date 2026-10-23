@@ -351,6 +351,27 @@ codex exec \
 
 ---
 
+## 9-1. 실험 결과와 판단 (2026-10-23)
+
+- 대상: `@openai/codex` 0.164.0 (2026-10-23 npm 최신). 전역 설치(0.136.0)와 분리한 임시 경로에 설치 후 시험, 시험 후 삭제
+- 방식: (1) `codex debug prompt-input`으로 모델 입력 목록 확인 (2) 로컬 캡처 서버를 모델 Provider로 지정해 실제 `POST /v1/responses` 본문 수집 (계정 미사용, 사용량 0) (3) 실계정 카나리아 시험은 아래 인증 결과로 미실행
+- 공통 조건: 8장 명령줄 전체, `CODEX_EXEC_SERVER_URL=none`, 빈 0700 작업 디렉터리, 환경변수 허용 목록 (HOME, PATH)
+
+| 시험 | 결과 |
+| --- | --- |
+| 8장 기능 플래그 적용 후 기능 목록 | `unified_exec`(명령 실행), `code_mode_host`(JavaScript 실행), `sleep_tool`, `incremental_tools`가 기본 활성으로 남음. 0.163.0 기준 조사 목록에 없던 항목 |
+| 위 4개 추가 비활성화 후 실제 요청 본문 | `input`의 `additional_tools` 항목에 `functions.exec`(JavaScript 실행), `functions.wait`, `collaboration.spawn_agent` 등 하위 에이전트 도구 6개 잔존. `tool_choice: auto`. 실행 단계에서 "code-mode host is disabled"로 실패하는 구조이며 도구 정의 자체는 제거 불가 |
+| 모델 입력 크기 | Codex 기본 지시문 18,037자, 다중 에이전트 역할 지시문 2,671자. howtui 자체 지시문은 약 2천 자 |
+| 전송 정보 | 환경 문맥(작업 디렉터리 등) 미포함 확인. `~/.codex/AGENTS.md` 없음 (stat만 확인) |
+| 인증 | 저장된 Codex ChatGPT 로그인의 토큰 갱신 요청이 401로 거부 ("Please log out and sign in again"). 이 장치에서 Codex 경로를 쓰려면 별도 `codex login` 필요 |
+
+판단: **미채택** ([ADR-0017](../adr/0017-no-codex-cli-delegation.md)).
+
+- (1) 도구 차단이 공식 설정이 아닌 내부 동작(실행 단계 실패)에 의존. 1주 사이 버전(0.163.0 → 0.164.0)에서 기본 활성 도구 4개 추가 확인
+- (2) 요청당 지시문 약 2만 자 추가로 플랜 사용량 약 10배
+- (3) 로그인 간소화 목적은 CR-002로 대응 완료. Codex 경로도 별도 로그인 필요
+- 에이전트 선택 위치는 설정 화면(CR-005)에 두고, Phase 5(API Key)와 Phase 6(로컬 LLM) Provider를 같은 자리에 추가
+
 ## 10. 출처
 
 - openai/codex 저장소, 커밋 `c260087efe8cc6dcc0526e7018ae9e0e3fc134e3`: https://github.com/openai/codex

@@ -11,7 +11,7 @@
 | --- | --- | --- | --- |
 | 0 | SDD 문서와 기술 검증 | 요구사항 간 모순 없음, 기술 리스크와 미해결 항목 기록, 사용자 검토 승인 | 완료 (2026-10-22 승인) |
 | 1 | Inline TUI MVP | 지정 주요 OS에서 생성, 편집, 확정, 출력 일관 동작. P1 필수 TC 통과 | 진행 중 (Windows 수동 확인 대기) |
-| 2 | 선택적 쉘 통합 | 3개 쉘에서 자동 실행 없이 입력란 안전 전달. P2 필수 TC 통과 | 진행 중 (Windows 확인 보류) |
+| 2 | 선택적 쉘 통합 | 3개 쉘에서 자동 실행 없이 입력란 안전 전달. P2 필수 TC 통과 | 완료 (2026-10-23, Windows 사용자 확인) |
 | 3 | Fullscreen TUI | 두 모드 동일 기능, 설정 선택 가능. P3 필수 TC 통과 | 대기 |
 | 4 | 배포와 1.x 안정화 | 지원 플랫폼에서 문서화된 절차로 설치, 진단, 업데이트 가능 | 대기 |
 | 5 | API Key Provider | 복수 Provider를 동일 UI와 로직으로 사용 | 대기 |
@@ -92,15 +92,17 @@ Phase 1 이월 항목 (요구사항 변경 없이 다음 작업으로 이월):
 | `init` 스크립트 3종과 `--widget` | 완료 | Bash, Zsh, PowerShell. 키 변경, 바인딩 생략, 함수 생략 옵션 |
 | CR-003 직접 실행 결과 다음 입력 전달 | 완료 | Zsh 버퍼 스택, Bash 터미널 상태 보고 응답, PowerShell 유휴 이벤트 |
 | 쉘 통합 PTY E2E | 완료 | 로컬 Bash 5.0, 컨테이너 Bash 5.2, Zsh 5.9, PowerShell 7.4. CI ubuntu-24.04와 macos-15 전체 통과 (TC 18절) |
-| Windows PowerShell 5.1, 7 대화형 확인 | 보류 | 사용자 요청으로 Windows 작업 보류 (U-2) |
+| Windows PowerShell 5.1, 7 대화형 확인 | 완료 | 사용자 확인 (2026-10-23): 화면, 리디렉션, Ctrl+G, 직접 실행 전달. 코드 페이지 949 조건은 미확인 |
 | 쉘별 지원 상태 표기 | 완료 | README 6절 |
 | CR-004 설치 시 쉘 통합 등록 | 완료 | 설치 스크립트 확인 질문(동의 시에만), `init --install`, `--uninstall`, doctor 등록 안내 |
+| CR-005 설정 화면 | 완료 | Ctrl+O, `/model`, 클릭으로 모델 변경과 로그아웃, 기본 모델 `gpt-6-luna`, 선택 저장 |
+| CR-006 제거 스크립트와 Windows 쉘 통합 질문 | 완료 | `howtui-uninstall.sh`, `howtui-uninstall.ps1`, PowerShell Profile 등록, README 설치와 제거 절차 |
 
-### 3.3 검토 보류 항목: Codex CLI 위임
+### 3.3 Codex CLI 위임 검토 결과: 미채택 (ADR-0017)
 
 - 출처: 사용자 제안 "codex가 깔려 있으면 bin을 바로 사용" (2026-10-22)
 - 조사: [research/codex-cli-delegation.md](research/codex-cli-delegation.md)
-- 판단: 이번 범위 미구현, 사용자 결정 대기. 근거는 아래 표와 같음
+- 판단: 사용자 위임에 따라 실험(codex 0.164.0) 후 미채택 (2026-10-23, [ADR-0017](adr/0017-no-codex-cli-delegation.md), 조사 문서 9-1절). 아래 표는 실험 전 조사 결과
 - 로그인 간소화 목적은 CR-002로 우선 대응
 
 | 항목 | 조사 결과 |

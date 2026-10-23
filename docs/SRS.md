@@ -346,13 +346,14 @@ pub trait Provider: Send + Sync {
 | SRS-LLM-003 | 5.3절 4단계 응답 파싱과 형식 오류 시 재시도 1회 | PRD-LLM-010 | `src/llm/parse.rs`, `src/runtime.rs` |
 | SRS-LLM-004 | SSE 파서: `event:`/`data:` 줄 처리, `:` 주석 무시, 여러 줄 data 결합 | PRD-LLM-001 | `src/llm/sse.rs` |
 | SRS-LLM-005 | 5.4절 ChatGPT Provider 요청 규칙 | PRD-LLM-009, PRD-AUTH-016 | `src/llm/chatgpt.rs` |
-| SRS-LLM-006 | 모델 목록 24시간 캐시 (상태 파일), `ModelNotFound` 수신 시 캐시 무효화 | PRD-LLM-009 | `src/llm/chatgpt.rs` |
+| SRS-LLM-006 | 모델 목록 24시간 캐시 (상태 파일), `ModelNotFound` 수신 시 캐시 무효화. 설정 화면 선택은 상태 파일 `selected_model`에 저장, 목록에 없는 저장값은 무시. 기본 모델 목록 `DEFAULT_MODELS = ["gpt-6-luna"]` (CR-005) | PRD-LLM-009 | `src/llm/chatgpt.rs`, `src/auth/state.rs` |
 | SRS-LLM-007 | 제한 시간: 연결 10초, 첫 SSE 이벤트 60초, 전체 120초 | PRD-LLM-011 | `src/llm/chatgpt.rs` |
 | SRS-LLM-008 | 오류 매핑: research/chatgpt-oauth.md 8.6절 표 기준 `LlmError` 변환 | PRD-AUTH-017, PRD-LLM-010 | `src/llm/chatgpt.rs` |
 | SRS-LLM-009 | Mock Provider: 시나리오 파일(JSON 단계 목록: 응답, 지연, 오류 이름, 원문 응답)로 동작. `HOWTUI_MOCK_SCENARIO=<파일>` 또는 `echo`. 같은 기능 플래그에서만 테스트 재정의 `HOWTUI_TEST_API_BASE`, `HOWTUI_TEST_AUTH_BASE`, `HOWTUI_TEST_PANIC` 허용 (릴리스 빌드 문자열 부재 확인) | PRD-LLM-012 | `src/llm/mock.rs`, `src/auth/oauth.rs`, `src/runtime.rs` |
 | SRS-LLM-010 | 취소 시 HTTP 스트림 즉시 drop, 결과 미반환 | PRD-LLM-004 | `src/llm/chatgpt.rs` |
 | SRS-LLM-011 | P5 Provider 추가 시 trait 변경 없이 구현체 추가 (OpenAI, Gemini, Anthropic, OpenAI 호환) | PRD-LLM-013-017 | `src/llm/` |
 | SRS-LLM-012 | P6 로컬 서버: OpenAI 호환 채팅 API 공통 구현 + 서버 종류별 탐지(Ollama `/api/version`, llama-server `/health`), 기본 주소 설정 가능 | PRD-LLM-018-020 | `src/llm/local.rs` |
+| SRS-LLM-013 | Provider 설정 인터페이스 (CR-005): `settings()`는 에이전트 이름, 마스킹 계정, 모델 목록, 현재 모델, 로그아웃 가능 여부 반환. `select_model(id)`은 목록 확인 후 저장. 로그아웃은 `LoginService::logout`(세션 폐기 시도와 로컬 토큰 삭제, 등록 정보 유지) | PRD-UI-015, PRD-LLM-009 | `src/llm/types.rs`, `src/llm/chatgpt.rs`, `src/runtime.rs` |
 
 ## 6. 터미널 세션과 Output Layer
 
@@ -471,6 +472,8 @@ ADR-0015: `app::editor::TextBuffer` 자체 구현 (ratatui-textarea 미사용).
 | SRS-TUI-011 | 7.4절 자체 편집 버퍼와 ui 계층 줄바꿈, 스크롤, 실제 커서 배치 | PRD-EDIT-001, PRD-EDIT-002, PRD-EDIT-004, PRD-EDIT-005 | `src/app/editor.rs`, `src/ui/widgets.rs` |
 | SRS-TUI-012 | 키 바인딩 재정의 설정 미제공 (설정 스키마에 키 항목 부재) | PRD-KEY-003 | `src/config/mod.rs` |
 | SRS-TUI-013 | 화면 문구에 팝업 오버레이 동등 표현 미사용 | PRD-UI-014 | `src/ui/`, `README.md` |
+| SRS-TUI-014 | 설정 화면 (CR-005): 메인 화면 대신 표시. 1행 제목과 에이전트(계정 마스킹), 목록(모델 `(*)` 현재 표시, 마지막 로그아웃), 마지막 행 안내 또는 진행, 오류. 열기 Ctrl+O, `/model`, `/models`, `/settings`, 상태줄 `[모델]` 클릭. 위아래, Tab, Home, End 이동, Enter 선택, Esc와 Ctrl+O 닫기, Ctrl+C 종료. 현재 모델 선택은 닫기만. 요청 중과 위험 재확인 중에는 미개방 | PRD-UI-015 | `src/app/update.rs`, `src/ui/inline.rs` |
+| SRS-TUI-015 | 클릭 입력 (CR-005): 렌더러가 클릭 대상 영역 목록(`Hit`)을 반환, 런타임이 왼쪽 버튼 누름 좌표로 대상 결정. 휠은 설정 화면 커서 이동. 마우스 보고(1000, 1002, 1003, 1006 모드)는 로그인 진행 중 해제, 종료와 panic 복구 시 해제. `ui.mouse` 기본 true | PRD-UI-016 | `src/runtime.rs`, `src/ui/terminal.rs`, `src/config/mod.rs` |
 
 ### 7.5 다국어 메시지
 
@@ -613,7 +616,7 @@ ADR-0003 표 적용.
 | SRS-SH-012 | 쉘별 지원 상태 표기: 검증 쉘 버전과 터미널을 문서 표로 관리 | PRD-SH-012 | `README.md` 6절 |
 | SRS-SH-013 | 9.6절 직접 실행 결과 전달: 쉘 함수, `HOWTUI_NEXT_INPUT_FILE` 경로 판정(stdout 터미널 조건), 기록 실패 시 stdout 대체 | PRD-SH-013 | `src/cli/widget.rs`, `src/shell/scripts/` |
 | SRS-SH-014 | 쉘별 다음 입력 전달 방식 (9.3절 표). Bash는 터미널 상태 보고 요청을 프롬프트 직전에만 송신(뒤따르는 명령의 입력 오염 방지), 입력란이 비어 있을 때만 삽입. PowerShell은 입력란이 비어 있을 때만 삽입 | PRD-SH-013 | `src/shell/scripts/` |
-| SRS-SH-015 | rc 파일 표식 구간 (CR-004): `# >>> howtui shell integration >>>`와 `# <<< howtui shell integration <<<` 사이에 제거 방법 주석, 선택적 PATH 추가 줄, `command -v howtui` 확인 후 `eval "$(howtui init <쉘> [옵션])"`. 대상 파일 Bash `~/.bashrc`(macOS `~/.bash_profile`), Zsh `${ZDOTDIR:-~}/.zshrc`, PowerShell 미지원(종료 코드 2). 추가는 append(심볼릭 링크와 권한 유지), 갱신과 제거는 링크 대상 경로에 임시 파일 기록 후 이름 변경(권한 유지). rc 경로 문자열은 `src/shell/rc.rs`에만 존재 (CI 규칙 검사) | PRD-SH-014, PRD-SH-010 | `src/shell/rc.rs`, `src/cli/mod.rs`, `scripts/ci/check_rules.sh` |
+| SRS-SH-015 | rc 파일 표식 구간 (CR-004): `# >>> howtui shell integration >>>`와 `# <<< howtui shell integration <<<` 사이에 제거 방법 주석, 선택적 PATH 추가 줄, `command -v howtui` 확인 후 `eval "$(howtui init <쉘> [옵션])"`. 대상 파일 Bash `~/.bashrc`(macOS `~/.bash_profile`), Zsh `${ZDOTDIR:-~}/.zshrc`, PowerShell 현재 사용자 Profile(Windows는 7과 5.1 두 파일, Unix는 `~/.config/powershell`, PATH 줄 없음, ASCII) (CR-006). 추가는 append(심볼릭 링크와 권한 유지), 갱신과 제거는 링크 대상 경로에 임시 파일 기록 후 이름 변경(권한 유지). rc 경로 문자열은 `src/shell/rc.rs`에만 존재 (CI 규칙 검사) | PRD-SH-014, PRD-SH-010 | `src/shell/rc.rs`, `src/cli/mod.rs`, `scripts/ci/check_rules.sh` |
 
 ## 10. 비동기 작업과 취소
 
@@ -889,8 +892,9 @@ rustflags = ["-C", "target-feature=+crt-static"]
 | SRS-INS-010 | install.ps1 사용자 PATH 등록 규칙과 해제 옵션 | PRD-INS-002 | `scripts/install.ps1` |
 | SRS-INS-011 | 14.4절 대안 설치 경로 문서 | PRD-INS-006 | `README.md` |
 | SRS-INS-012 | 업데이트 절차 문서와 재실행 시 설치 경로 유지 | PRD-INS-007 | `README.md`, `scripts/` |
-| SRS-INS-013 | 제거 절차 문서 | PRD-INS-008 | `README.md` |
+| SRS-INS-013 | 제거 절차 문서와 제거 스크립트 (CR-006): 릴리스 압축 파일에 `uninstall.sh`, `uninstall.ps1` 포함, 설치 스크립트가 바이너리 옆에 `howtui-uninstall.sh`, `howtui-uninstall.ps1`로 설치. 제거 스크립트는 대상 목록 표시 후 확인(`-y`, `-Yes` 생략 가능, 터미널 없으면 중단), `logout --forget`, `init <쉘> --uninstall`, 바이너리와 자신 삭제, 데이터 디렉터리는 howtui 생성 파일만 삭제 후 빈 디렉터리 제거, 설정은 `--purge`(`-Purge`)일 때만. Windows는 사용자 PATH 항목 제거 | PRD-INS-008 | `scripts/uninstall.sh`, `scripts/uninstall.ps1`, `scripts/install.sh`, `scripts/install.ps1`, `README.md` |
 | SRS-INS-014 | 설치 후 쉘 통합 확인 질문 (CR-004): 대상은 `$SHELL` 이름이 bash, zsh인 경우. `/dev/tty`를 열 수 있을 때만 질문(`curl \| sh`에서도 동작), 기본값 Y, 동의 시 `howtui init <쉘> --install` 호출(설치 디렉터리가 PATH에 없으면 `--add-path`). `--shell-integration`, `--no-shell-integration`, `HOWTUI_SETUP_SHELL=yes\|no`. 터미널 없음은 등록 명령 안내 1줄만 | PRD-INS-001, PRD-SH-010, PRD-SH-014 | `scripts/install.sh` |
+| SRS-INS-015 | install.ps1 쉘 통합 확인 질문 (CR-006): 대화형 콘솔(입력 미리디렉션)에서만 `Read-Host` 질문, 기본값 Y, 동의 시 `howtui init powershell --install` (PowerShell 7과 5.1 Profile, 문서 폴더는 `SHGetKnownFolderPath`). 실행 정책이 Restricted 또는 AllSigned면 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` 안내만 (자동 변경 없음). `HOWTUI_SETUP_SHELL=yes\|no` | PRD-INS-002, PRD-SH-014 | `scripts/install.ps1`, `src/shell/rc.rs` |
 
 ## 15. doctor 설계
 
@@ -1037,6 +1041,7 @@ rustflags = ["-C", "target-feature=+crt-static"]
 | [0014](adr/0014-config-and-data-paths.md) | 설정과 데이터 경로 | 제안 |
 | [0015](adr/0015-own-text-buffer.md) | 자체 편집 버퍼 구현 | 제안 |
 | [0016](adr/0016-i18n-message-catalog.md) | 다국어 메시지 카탈로그 | 승인 (E-03) |
+| [0017](adr/0017-no-codex-cli-delegation.md) | Codex CLI 바이너리 위임 미채택 | 승인 (사용자 위임 판단) |
 
 ## 22. 미확정 설계 항목
 

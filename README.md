@@ -51,11 +51,13 @@ Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit             g
    - [Review the script first](#review-the-script-first)
    - [Manual download and checksum](#manual-download-and-checksum)
    - [From source](#from-source)
-   - [Update and uninstall](#update-and-uninstall)
+   - [Update](#update)
+   - [Uninstall](#uninstall)
 3. [Quickstart](#3-quickstart)
 4. [Usage](#4-usage)
    - [Commands](#commands)
    - [Keys](#keys)
+   - [Settings: agent and model](#settings-agent-and-model)
    - [Shell integration](#shell-integration)
    - [Non-interactive mode](#non-interactive-mode)
    - [Exit codes](#exit-codes)
@@ -77,6 +79,7 @@ Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit             g
 - **Inline UI.** Uses only a few lines below your prompt (10 by default) and never switches to the alternate screen.
 - **Edit, then ask.** Edit the command in place (multi-line, undo and redo, Unicode aware), then ask a follow-up; the model sees your edits.
 - **Explain on demand.** After editing by hand, press Ctrl+E to explain the current command.
+- **Pick the model.** Ctrl+O, `/model` or a click on the model name in the status line opens the settings view: your agent and account, the models your ChatGPT plan offers, and sign-out. The choice is kept for next time. Default: GPT-6-Luna when your account lists it.
 - **Clean stdout.** The UI draws on the controlling terminal, so `cmd=$(howtui)` and `howtui | pbcopy` receive only the command.
 - **Shell integration (optional).** Ctrl+G opens howtui on the current command line in Bash, Zsh or PowerShell, and typing `howtui` puts the result into the next prompt. The installer asks before adding it to your rc file; nothing is changed without a yes.
 - **Never executes.** howtui prints or hands over the command; it has no code path that runs generated commands.
@@ -106,9 +109,20 @@ curl -fsSL https://raw.githubusercontent.com/hungryZoo/howtui/main/scripts/insta
 ```
 
 The script detects the OS and CPU (including a 32-bit Raspberry Pi OS on a 64-bit kernel), downloads the release archive and
-`SHA256SUMS`, verifies the checksum, and installs to `~/.local/bin` without sudo. At the end it asks whether to enable
-[shell integration](#shell-integration) for bash or zsh; only a yes adds a marked block to `~/.bashrc` or `~/.zshrc`
-(including the `PATH` line when `~/.local/bin` is not on your `PATH`). Without a terminal it asks nothing and changes nothing.
+`SHA256SUMS`, verifies the checksum, and installs `howtui` and `howtui-uninstall.sh` to `~/.local/bin` without sudo.
+
+At the end it asks one question:
+
+```text
+Shell integration for bash: Ctrl+G opens howtui on the current command line, and a
+typed `howtui` puts the accepted command into your next prompt. Nothing runs by itself.
+This adds a marked block to ~/.bashrc.
+Remove it later with: howtui init bash --uninstall
+Enable shell integration? [Y/n]
+```
+
+Press Enter (yes) and open a new terminal. Only a yes adds the marked block to `~/.bashrc` or `~/.zshrc` (with a `PATH`
+line when `~/.local/bin` is not on your `PATH` yet). Without a terminal the script asks nothing and changes nothing.
 
 | Option | Environment variable | Meaning |
 | --- | --- | --- |
@@ -125,8 +139,11 @@ Windows PowerShell 5.1 or PowerShell 7:
 irm https://raw.githubusercontent.com/hungryZoo/howtui/main/scripts/install.ps1 | iex
 ```
 
-Installs `howtui.exe` to `%LOCALAPPDATA%\Programs\howtui\bin`, verifies the checksum, and adds that directory to your user
-`PATH`. It never edits PowerShell profiles.
+Installs `howtui.exe` and `howtui-uninstall.ps1` to `%LOCALAPPDATA%\Programs\howtui\bin`, verifies the checksum, and
+adds that directory to your user `PATH`. At the end it asks the same shell integration question; a yes adds a marked
+block to your PowerShell 7 and Windows PowerShell 5.1 profiles (`Documents\PowerShell` and `Documents\WindowsPowerShell`).
+If the execution policy blocks profiles (the Windows PowerShell 5.1 default `Restricted`), it shows the command to allow
+them for your account (`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`) and does not change the policy itself.
 
 | Environment variable | Meaning |
 | --- | --- |
@@ -134,6 +151,7 @@ Installs `howtui.exe` to `%LOCALAPPDATA%\Programs\howtui\bin`, verifies the chec
 | `HOWTUI_INSTALL_DIR` | Install directory |
 | `HOWTUI_NO_MODIFY_PATH=1` | Do not touch the user `PATH` |
 | `HOWTUI_ARCH` | Override the detected architecture (`x86_64` or `aarch64`) |
+| `HOWTUI_SETUP_SHELL=yes\|no` | Enable shell integration without asking, or skip the question |
 
 ### Review the script first
 
@@ -170,11 +188,41 @@ git clone https://github.com/hungryZoo/howtui && cd howtui
 cargo build --release          # Rust 1.89 or newer; rust-toolchain.toml pins the tested version
 ```
 
-### Update and uninstall
+### Update
 
-- **Update:** run the same install command again; pass the same `--bin-dir` or `HOWTUI_INSTALL_DIR` if you changed it.
-- **Uninstall:** run `howtui logout`, delete the binary, and remove the config and data directories listed in
-  [Configuration](#5-configuration).
+Run the same install command again. Pass the same `--bin-dir` or `HOWTUI_INSTALL_DIR` if you changed it. Your sign-in,
+model choice, settings and shell integration stay as they are (an existing integration block is reported, not duplicated).
+
+### Uninstall
+
+The installer puts an uninstall script next to the binary. It lists what it will remove and asks before doing anything.
+
+```bash
+~/.local/bin/howtui-uninstall.sh            # Linux and macOS
+~/.local/bin/howtui-uninstall.sh --purge    # also delete ~/.config/howtui
+```
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\howtui\bin\howtui-uninstall.ps1"           # Windows
+& "$env:LOCALAPPDATA\Programs\howtui\bin\howtui-uninstall.ps1" -Purge    # also delete %APPDATA%\howtui
+```
+
+| Removed | Kept |
+| --- | --- |
+| Saved sign-in (signs out, deletes the tokens and the app registration) | Config file, unless `--purge` / `-Purge` |
+| Shell integration blocks the installer or `--install` added (only the marked blocks) | Anything else in your rc files and profiles |
+| `howtui`, the uninstall script, the install folder entry in the Windows user `PATH` | Files you put into the data folder yourself |
+| Data folder: `~/.local/share/howtui` or `%LOCALAPPDATA%\howtui` | |
+
+Add `-y` (`-Yes` on Windows) to skip the question. Open a new terminal afterwards so the current shell forgets the
+integration. Manual removal, for installs without the script (for example `cargo install`):
+
+```bash
+howtui logout --forget
+howtui init bash --uninstall        # or zsh, powershell
+cargo uninstall howtui              # or delete the howtui binary you copied
+rm -rf ~/.local/share/howtui ~/.config/howtui
+```
 
 <p align="right"><a href="#table-of-contents">↑ back to top</a></p>
 
@@ -225,6 +273,7 @@ Common options: `--shell bash|zsh|powershell`, `--height N` (3-40).
 | Ctrl+J, Alt+Enter | | New line (Shift+Enter where the terminal reports it) |
 | Tab, Shift+Tab | Switch to the command | Switch to the ask line |
 | Ctrl+E | | Explain the current command |
+| Ctrl+O | Settings (agent and model) | Settings |
 | Esc | Quit | Quit (cancels a running request first) |
 | Ctrl+C | Quit | Quit |
 | Ctrl+Z, Ctrl+Y | Undo, redo (on an empty ask line: the command) | Undo, redo (an AI revision is one undo step) |
@@ -237,10 +286,32 @@ Common options: `--shell bash|zsh|powershell`, `--height N` (3-40).
 Pasting multi-line text into the editor keeps the lines and never triggers Accept. After each answer the cursor stays on
 the ask line, so you can type the next change right away or press Enter to accept.
 
+### Settings: agent and model
+
+Press **Ctrl+O**, type `/model` in the ask line, or click the `[model]` name in the status line.
+
+```text
+Settings  Agent: ChatGPT (h***@gmail.com)                                          [Close]
+Model  ( ) GPT-6.1-Sol  gpt-6.1-sol
+       (*) GPT-6-Luna  gpt-6-luna
+       ( ) GPT-6-Sol  gpt-6-sol
+       Sign out (switch account)
+Up/Down move  Enter choose  Esc close  (click works too)
+```
+
+Choose with the arrow keys and Enter, or click a line. The model is saved for next time and used before
+`provider.chatgpt.model` from the config file. **Sign out** revokes the session; press Enter afterwards to sign in with
+another account. The agent line shows the provider in use. API key providers (Phase 5) and local models (Phase 6) will be
+added there; the Codex CLI was evaluated as an agent and not adopted, see
+[ADR-0017](docs/adr/0017-no-codex-cli-delegation.md).
+
+While howtui is open it receives mouse clicks, so selecting terminal text needs Shift+drag (Option+drag in iTerm2). Set
+`ui.mouse = false` to keep the terminal's own mouse handling. Clicks are off on the sign-in screen so you can copy the URL.
+
 ### Shell integration
 
 The installer asks whether to enable it. Answer yes (the default) and open a new terminal. Without the installer, run
-`howtui init bash --install` (or `zsh`). Both add a marked block to `~/.bashrc` or `~/.zshrc` and nothing else;
+`howtui init bash --install` (or `zsh`, `powershell`). Both add a marked block to `~/.bashrc`, `~/.zshrc` or the PowerShell profiles and nothing else;
 `howtui init bash --uninstall` removes it. Nothing is changed unless you agree. To set it up by hand, add one line:
 
 | Shell | Add to | Line |
@@ -302,12 +373,13 @@ The file is optional and never created automatically.
 mode = "inline"        # "fullscreen" is planned
 inline_height = 10     # 3-40
 language = "auto"      # "auto", "en" or "ko"
+mouse = true           # false: no clicks, terminal keeps its own text selection and scrolling
 
 [provider]
 default = "chatgpt"
 
 [provider.chatgpt]
-# model = "<model slug>"   # default: first model your account lists
+# model = "<model slug>"   # used when nothing was chosen in Settings; default gpt-6-luna, else the first listed
 ```
 
 Sign-in state and the file-based token store live in the data directory: `$XDG_DATA_HOME/howtui`
@@ -338,7 +410,7 @@ Shell integration, as tested (PTY end-to-end: Ctrl+G, next-prompt insertion, cap
 | --- | --- | --- |
 | Bash | 5.0 (Ubuntu 20.04), 5.2 (Ubuntu 24.04, CI); 3.2 on macOS (history only, CI); script loading on 4.0, 4.4, 5.1 | |
 | Zsh | 5.9 (Ubuntu 24.04 and macOS 15 in CI, Debian 12) | 5.1-5.8 |
-| PowerShell | 7.4 and 7.6 on Linux, 7.6 on macOS (PSReadLine 2.3.5, 2.4.5) | Windows PowerShell 5.1 and PowerShell 7 on Windows |
+| PowerShell | 7.4 and 7.6 on Linux, 7.6 on macOS (PSReadLine 2.3.5, 2.4.5); Windows checked by hand | Windows with code page 949 |
 
 | Target | Use it for | Verified |
 | --- | --- | --- |
@@ -347,7 +419,7 @@ Shell integration, as tested (PTY end-to-end: Ctrl+G, next-prompt insertion, cap
 | `armv7-unknown-linux-gnueabihf` | 32-bit Raspberry Pi OS (Pi 2-5) | Build and glibc check only |
 | `aarch64-apple-darwin` | Apple Silicon Macs | CI tests, PTY end-to-end tests |
 | `x86_64-apple-darwin` | Intel Macs | Build, minimum-version and signature checks only |
-| `x86_64-pc-windows-msvc` | Windows x64 | CI tests, ConPTY end-to-end tests, installer tests (PowerShell 5.1 and 7) |
+| `x86_64-pc-windows-msvc` | Windows x64 | CI tests, ConPTY end-to-end tests, installer tests (PowerShell 5.1 and 7), manual check (Windows Terminal, PowerShell) |
 | `aarch64-pc-windows-msvc` | Windows on ARM | CI tests and ConPTY end-to-end tests on Windows ARM64 |
 
 Linux builds need glibc 2.17 or newer (Raspberry Pi OS Buster and later, Ubuntu 20.04 and later); musl-based distributions are
@@ -400,8 +472,8 @@ Releases are built by `.github/workflows/release.yml` from `v*` tags as drafts a
 
 ## 9. Roadmap
 
-- [ ] Phase 1: inline UI, Sign in with ChatGPT, stdout output, installers (implemented, waiting for real-account and Windows checks)
-- [ ] Phase 2: optional shell integration that puts the command into the Bash, Zsh or PowerShell prompt (implemented, Windows checks pending)
+- [x] Phase 1: inline UI, Sign in with ChatGPT, stdout output, installers
+- [x] Phase 2: optional shell integration that puts the command into the Bash, Zsh or PowerShell prompt; settings view for the model
 - [ ] Phase 3: fullscreen mode
 - [ ] Phase 4: Raspberry Pi and Windows ARM64 hardware checks, update checks in `doctor`
 - [ ] Phase 5: API key providers (OpenAI, Gemini, Anthropic, OpenAI-compatible)
