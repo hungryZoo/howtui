@@ -66,6 +66,8 @@ fn request(op: Operation) -> LlmRequest {
             Some("ls".into())
         },
         history: vec![],
+        include_folder: false,
+        folder: None,
     }
 }
 

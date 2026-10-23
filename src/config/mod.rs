@@ -64,6 +64,15 @@ pub struct ProviderConfig {
 pub struct Config {
     pub ui: UiConfig,
     pub provider: ProviderConfig,
+    pub context: ContextConfig,
+}
+
+/// 요청에 덧붙이는 정보 (CR-007). 기본값은 보내지 않음
+#[derive(Clone, Debug, PartialEq, Eq, Default, Deserialize)]
+#[serde(default)]
+pub struct ContextConfig {
+    /// 현재 폴더 목록 (이름, 종류, 크기) 전송 기본값
+    pub folder: bool,
 }
 
 /// 설정 로드 결과. `unknown_keys`는 실행을 막지 않는 경고 대상.
@@ -92,6 +101,8 @@ const KNOWN_KEYS: &[&str] = &[
     "provider.default",
     "provider.chatgpt",
     "provider.chatgpt.model",
+    "context",
+    "context.folder",
 ];
 
 pub fn load(path: Option<&Path>) -> Result<Loaded, ConfigError> {

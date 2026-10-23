@@ -62,6 +62,9 @@ pub struct TuiConfig {
     pub keep_paste: bool,
     /// 클릭 입력 (설정 `ui.mouse`, CR-005)
     pub mouse: bool,
+    /// 현재 폴더 목록 전송 초기값과 변경 저장 (CR-007)
+    pub send_folder: bool,
+    pub save_folder: Option<Arc<dyn Fn(bool) + Send + Sync>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -99,6 +102,7 @@ pub fn run_tui(
 
     let mut state = State::new(cfg.lang, cfg.env.clone(), cfg.logged_in);
     state.provider = provider.label();
+    state.send_folder = cfg.send_folder;
     state.status = cfg.startup_notice.clone();
     if let Some((buffer, lbuffer)) = &cfg.initial_command {
         state.command.set_text(buffer);
@@ -146,7 +150,13 @@ pub fn run_tui(
             match effect {
                 Effect::Exit(ExitOutcome::Accepted(cmd)) => break 'main TuiOutcome::Accepted(cmd),
                 Effect::Exit(ExitOutcome::Cancelled) => break 'main TuiOutcome::Cancelled,
-                Effect::StartRequest(req) => {
+                Effect::StartRequest(mut req) => {
+                    // 폴더 목록은 요청 직전에 읽음 (이름, 종류, 크기만)
+                    if req.include_folder {
+                        req.folder = std::env::current_dir()
+                            .ok()
+                            .map(|d| crate::context::folder_listing(&d));
+                    }
                     tracing::debug!(id = req.id, op = ?req.op, history = req.history.len(), "request start");
                     let cancel = CancelToken::new();
                     requests.insert(req.id, cancel.clone());
@@ -190,6 +200,11 @@ pub fn run_tui(
                 Effect::SubmitRedirect(url) => {
                     if let Some(task) = &login_task {
                         let _ = task.paste.send(url);
+                    }
+                }
+                Effect::SaveFolder(on) => {
+                    if let Some(save) = &cfg.save_folder {
+                        save(on);
                     }
                 }
                 Effect::LoadSettings => {

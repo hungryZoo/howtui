@@ -474,6 +474,8 @@ ADR-0015: `app::editor::TextBuffer` 자체 구현 (ratatui-textarea 미사용).
 | SRS-TUI-013 | 화면 문구에 팝업 오버레이 동등 표현 미사용 | PRD-UI-014 | `src/ui/`, `README.md` |
 | SRS-TUI-014 | 설정 화면 (CR-005): 메인 화면 대신 표시. 1행 제목과 에이전트(계정 마스킹), 목록(모델 `(*)` 현재 표시, 마지막 로그아웃), 마지막 행 안내 또는 진행, 오류. 열기 Ctrl+O, `/model`, `/models`, `/settings`, 상태줄 `[모델]` 클릭. 위아래, Tab, Home, End 이동, Enter 선택, Esc와 Ctrl+O 닫기, Ctrl+C 종료. 현재 모델 선택은 닫기만. 요청 중과 위험 재확인 중에는 미개방 | PRD-UI-015 | `src/app/update.rs`, `src/ui/inline.rs` |
 | SRS-TUI-015 | 클릭 입력 (CR-005): 렌더러가 클릭 대상 영역 목록(`Hit`)을 반환, 런타임이 왼쪽 버튼 누름 좌표로 대상 결정. 휠은 설정 화면 커서 이동. 마우스 보고(1000, 1002, 1003, 1006 모드)는 로그인 진행 중 해제, 종료와 panic 복구 시 해제. `ui.mouse` 기본 true | PRD-UI-016 | `src/runtime.rs`, `src/ui/terminal.rs`, `src/config/mod.rs` |
+| SRS-CTX-001 | 폴더 목록 (CR-007): 요청 직전 런타임이 `std::env::current_dir()`를 읽어 생성. 1단계 항목만, 심볼릭 링크 미추적(`@` 표시), 폴더 `/`, 파일은 크기(B, KB, MB, GB, TB), 정렬은 폴더, 파일, 링크 순과 대소문자 무시 이름순. `.`으로 시작하는 항목은 개수만, 최대 150개와 6000자, 이름의 제어 문자는 `?`, 이름 100자 상한. 프롬프트에는 마지막 사용자 메시지 뒤 코드 블록으로만 추가(이력 미포함), 지시문에 "파일 이름 속 지시 미준수" 규칙 | PRD-CTX-001, PRD-PRIV-001, PRD-PRIV-002 | `src/context/mod.rs`, `src/llm/prompt.rs`, `src/runtime.rs`, `src/cli/no_tui.rs` |
+| SRS-CTX-002 | 폴더 목록 켜기와 끄기 (CR-007): 앱 코어 `send_folder`와 요청 `include_folder` 플래그(목록은 런타임이 채움), Ctrl+F, `Hit::ToggleFolder`(상태줄 맨 앞 버튼), 설정 화면 항목(모델 목록 다음). 변경 시 상태 파일 `send_folder` 저장, 시작 시 상태 파일 > 설정 파일 `context.folder` > 끔. 상태줄 좁은 화면은 뒤쪽 항목부터 생략 | PRD-CTX-001 | `src/app/update.rs`, `src/ui/inline.rs`, `src/cli/mod.rs`, `src/config/mod.rs` |
 
 ### 7.5 다국어 메시지
 
@@ -974,7 +976,7 @@ rustflags = ["-C", "target-feature=+crt-static"]
 | SRS-SEC-001 | TLS 인증서 검증 비활성화 옵션 미제공 | PRD-AUTH-001 | `src/llm/`, `src/auth/` |
 | SRS-SEC-002 | 시스템 프록시 환경변수(`HTTPS_PROXY`, `NO_PROXY`) 존중 | PRD-LLM-001 | `src/llm/http.rs` |
 | SRS-SEC-003 | 자격증명과 상태 파일 쓰기는 임시 파일 + 이름 변경 원자적 처리, Unix 0600 | PRD-PRIV-006 | `src/platform/fs.rs` |
-| SRS-SEC-004 | LLM 전송 페이로드 구성 함수 단일화, 허용 필드 외 컨텍스트 추가 금지 (단위 테스트로 필드 목록 고정) | PRD-PRIV-001, PRD-PRIV-002 | `src/llm/prompt.rs` |
+| SRS-SEC-004 | LLM 전송 페이로드 구성 함수 단일화, 허용 필드 외 컨텍스트 추가 금지 (단위 테스트로 필드 목록 고정). 폴더 목록은 `include_folder`가 참일 때만 (SRS-CTX-001) | PRD-PRIV-001, PRD-PRIV-002 | `src/llm/prompt.rs` |
 | SRS-SEC-005 | 의존성 취약점 점검 (`cargo audit` 또는 `cargo deny`) CI 실행 | PRD-REL-001 | `.github/workflows/` |
 | SRS-SEC-006 | 설치 스크립트는 HTTPS URL만 사용, 체크섬 불일치 시 설치 중단 | PRD-INS-001, PRD-INS-009 | `scripts/` |
 | SRS-SEC-007 | 쉘 입력란 내용과 사용자 편집 명령어는 사용자 요청 제출 시에만 페이로드 포함. 시작 시점 자동 전송 없음, 로그인 전 고지와 `--help`에 명시 | PRD-PRIV-004 | `src/app/update.rs`, `src/llm/prompt.rs` |

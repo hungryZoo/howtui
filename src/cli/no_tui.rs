@@ -13,6 +13,7 @@ pub fn run(
     question: &str,
     built: Built,
     env: EnvContext,
+    send_folder: bool,
     rt: &tokio::runtime::Runtime,
 ) -> ExitCode {
     if question.trim().is_empty() {
@@ -31,6 +32,11 @@ pub fn run(
         question: Some(question.trim().to_string()),
         command: None,
         history: vec![],
+        include_folder: send_folder,
+        folder: send_folder
+            .then(|| std::env::current_dir().ok())
+            .flatten()
+            .map(|d| crate::context::folder_listing(&d)),
     };
     let provider = built.provider.clone();
     let result = rt.block_on(async move {

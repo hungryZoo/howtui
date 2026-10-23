@@ -110,6 +110,7 @@ pub struct LoginInfo {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Hit {
     OpenSettings,
+    ToggleFolder,
     Question,
     Command,
     SettingsItem(usize),
@@ -120,6 +121,7 @@ pub enum Hit {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SettingsEntry {
     Model(usize),
+    Folder,
     SignOut,
 }
 
@@ -139,6 +141,7 @@ impl SettingsView {
             return Vec::new();
         };
         let mut v: Vec<SettingsEntry> = (0..d.models.len()).map(SettingsEntry::Model).collect();
+        v.push(SettingsEntry::Folder);
         if d.can_sign_out {
             v.push(SettingsEntry::SignOut);
         }
@@ -159,6 +162,8 @@ pub enum KeyAction {
     Edit(EditOp),
     /// 설정 화면 열기와 닫기 (Ctrl+O)
     Settings,
+    /// 현재 폴더 목록 전송 켜기와 끄기 (Ctrl+F, CR-007)
+    ToggleFolder,
     /// 그 외 키 (위험 확인 해제용)
     Other,
 }
@@ -205,6 +210,8 @@ pub enum Effect {
     SubmitRedirect(String),
     LoadSettings,
     SelectModel(String),
+    /// 폴더 목록 전송 설정 저장
+    SaveFolder(bool),
     SignOut,
     Exit(ExitOutcome),
 }
@@ -233,6 +240,8 @@ pub struct State {
     pub auto_submit: bool,
     pub next_request_id: RequestId,
     pub settings: Option<SettingsView>,
+    /// 현재 폴더 목록 전송 (CR-007)
+    pub send_folder: bool,
 }
 
 impl State {
@@ -263,6 +272,7 @@ impl State {
             auto_submit: false,
             next_request_id: 1,
             settings: None,
+            send_folder: false,
         }
     }
 

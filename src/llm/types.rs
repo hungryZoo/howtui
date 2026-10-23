@@ -93,6 +93,10 @@ pub struct LlmRequest {
     pub question: Option<String>,
     pub command: Option<String>,
     pub history: Vec<Turn>,
+    /// 현재 폴더 목록 포함 여부 (사용자 설정, CR-007). 앱 코어가 결정
+    pub include_folder: bool,
+    /// 현재 폴더 목록 (요청 직전 런타임이 채움, 이름과 종류와 크기만)
+    pub folder: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]

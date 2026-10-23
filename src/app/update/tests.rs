@@ -648,7 +648,7 @@ fn settings_clicks_and_sign_out() {
     update(&mut s, Action::Scroll(-1));
     assert_eq!(s.settings.as_ref().unwrap().cursor, 0);
     assert_eq!(
-        update(&mut s, Action::Click(Hit::SettingsItem(2))),
+        update(&mut s, Action::Click(Hit::SettingsItem(3))),
         vec![Effect::SignOut]
     );
     update(&mut s, Action::SignedOut);
@@ -675,4 +675,43 @@ fn settings_load_errors() {
     update(&mut s, Action::SettingsLoaded(Err(LlmError::AuthRequired)));
     assert!(s.settings.is_none());
     assert_eq!(s.phase, Phase::LoginRequired);
+}
+
+/// CR-007: 폴더 목록 전송 켜기와 끄기 (Ctrl+F, 상태줄 클릭, 설정 화면 항목), 요청 플래그, 저장 Effect.
+#[test]
+fn folder_toggle_sets_request_flag_and_saves() {
+    let mut s = ready();
+    type_text(&mut s, "a");
+    assert!(
+        !request_of(&key(&mut s, KeyAction::Submit)).include_folder,
+        "기본 끔"
+    );
+    let mut s = ready();
+    assert_eq!(
+        key(&mut s, KeyAction::ToggleFolder),
+        vec![Effect::SaveFolder(true)]
+    );
+    assert!(s.send_folder);
+    assert_eq!(
+        s.status.as_ref().map(|st| st.msg),
+        Some(Msg::StatusFolderOn)
+    );
+    type_text(&mut s, "압축파일 풀어줘");
+    let req = request_of(&key(&mut s, KeyAction::Submit));
+    assert!(req.include_folder);
+    assert_eq!(req.folder, None, "목록은 런타임이 채움");
+    // 요청 중 클릭으로 끄기
+    assert_eq!(
+        update(&mut s, Action::Click(Hit::ToggleFolder)),
+        vec![Effect::SaveFolder(false)]
+    );
+    // 설정 화면 항목 (모델 2개 다음)
+    let mut s = ready();
+    key(&mut s, KeyAction::Settings);
+    update(&mut s, Action::SettingsLoaded(Ok(settings_data())));
+    assert_eq!(
+        update(&mut s, Action::Click(Hit::SettingsItem(2))),
+        vec![Effect::SaveFolder(true)]
+    );
+    assert!(s.settings.is_some(), "토글은 설정 화면 유지");
 }

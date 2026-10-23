@@ -27,6 +27,7 @@ pub fn map_key(ev: KeyEvent) -> Option<KeyAction> {
             'j' => KeyAction::InsertNewline,
             'e' => KeyAction::Explain,
             'o' => KeyAction::Settings,
+            'f' => KeyAction::ToggleFolder,
             'z' => KeyAction::Undo,
             'y' => KeyAction::Redo,
             'a' => KeyAction::Edit(EditOp::Home),

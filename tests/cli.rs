@@ -502,6 +502,71 @@ mod chatgpt_e2e {
         assert!(v["instructions"].as_str().unwrap().contains("shell=Zsh"));
     }
 
+    /// 현재 폴더 목록은 켠 경우에만 이름과 크기로 전송, 파일 내용과 숨김 항목과 절대 경로 제외 (TC-CTX-001).
+    #[tokio::test(flavor = "multi_thread")]
+    async fn folder_listing_is_sent_only_when_enabled() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/v1/models"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(json!({"models": [{"slug": "model-a", "visibility": "list"}]})),
+            )
+            .mount(&server)
+            .await;
+        Mock::given(method("POST"))
+            .and(path("/v1/responses"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(sse(
+                r#"{"command":"tar -xzf backup.tar.gz","explanation":"x","notes":[]}"#,
+            )))
+            .mount(&server)
+            .await;
+        let dir = tempfile::tempdir().unwrap();
+        seed(&dir.path().join("data"), "openid chatgpt.tokens.use.direct");
+        let work = dir.path().join("work");
+        std::fs::create_dir(&work).unwrap();
+        std::fs::write(work.join("backup.tar.gz"), "SECRET-CONTENT").unwrap();
+        std::fs::write(work.join(".env"), "TOKEN=1").unwrap();
+        for enabled in [false, true] {
+            if enabled {
+                std::fs::write(dir.path().join("config.toml"), "[context]\nfolder = true\n")
+                    .unwrap();
+            }
+            let uri = server.uri();
+            let (d, w) = (dir.path().to_path_buf(), work.clone());
+            let out = tokio::task::spawn_blocking(move || {
+                bin(&d)
+                    .env("HOWTUI_TEST_API_BASE", format!("{uri}/v1"))
+                    .current_dir(&w)
+                    .args(["--no-tui", "압축파일 풀어줘"])
+                    .output()
+                    .unwrap()
+            })
+            .await
+            .unwrap();
+            assert!(
+                out.status.success(),
+                "{}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+            let reqs = server.received_requests().await.unwrap();
+            let raw = String::from_utf8_lossy(
+                &reqs
+                    .iter()
+                    .rev()
+                    .find(|r| r.url.path() == "/v1/responses")
+                    .unwrap()
+                    .body,
+            )
+            .into_owned();
+            assert_eq!(raw.contains("backup.tar.gz"), enabled, "enabled={enabled}");
+            for absent in ["SECRET-CONTENT", ".env", "TOKEN=1"] {
+                assert!(!raw.contains(absent), "{absent}");
+            }
+            assert!(!raw.contains(&work.display().to_string()), "absolute path");
+        }
+    }
+
     /// 플랜 사용 불가: 원인 안내 후 중단, 추론 요청 없음 (TC-AUTH-024).
     #[tokio::test(flavor = "multi_thread")]
     async fn plan_not_granted_stops_without_request() {

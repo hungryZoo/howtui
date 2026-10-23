@@ -383,8 +383,22 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
         }
     };
 
+    // 폴더 목록 전송: 설정 화면에서 바꾼 값 > 설정 파일 context.folder (기본 끔, CR-007)
+    let send_folder = built
+        .auth
+        .as_ref()
+        .and_then(|a| a.load_state().send_folder)
+        .unwrap_or(loaded.config.context.folder);
+    let save_folder: Option<Arc<dyn Fn(bool) + Send + Sync>> = built.auth.clone().map(|auth| {
+        Arc::new(move |on: bool| {
+            let mut s = auth.load_state();
+            s.send_folder = Some(on);
+            auth.save_state(&s);
+        }) as Arc<dyn Fn(bool) + Send + Sync>
+    });
+
     if cli.no_tui {
-        return no_tui::run(&question, built, ctx, rt);
+        return no_tui::run(&question, built, ctx, send_folder, rt);
     }
 
     let wants_fullscreen = cli
@@ -404,6 +418,8 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
         startup_notice,
         keep_paste: widget_input.as_ref().is_some_and(|w| w.keep_paste),
         mouse: loaded.config.ui.mouse,
+        send_folder,
+        save_folder,
     };
     // TUI 시작 전 판정 (TUI 중에는 fd 1이 터미널로 전환됨)
     let destination = widget::Destination::current(widget_input.as_ref(), &env);

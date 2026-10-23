@@ -221,7 +221,18 @@ fn settings_view_lists_models_and_click_targets() {
     use crate::llm::types::{ModelChoice, ProviderSettings};
     let mut s = state(Lang::En);
     let (lines, hits) = screen_hits(&s, 80, 10);
-    assert!(lines[9].contains("[model-a]"), "{lines:?}");
+    assert!(lines[9].contains("[folder: off]  [model-a]"), "{lines:?}");
+    let folder = hits
+        .iter()
+        .find(|(_, h)| *h == Hit::ToggleFolder)
+        .expect("folder button");
+    assert!(
+        lines[9]
+            .chars()
+            .skip(folder.0.x as usize)
+            .collect::<String>()
+            .starts_with("[folder: off]")
+    );
     let open = hits
         .iter()
         .find(|(_, h)| *h == Hit::OpenSettings)
@@ -268,7 +279,11 @@ fn settings_view_lists_models_and_click_targets() {
         "{lines:?}"
     );
     assert!(lines[2].contains("(*) Model A  model-a"), "{lines:?}");
-    assert!(lines[3].contains("Sign out"), "{lines:?}");
+    assert!(
+        lines[3].contains("Send current folder listing (Ctrl+F): off"),
+        "{lines:?}"
+    );
+    assert!(lines[4].contains("Sign out"), "{lines:?}");
     assert!(lines[9].contains("Enter choose"));
     let items: Vec<_> = hits
         .iter()
@@ -277,6 +292,6 @@ fn settings_view_lists_models_and_click_targets() {
             _ => None,
         })
         .collect();
-    assert_eq!(items, vec![(1, 0), (2, 1), (3, 2)]);
+    assert_eq!(items, vec![(1, 0), (2, 1), (3, 2), (4, 3)]);
     assert!(hits.iter().any(|(_, h)| *h == Hit::CloseSettings));
 }

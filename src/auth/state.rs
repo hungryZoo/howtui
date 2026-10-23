@@ -72,6 +72,9 @@ pub struct StateFile {
     /// 설정 화면에서 고른 모델 (CR-005). 설정 파일 값보다 우선
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selected_model: Option<String>,
+    /// 현재 폴더 목록 전송 켜기와 끄기 (CR-007). 없으면 설정 파일 `context.folder`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub send_folder: Option<bool>,
     #[serde(default)]
     pub structured_output: Option<bool>,
     #[serde(default)]

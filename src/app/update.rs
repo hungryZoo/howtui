@@ -105,6 +105,7 @@ fn on_settings_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
             Vec::new()
         }
         KeyAction::Submit => choose_setting(state),
+        KeyAction::ToggleFolder => toggle_folder(state),
         _ => Vec::new(),
     }
 }
@@ -131,6 +132,7 @@ fn choose_setting(state: &mut State) -> Vec<Effect> {
             view.error = None;
             vec![Effect::SelectModel(id)]
         }
+        Some(SettingsEntry::Folder) => toggle_folder(state),
         Some(SettingsEntry::SignOut) => {
             view.applying = true;
             view.error = None;
@@ -213,6 +215,7 @@ fn on_click(state: &mut State, hit: Hit) -> Vec<Effect> {
     }
     match (state.phase, hit) {
         (Phase::Ready, Hit::OpenSettings) => open_settings(state),
+        (Phase::Ready | Phase::Requesting, Hit::ToggleFolder) => toggle_folder(state),
         (Phase::Ready | Phase::Requesting, Hit::Question) => {
             state.focus = Focus::Question;
             Vec::new()
@@ -274,6 +277,7 @@ fn on_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
                 toggle_focus(state);
                 Vec::new()
             }
+            KeyAction::ToggleFolder => toggle_folder(state),
             KeyAction::Edit(op) if is_move(op) => {
                 focused(state).apply(op);
                 Vec::new()
@@ -294,10 +298,21 @@ fn on_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
     }
 }
 
+fn toggle_folder(state: &mut State) -> Vec<Effect> {
+    state.send_folder = !state.send_folder;
+    state.status = Some(Status::info(if state.send_folder {
+        Msg::StatusFolderOn
+    } else {
+        Msg::StatusFolderOff
+    }));
+    vec![Effect::SaveFolder(state.send_folder)]
+}
+
 fn on_ready_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
     match key {
         KeyAction::Cancel | KeyAction::Quit => vec![Effect::Exit(ExitOutcome::Cancelled)],
         KeyAction::Settings => open_settings(state),
+        KeyAction::ToggleFolder => toggle_folder(state),
         KeyAction::ToggleFocus => {
             toggle_focus(state);
             Vec::new()
@@ -485,6 +500,8 @@ fn start_request(state: &mut State, op: Operation, question: Option<String>) -> 
             command.clone()
         },
         history: state.conversation[skip..].to_vec(),
+        include_folder: state.send_folder,
+        folder: None,
     };
     state.pending = Some(Pending {
         id,

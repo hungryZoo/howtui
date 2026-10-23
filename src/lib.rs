@@ -4,6 +4,7 @@ pub mod app;
 pub mod auth;
 pub mod cli;
 pub mod config;
+pub mod context;
 pub mod doctor;
 pub mod i18n;
 pub mod llm;

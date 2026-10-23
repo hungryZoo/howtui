@@ -58,6 +58,7 @@ Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit             g
    - [Commands](#commands)
    - [Keys](#keys)
    - [Settings: agent and model](#settings-agent-and-model)
+   - [Folder listing](#folder-listing)
    - [Shell integration](#shell-integration)
    - [Non-interactive mode](#non-interactive-mode)
    - [Exit codes](#exit-codes)
@@ -79,6 +80,7 @@ Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit             g
 - **Inline UI.** Uses only a few lines below your prompt (10 by default) and never switches to the alternate screen.
 - **Edit, then ask.** Edit the command in place (multi-line, undo and redo, Unicode aware), then ask a follow-up; the model sees your edits.
 - **Explain on demand.** After editing by hand, press Ctrl+E to explain the current command.
+- **Folder-aware on request.** Turn on the folder listing (Ctrl+F or the `[folder: off]` button) and *"extract the archive"* picks the archive that is actually in the current folder. Only names, types and sizes are sent, never file contents; it is off until you turn it on.
 - **Pick the model.** Ctrl+O, `/model` or a click on the model name in the status line opens the settings view: your agent and account, the models your ChatGPT plan offers, and sign-out. The choice is kept for next time. Default: GPT-6-Luna when your account lists it.
 - **Clean stdout.** The UI draws on the controlling terminal, so `cmd=$(howtui)` and `howtui | pbcopy` receive only the command.
 - **Shell integration (optional).** Ctrl+G opens howtui on the current command line in Bash, Zsh or PowerShell, and typing `howtui` puts the result into the next prompt. The installer asks before adding it to your rc file; nothing is changed without a yes.
@@ -274,6 +276,7 @@ Common options: `--shell bash|zsh|powershell`, `--height N` (3-40).
 | Tab, Shift+Tab | Switch to the command | Switch to the ask line |
 | Ctrl+E | | Explain the current command |
 | Ctrl+O | Settings (agent and model) | Settings |
+| Ctrl+F | Folder listing on or off | Same |
 | Esc | Quit | Quit (cancels a running request first) |
 | Ctrl+C | Quit | Quit |
 | Ctrl+Z, Ctrl+Y | Undo, redo (on an empty ask line: the command) | Undo, redo (an AI revision is one undo step) |
@@ -295,6 +298,7 @@ Settings  Agent: ChatGPT (h***@gmail.com)                                       
 Model  ( ) GPT-6.1-Sol  gpt-6.1-sol
        (*) GPT-6-Luna  gpt-6-luna
        ( ) GPT-6-Sol  gpt-6-sol
+       Send current folder listing (Ctrl+F): off
        Sign out (switch account)
 Up/Down move  Enter choose  Esc close  (click works too)
 ```
@@ -304,6 +308,23 @@ Choose with the arrow keys and Enter, or click a line. The model is saved for ne
 another account. The agent line shows the provider in use. API key providers (Phase 5) and local models (Phase 6) will be
 added there; the Codex CLI was evaluated as an agent and not adopted, see
 [ADR-0017](docs/adr/0017-no-codex-cli-delegation.md).
+
+### Folder listing
+
+Off by default. Turn it on with **Ctrl+F**, a click on `[folder: off]` at the right of the status line, or the line in
+Settings; the choice is kept for next time (`context.folder = true` in the config file sets the starting value). While it
+is on, every request also carries a listing of the current folder:
+
+```text
+data/
+backup-2026-10.tar.gz  48.2 MB
+notes.txt  1.2 KB
+(3 hidden entries not listed)
+```
+
+Only the first level, at most 150 entries: names, `/` for folders, `@` for links, file sizes. Not sent: file contents,
+hidden entries (names starting with `.`), what is inside subfolders, the folder path. File names are passed to the model as
+data, and howtui still never runs the suggested command. `--no-tui` follows the same setting.
 
 While howtui is open it receives mouse clicks, so selecting terminal text needs Shift+drag (Option+drag in iTerm2). Set
 `ui.mouse = false` to keep the terminal's own mouse handling. Clicks are off on the sign-in screen so you can copy the URL.
@@ -375,6 +396,9 @@ inline_height = 10     # 3-40
 language = "auto"      # "auto", "en" or "ko"
 mouse = true           # false: no clicks, terminal keeps its own text selection and scrolling
 
+[context]
+folder = false         # true: send the current folder listing (names, sizes) unless turned off with Ctrl+F
+
 [provider]
 default = "chatgpt"
 
@@ -433,8 +457,9 @@ Zero W (ARMv6) are not supported, and no Raspberry Pi hardware has been tested y
 ## 7. Privacy and safety
 
 - **Sent to OpenAI when you submit a request:** your question, the current command (including your edits), your OS, CPU
-  architecture and shell name, and earlier turns of the same session. Never sent: environment variables, file contents, shell
-  history, the working directory.
+  architecture and shell name, and earlier turns of the same session. Only when you turn on the
+  [folder listing](#folder-listing): the names, types and sizes in the current folder. Never sent: environment variables,
+  file contents, hidden files, shell history, the folder path.
 - **Received at sign-in:** your account email and name. howtui keeps the email to show it masked.
 - **Stored on your machine:** OAuth tokens in the OS credential store (Keychain, Credential Manager, Secret Service) or, when
   none is available, in a `0600` file in the data directory.

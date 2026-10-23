@@ -20,6 +20,13 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::SettingsAgent => "Agent",
         Msg::SettingsModel => "Model",
         Msg::SettingsSignOut => "Sign out (switch account)",
+        Msg::SettingsFolder => "Send current folder listing (Ctrl+F): {state}",
+        Msg::FolderOn => "folder: on",
+        Msg::FolderOff => "folder: off",
+        Msg::StateOn => "on",
+        Msg::StateOff => "off",
+        Msg::StatusFolderOn => "Folder listing on: names and sizes here are sent (no contents).",
+        Msg::StatusFolderOff => "Folder listing off.",
         Msg::SettingsLoading => "Loading models",
         Msg::SettingsApplying => "Applying",
         Msg::SettingsClose => "[Close]",
@@ -44,7 +51,7 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::LoginRequired => "Sign-in required. Press Enter to sign in with ChatGPT.",
         Msg::LoginWaiting => "Waiting for sign-in",
         Msg::LoginPrivacyShort => {
-            "Requests send your question, the current command, OS, CPU and shell name to OpenAI. No files, environment variables or history. howtui never runs commands."
+            "Requests send your question, the current command, OS, CPU and shell name to OpenAI (plus the folder listing only if you turn it on with Ctrl+F). No file contents, environment variables or history. howtui never runs commands."
         }
         Msg::LoginOpenUrl => {
             "1. Sign in in the browser window and press Allow. If no browser opened, open this URL:"
@@ -72,8 +79,9 @@ pub fn text(msg: Msg) -> &'static str {
             "howtui signs in with your ChatGPT account (Sign in with ChatGPT) and stores the issued tokens on this device \
              (OS credential store, or a file readable only by you). It receives your account email and name from OpenAI. \
              When you submit a request it sends your question, the current command (including your edits or the shell line \
-             you started from), the OS, CPU architecture and shell name to OpenAI. It never sends environment variables, \
-             files, shell history or the working directory, and it never runs commands."
+             you started from), the OS, CPU architecture and shell name to OpenAI. Only if you turn on the folder listing \
+             (Ctrl+F) it also sends the names, types and sizes of the entries in the current folder. It never sends \
+             environment variables, file contents, hidden files, shell history or the folder path, and it never runs commands."
         }
         Msg::LogoutDone => "Signed out.",
         Msg::LogoutForgetDone => "Signed out and removed the account registration.",
@@ -199,7 +207,7 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::HelpVersion => "Print version",
         Msg::HelpAfter => {
             "Exit codes: 0 accepted, 2 usage, 3 no terminal, 4 auth, 5 plan/usage, 6 network, 7 provider, 8 config, 130 cancelled.\n\
-             Sent to the model: your question, the current command, OS, CPU architecture and shell name.\n\
+             Sent to the model: your question, the current command, OS, CPU architecture and shell name; the current folder listing (names, sizes) only when turned on (Ctrl+F, context.folder).\n\
              Danger warnings are rule-based hints, not a security guarantee. howtui never runs commands."
         }
     }

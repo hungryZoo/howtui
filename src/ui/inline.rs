@@ -126,6 +126,25 @@ fn render_settings(
                     };
                     (format!("{mark} {name}"), Style::default())
                 }
+                SettingsEntry::Folder => {
+                    let state_msg = if state.send_folder {
+                        Msg::StateOn
+                    } else {
+                        Msg::StateOff
+                    };
+                    (
+                        trf_in(
+                            lang,
+                            Msg::SettingsFolder,
+                            &[("state", tr_in(lang, state_msg))],
+                        ),
+                        Style::default().fg(if state.send_folder {
+                            Color::Yellow
+                        } else {
+                            Color::Reset
+                        }),
+                    )
+                }
                 SettingsEntry::SignOut => (
                     tr_in(lang, Msg::SettingsSignOut).to_string(),
                     Style::default().fg(Color::Red),
@@ -477,6 +496,19 @@ fn render_login(frame: &mut Frame, state: &State, area: Rect) {
 fn render_status(frame: &mut Frame, state: &State, area: Rect, hits: &mut Hits) {
     let lang = state.lang;
     let mut right = Vec::new();
+    // 폴더 목록 전송 상태 버튼 (클릭, CR-007)
+    let folder_seg = format!(
+        "[{}]",
+        tr_in(
+            lang,
+            if state.send_folder {
+                Msg::FolderOn
+            } else {
+                Msg::FolderOff
+            }
+        )
+    );
+    right.push(folder_seg.clone());
     // 모델 이름은 설정 화면 버튼 (클릭, CR-005)
     let model_seg = state.provider.model.as_ref().map(|m| format!("[{m}]"));
     if let Some(seg) = &model_seg {
@@ -486,6 +518,11 @@ fn render_status(frame: &mut Frame, state: &State, area: Rect, hits: &mut Hits) 
     if state.provider.chatgpt_plan {
         right.push(tr_in(lang, Msg::UsingChatGptPlan).to_string());
     }
+    // 좁은 화면: 왼쪽 안내 20칸 확보까지 뒤쪽 항목부터 생략 (플랜 표시, 쉘, 모델 순)
+    while right.len() > 1 && display_width(&right.join("  ")) + 22 > area.width as usize {
+        right.pop();
+    }
+    let model_shown = model_seg.is_some() && right.len() >= 2;
     let right_text = right.join("  ");
 
     let (left_text, left_style) = if let Some(pending) = &state.pending {
@@ -537,12 +574,26 @@ fn render_status(frame: &mut Frame, state: &State, area: Rect, hits: &mut Hits) 
     let mut spans = vec![Span::styled(left.clone(), left_style)];
     if left_max >= 10 {
         let gap = width.saturating_sub(display_width(&left) + right_w);
+        let start = area.x + (display_width(&left) + gap) as u16;
+        let folder_w = display_width(&folder_seg) as u16;
+        if matches!(state.phase, Phase::Ready | Phase::Requesting) {
+            hits.push((
+                Rect {
+                    x: start,
+                    y: area.y,
+                    width: folder_w,
+                    height: 1,
+                },
+                Hit::ToggleFolder,
+            ));
+        }
         if let Some(seg) = &model_seg
+            && model_shown
             && state.phase == Phase::Ready
         {
             hits.push((
                 Rect {
-                    x: area.x + (display_width(&left) + gap) as u16,
+                    x: start + folder_w + 2,
                     y: area.y,
                     width: display_width(seg) as u16,
                     height: 1,

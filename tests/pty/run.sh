@@ -231,5 +231,22 @@ if finish settings; then
     && [ "$(rc_of settings)" = 130 ]; then pass settings; else fail settings "settings view, clicks or mouse mode"; fi
 fi
 
+# (18) 폴더 목록 보내기: 기본 끔, Ctrl+F 켬, 상태줄 클릭 끔 (TC-CTX-002)
+start folder "$ENV $MOCK $BIN > /dev/null"
+sleep 0.3; snap folder_default
+send C-f; sleep 0.4; snap folder_on
+pos=$(tmux capture-pane -p -t "$P" | cat | grep -n '\[folder: on\]' | tail -1)
+frow=${pos%%:*}; fline=${pos#*:}; fprefix=${fline%%\[folder: on\]*}
+click "$(( ${#fprefix} + 2 ))" "$frow"; sleep 0.4; snap folder_off
+send Escape
+if finish folder; then
+  if grep -q '\[folder: off\]' "$OUT/folder_default.screen" && grep -q '\[folder: on\]' "$OUT/folder_on.screen" \
+    && grep -q 'no contents' "$OUT/folder_on.screen" && grep -q '\[folder: off\]' "$OUT/folder_off.screen"; then
+    pass folder
+  else
+    fail folder "folder toggle"
+  fi
+fi
+
 echo "result: $( [ $FAILED = 0 ] && echo ok || echo failed ) ($OUT)"
 exit $FAILED
