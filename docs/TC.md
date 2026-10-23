@@ -240,7 +240,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-INS-010 | 원격 코드 실행 부재 | PRD-INS-009, SRS-INS-004 | 스크립트 원문 | 다운로드 대상 검사 | 릴리스 자산과 SHA256SUMS 외 다운로드 없음, 다운로드 내용 실행 없음 | 단위 | 전체 | 통과 | - |
 | TC-INS-011 | 설치 후 쉘 통합 확인 질문 | PRD-INS-001, PRD-SH-014, SRS-INS-014 | 임시 HOME, PATH 밖 설치 디렉터리 | 질문에 y 2회, `--shell-integration`(zsh), `--no-shell-integration`, `cat install.sh \| sh`로 실제 터미널 질문에 Enter | 구간 1개와 PATH 추가 줄, 재실행 중복 없음, zsh는 `.zshrc`, 거부 옵션은 무변경, 파이프 실행에서도 질문 표시 | 통합 | Unix | 통과 | - |
 | TC-INS-012 | 제거 스크립트 | PRD-INS-008, SRS-INS-013 | 임시 HOME, 설치와 쉘 통합 상태, 데이터와 설정 파일 | 설치 후 `howtui-uninstall.sh` 존재 확인, 터미널 없이 실행, `-y` 실행 | 확인 없이는 중단, 바이너리와 스크립트와 rc 구간과 데이터 삭제, 설정 유지 | 통합 | Unix | 통과 | - |
-| TC-INS-013 | Windows 설치 질문과 제거 스크립트 | PRD-INS-002, PRD-INS-008, SRS-INS-015, SRS-INS-013 | Windows PowerShell 5.1과 PowerShell 7, 시험용 Profile 경로 | 질문에 n, yes 2회, `howtui-uninstall.ps1` 확인 없이와 `-Yes` 실행 | 거절 시 Profile 미작성, 구간 1개, 확인 없이는 중단, 실행 후 설치 폴더와 PATH 항목과 Profile 구간과 데이터 삭제 | 통합 | Windows | 미실행 | - |
+| TC-INS-013 | Windows 설치 질문과 제거 스크립트 | PRD-INS-002, PRD-INS-008, SRS-INS-015, SRS-INS-013 | Windows PowerShell 5.1과 PowerShell 7, 시험용 Profile 경로 | 질문에 n, yes 2회, `howtui-uninstall.ps1` 확인 없이와 `-Yes` 실행 | 거절 시 Profile 미작성, 구간 1개, 확인 없이는 중단, 실행 후 설치 폴더와 PATH 항목과 Profile 구간과 데이터 삭제 | 통합 | Windows | 통과 | - |
 | TC-REL-001 | 태그 릴리스 | PRD-REL-001, PRD-REL-007, SRS-BLD-008 | 테스트 저장소 또는 초안 릴리스 | `vX.Y.Z` 태그 | 빌드 성공, 초안 릴리스 생성, 공개는 수동 | 수동 | 전체 | 미실행 | - |
 | TC-REL-002 | 자산 명명과 체크섬 | PRD-REL-002, SRS-BLD-006 | 릴리스 산출물 | 파일명 규칙 검사, `sha256sum -c SHA256SUMS` | 규칙 일치, 검증 통과 | 통합 | Linux | 통과 | - |
 | TC-REL-003 | 7개 타깃 | PRD-REL-003, PRD-PLAT-002, SRS-BLD-001, SRS-BLD-003, SRS-BLD-004, SRS-BLD-009, SRS-CMP-005 | P4 | 릴리스 산출물 검사 (`file`, ELF 속성, PE 머신 타입과 임포트 DLL, Mach-O minos와 `codesign -v`) | 7개 타깃 형식 일치, Windows VCRUNTIME 임포트 없음, macOS minos 11.0과 서명 유효 | 통합 | Linux, macOS, Windows | 통과 | - |
@@ -499,4 +499,5 @@ CI 도입 중 발견과 수정: (1) Bash 5.2의 `bind -x` 안 `$(<file)` 치환 
 | `TC-UI-020` | 통과 | 단위 `cargo test`, PTY `tests/pty/run.sh` | settings_clicks_and_sign_out, settings (SGR 클릭 2회, 원시 출력 `?1000h`와 `?1000l`) |
 | `TC-LLM-022` | 통과 | 단위 `cargo test` | model_choice_order_with_selection_and_default, settings_list_models_and_selection_persists |
 | `TC-INS-012` | 통과 | `tests/install/run_unix.sh` | uninstall script |
+| `TC-INS-013` | 통과 | CI installers (windows-2025 powershell 5.1.26100, pwsh 7.6.7) | run 39932086714: answer no keeps profile, default answer adds one profile block, uninstall script |
 | `TC-SH-021` | 통과 | 단위 `cargo test`, 통합 `tests/cli.rs` | rc_path_rules, powershell_block_is_ascii_and_creates_profile_dir, init_install_edits_only_the_marked_block |

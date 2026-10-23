@@ -19,8 +19,8 @@ curl -fsSL https://raw.githubusercontent.com/hungryZoo/howtui/main/scripts/insta
 
 </div>
 
-> **Status: pre-release.** v0.1.0 has not been published yet, so the install commands start working with the first release.
-> Inference uses **Sign in with ChatGPT**, which OpenAI currently offers as a limited preview.
+> **Status: first release (v0.1.0).** Inference uses **Sign in with ChatGPT**, which OpenAI currently offers as a limited
+> preview.
 
 ---
 
