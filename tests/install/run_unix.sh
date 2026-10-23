@@ -14,8 +14,9 @@ fail() { echo "FAIL $*"; exit 1; }
 mkdir -p "$WORK/dist/v$VERSION" "$WORK/pkg" "$WORK/home"
 cp "$BIN" "$WORK/pkg/howtui"
 cp "$ROOT/README.md" "$ROOT/LICENSE" "$WORK/pkg/"
+cp "$ROOT/scripts/uninstall.sh" "$WORK/pkg/uninstall.sh"
 asset="howtui-$VERSION-$TARGET.tar.gz"
-(cd "$WORK/pkg" && tar -czf "$WORK/dist/v$VERSION/$asset" howtui README.md LICENSE)
+(cd "$WORK/pkg" && tar -czf "$WORK/dist/v$VERSION/$asset" howtui uninstall.sh README.md LICENSE)
 (cd "$WORK/dist/v$VERSION" && { sha256sum "$asset" 2>/dev/null || shasum -a 256 "$asset"; } > SHA256SUMS)
 printf 'export TEST=1\n' > "$WORK/home/.bashrc"
 before=$(cat "$WORK/home/.bashrc")
@@ -50,7 +51,7 @@ grep -q "howtui init bash --install" "$WORK/out1" || fail "no-terminal hint"
 echo "PASS rc files untouched without a terminal"
 
 # 동의 질문 (CR-004): 거절 시 무변경, 동의 시 표식 구간 1개, 재실행 시 중복 없음, 제거 시 원래 내용
-(cd "$WORK/pkg" && tar -czf "$WORK/dist/v$VERSION/$asset" howtui README.md LICENSE)
+(cd "$WORK/pkg" && tar -czf "$WORK/dist/v$VERSION/$asset" howtui uninstall.sh README.md LICENSE)
 (cd "$WORK/dist/v$VERSION" && { sha256sum "$asset" 2>/dev/null || shasum -a 256 "$asset"; } > SHA256SUMS)
 rcfile=.bashrc
 [ "$(uname -s)" = Darwin ] && rcfile=.bash_profile
@@ -75,3 +76,23 @@ grep -q 'eval "$(howtui init zsh)"' "$WORK/home/.zshrc" || fail "zsh block"
 EXTRA_ENV="HOWTUI_TEST_ANSWER=y" run_install --no-shell-integration > "$WORK/out8" 2>&1 || fail "install --no-shell-integration"
 [ "$(cat "$WORK/home/$rcfile")" = "$orig" ] || fail "--no-shell-integration modified rc"
 echo "PASS --shell-integration and --no-shell-integration"
+
+# 제거 스크립트 (TC-INS-012): 함께 설치, 터미널 없으면 -y 요구, 실행 후 바이너리와 rc 구간과 데이터 삭제, 설정 유지
+[ -x "$WORK/home/.local/bin/howtui-uninstall.sh" ] || fail "uninstall script installed"
+grep -q "Uninstall: .*howtui-uninstall.sh" "$WORK/out8" || fail "uninstall hint"
+EXTRA_ENV="HOWTUI_TEST_ANSWER=y" run_install > /dev/null 2>&1 || fail "reinstall with integration"
+mkdir -p "$WORK/home/.local/share/howtui/logs" "$WORK/home/.config/howtui"
+printf '{}' > "$WORK/home/.local/share/howtui/state.json"
+printf 'x' > "$WORK/home/.local/share/howtui/logs/howtui.log"
+printf '[ui]\n' > "$WORK/home/.config/howtui/config.toml"
+un() { env -i PATH=/usr/bin:/bin HOME="$WORK/home" HOWTUI_TEST_NO_TTY=1 sh "$WORK/home/.local/bin/howtui-uninstall.sh" "$@"; }
+if un > "$WORK/out9" 2>&1; then fail "uninstall ran without confirmation"; fi
+[ -x "$WORK/home/.local/bin/howtui" ] || fail "binary removed without confirmation"
+un -y > "$WORK/out10" 2>&1 || { cat "$WORK/out10"; fail "uninstall -y"; }
+[ ! -e "$WORK/home/.local/bin/howtui" ] && [ ! -e "$WORK/home/.local/bin/howtui-uninstall.sh" ] || fail "binary or script left"
+[ "$(cat "$WORK/home/$rcfile")" = "$orig" ] || fail "rc block left after uninstall"
+! grep -q "howtui shell integration" "$WORK/home/.zshrc" || fail "zsh block left after uninstall"
+[ ! -e "$WORK/home/.local/share/howtui" ] || fail "data dir left"
+[ -f "$WORK/home/.config/howtui/config.toml" ] || fail "config removed without --purge"
+grep -q "Kept: .*config/howtui" "$WORK/out10" || fail "kept config message"
+echo "PASS uninstall script"

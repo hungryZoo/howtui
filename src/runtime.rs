@@ -10,10 +10,12 @@ use std::sync::Arc;
 use std::sync::mpsc::{Sender, channel};
 use std::time::{Duration, Instant};
 
-use crossterm::event::{self, Event};
+use crossterm::event::{self, Event, MouseButton, MouseEventKind};
+use ratatui::layout::Rect;
 
 use crate::app::{
-    self, Action, Effect, ExitOutcome, LoginFailure, LoginInfo, LoginView, State, Status,
+    self, Action, Effect, ExitOutcome, Hit, LoginFailure, LoginInfo, LoginView, Phase, State,
+    Status,
 };
 use crate::i18n::Lang;
 use crate::llm::complete_with_retry;
@@ -34,6 +36,7 @@ pub enum LoginProgress {
 
 pub type LoginFuture<'a> =
     Pin<Box<dyn Future<Output = Result<LoginInfo, LoginFailure>> + Send + 'a>>;
+pub type LogoutFuture<'a> = Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
 
 /// TUI 안 로그인 (PRD-AUTH-013). 인증 구현과 런타임을 분리하는 경계.
 pub trait LoginService: Send + Sync {
@@ -43,6 +46,8 @@ pub trait LoginService: Send + Sync {
         paste: tokio::sync::mpsc::UnboundedReceiver<String>,
         cancel: CancelToken,
     ) -> LoginFuture<'_>;
+    /// 설정 화면 로그아웃: 세션 폐기 시도와 로컬 토큰 삭제 (등록 정보 유지).
+    fn logout(&self) -> LogoutFuture<'_>;
 }
 
 pub struct TuiConfig {
@@ -55,6 +60,8 @@ pub struct TuiConfig {
     pub initial_command: Option<(String, Option<String>)>,
     pub startup_notice: Option<Status>,
     pub keep_paste: bool,
+    /// 클릭 입력 (설정 `ui.mouse`, CR-005)
+    pub mouse: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -85,7 +92,8 @@ pub fn run_tui(
     } else {
         cfg.height.max(LOGIN_HEIGHT)
     };
-    let mut session = TerminalSession::start(height, cfg.keep_paste)?;
+    // 미로그인 시작은 로그인 URL 복사를 위해 클릭 수신 없이 시작
+    let mut session = TerminalSession::start(height, cfg.keep_paste, cfg.mouse && cfg.logged_in)?;
     let (tx, rx) = channel::<Msg>();
     spawn_signal_listener(rt, tx.clone());
 
@@ -132,6 +140,7 @@ pub fn run_tui(
     let mut last_tick = Instant::now();
 
     let mut first_frame = true;
+    let mut hits: Vec<(Rect, Hit)> = Vec::new();
     let outcome = 'main: loop {
         for effect in effects.drain(..) {
             match effect {
@@ -183,15 +192,45 @@ pub fn run_tui(
                         let _ = task.paste.send(url);
                     }
                 }
+                Effect::LoadSettings => {
+                    let provider = provider.clone();
+                    let tx = tx.clone();
+                    rt.spawn(async move {
+                        let result = provider.settings().await;
+                        let _ = tx.send(Msg::Action(Action::SettingsLoaded(result)));
+                    });
+                }
+                Effect::SelectModel(id) => {
+                    let provider = provider.clone();
+                    let tx = tx.clone();
+                    rt.spawn(async move {
+                        let result = provider.select_model(id).await;
+                        let _ = tx.send(Msg::Action(Action::ModelSelected(result)));
+                    });
+                }
+                Effect::SignOut => {
+                    let login = login.clone();
+                    let tx = tx.clone();
+                    rt.spawn(async move {
+                        if let Some(service) = login {
+                            service.logout().await;
+                        }
+                        let _ = tx.send(Msg::Action(Action::SignedOut));
+                    });
+                }
             }
         }
 
         #[cfg(feature = "mock-provider")]
         if std::env::var_os("HOWTUI_TEST_PANIC").is_some() {
-            let _ = session.draw(|f| inline::render(f, &state));
+            let _ = session.draw(|f| {
+                inline::render(f, &state);
+            });
             panic!("HOWTUI_TEST_PANIC");
         }
-        if let Err(e) = session.draw(|f| inline::render(f, &state)) {
+        // 로그인 URL을 마우스로 복사할 수 있도록 로그인 진행 중에는 클릭 수신 해제
+        let _ = session.set_mouse(cfg.mouse && state.phase != Phase::LoggingIn);
+        if let Err(e) = session.draw(|f| hits = inline::render(f, &state)) {
             return Err(SessionError::Io(e));
         }
         if first_frame {
@@ -211,6 +250,17 @@ pub fn run_tui(
                 Ok(Event::Key(key)) => actions.extend(keymap::map_key(key).map(Action::Key)),
                 Ok(Event::Paste(text)) => actions.push(Action::Paste(text)),
                 Ok(Event::Resize(width, height)) => actions.push(Action::Resize { width, height }),
+                Ok(Event::Mouse(m)) => match m.kind {
+                    MouseEventKind::Down(MouseButton::Left) => {
+                        let pos = ratatui::layout::Position::new(m.column, m.row);
+                        if let Some((_, hit)) = hits.iter().find(|(r, _)| r.contains(pos)) {
+                            actions.push(Action::Click(*hit));
+                        }
+                    }
+                    MouseEventKind::ScrollUp => actions.push(Action::Scroll(-1)),
+                    MouseEventKind::ScrollDown => actions.push(Action::Scroll(1)),
+                    _ => {}
+                },
                 Ok(_) => {}
                 Err(e) => return Err(SessionError::Io(e)),
             },

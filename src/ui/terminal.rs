@@ -4,7 +4,9 @@ use std::io::{self, BufWriter, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crossterm::cursor::{MoveTo, Show};
-use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste};
+use crossterm::event::{
+    DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture,
+};
 use crossterm::terminal::{self, Clear, ClearType};
 use crossterm::{execute, queue};
 use ratatui::backend::CrosstermBackend;
@@ -16,6 +18,9 @@ type Backend = CrosstermBackend<BufWriter<TermOut>>;
 
 static SESSION_ACTIVE: AtomicBool = AtomicBool::new(false);
 static KEEP_PASTE: AtomicBool = AtomicBool::new(false);
+static MOUSE_ON: AtomicBool = AtomicBool::new(false);
+/// 마우스 보고 해제 (SGR, urxvt, 이동, 버튼 이벤트 모드)
+const MOUSE_OFF_SEQ: &[u8] = b"\x1b[?1006l\x1b[?1015l\x1b[?1003l\x1b[?1002l\x1b[?1000l";
 
 #[derive(Debug, thiserror::Error)]
 pub enum SessionError {
@@ -32,12 +37,14 @@ pub struct TerminalSession {
     origin_col: u16,
     added_newline: bool,
     keep_paste: bool,
+    mouse: bool,
     restored: bool,
 }
 
 impl TerminalSession {
     /// `keep_paste`: 종료 시 bracketed paste를 켠 상태로 둔다 (쉘 위젯 모드).
-    pub fn start(height: u16, keep_paste: bool) -> Result<Self, SessionError> {
+    /// `mouse`: 클릭 입력 수신 (CR-005). 켜져 있는 동안 터미널 텍스트 선택은 Shift+드래그.
+    pub fn start(height: u16, keep_paste: bool, mouse: bool) -> Result<Self, SessionError> {
         let out = tty::open_term_out().map_err(|e| SessionError::NoTerminal(e.to_string()))?;
         #[cfg(unix)]
         let stdout_guard = Some(tty::StdoutGuard::redirect_to(&out)?);
@@ -55,6 +62,10 @@ impl TerminalSession {
                 writer.write_all(b"\r\n")?;
             }
             execute!(writer, EnableBracketedPaste)?;
+            if mouse {
+                execute!(writer, EnableMouseCapture)?;
+                MOUSE_ON.store(true, Ordering::SeqCst);
+            }
             let backend = CrosstermBackend::new(writer);
             let terminal = Terminal::with_options(
                 backend,
@@ -79,8 +90,25 @@ impl TerminalSession {
             origin_col: origin.0,
             added_newline,
             keep_paste,
+            mouse,
             restored: false,
         })
+    }
+
+    /// 마우스 보고 켜기와 끄기 (로그인 URL 복사 중에는 끔).
+    pub fn set_mouse(&mut self, on: bool) -> io::Result<()> {
+        if on == self.mouse || self.restored {
+            return Ok(());
+        }
+        let w = self.terminal.backend_mut();
+        if on {
+            execute!(w, EnableMouseCapture)?;
+        } else {
+            execute!(w, DisableMouseCapture)?;
+        }
+        self.mouse = on;
+        MOUSE_ON.store(on, Ordering::SeqCst);
+        Ok(())
     }
 
     pub fn draw<F: FnOnce(&mut Frame)>(&mut self, render: F) -> io::Result<()> {
@@ -103,6 +131,10 @@ impl TerminalSession {
         };
         if !self.keep_paste {
             let _ = queue!(w, DisableBracketedPaste);
+        }
+        if self.mouse {
+            let _ = queue!(w, DisableMouseCapture);
+            MOUSE_ON.store(false, Ordering::SeqCst);
         }
         let _ = queue!(w, Show);
         let _ = w.flush();
@@ -131,6 +163,14 @@ pub fn emergency_restore() {
     let mut seq = Vec::new();
     if !KEEP_PASTE.load(Ordering::SeqCst) {
         seq.extend_from_slice(b"\x1b[?2004l");
+    }
+    if MOUSE_ON.swap(false, Ordering::SeqCst) {
+        seq.extend_from_slice(MOUSE_OFF_SEQ);
+        #[cfg(windows)]
+        {
+            use crossterm::Command;
+            let _ = DisableMouseCapture.execute_winapi();
+        }
     }
     seq.extend_from_slice(b"\x1b[?25h\r\n");
     tty::emergency_write(&seq);

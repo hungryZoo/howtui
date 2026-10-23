@@ -268,31 +268,48 @@ fn parse_key(key: Option<&str>) -> Option<crate::shell::init::Key> {
 
 /// `init --install`, `--uninstall`: rc 파일 표식 구간 추가와 제거 (CR-004).
 fn rc_command(args: InitArgs, install: bool, add_path: Option<&std::path::Path>) -> ExitCode {
-    use crate::shell::rc::{self, Change};
+    use crate::shell::rc;
     let Some(key) = parse_key(args.key) else {
         return ExitCode::from(2);
     };
     let env = process_env;
-    let Some(path) = rc::rc_path(args.shell, &env) else {
+    let targets = rc::rc_paths(args.shell, &env);
+    if targets.is_empty() {
         eprintln!("{}", tr(Msg::ErrInstallUnsupported));
         return ExitCode::from(2);
-    };
-    let result = if install {
-        let mut init_args = String::new();
-        if key != crate::shell::init::Key::default() {
-            init_args.push_str(&format!(" --key {}", key.arg()));
+    }
+    let mut init_args = String::new();
+    if key != crate::shell::init::Key::default() {
+        init_args.push_str(&format!(" --key {}", key.arg()));
+    }
+    if args.no_bind {
+        init_args.push_str(" --no-bind");
+    }
+    if args.no_wrap {
+        init_args.push_str(" --no-wrap");
+    }
+    let block = rc::block(args.shell, &init_args, add_path);
+    // PowerShell은 Profile 2개 (7, 5.1): 하나라도 실패하면 종료 코드 1
+    let mut code = ExitCode::SUCCESS;
+    for path in &targets {
+        let result = if install {
+            rc::install(path, &block)
+        } else {
+            rc::uninstall(path)
+        };
+        if report_rc(path, result) != ExitCode::SUCCESS {
+            code = ExitCode::from(1);
         }
-        if args.no_bind {
-            init_args.push_str(" --no-bind");
-        }
-        if args.no_wrap {
-            init_args.push_str(" --no-wrap");
-        }
-        rc::install(&path, &rc::block(args.shell, &init_args, add_path))
-    } else {
-        rc::uninstall(&path)
-    };
-    let shown = paths::tilde(&path, &env);
+    }
+    code
+}
+
+fn report_rc(
+    path: &std::path::Path,
+    result: std::io::Result<crate::shell::rc::Change>,
+) -> ExitCode {
+    use crate::shell::rc::Change;
+    let shown = paths::tilde(path, &process_env);
     match result {
         Ok(change) => {
             let msg = match change {
@@ -386,6 +403,7 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
         initial_command: widget_input.as_ref().and_then(|w| w.initial_command()),
         startup_notice,
         keep_paste: widget_input.as_ref().is_some_and(|w| w.keep_paste),
+        mouse: loaded.config.ui.mouse,
     };
     // TUI 시작 전 판정 (TUI 중에는 fd 1이 터미널로 전환됨)
     let destination = widget::Destination::current(widget_input.as_ref(), &env);

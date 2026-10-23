@@ -248,6 +248,7 @@ pub fn collect(
                         Ok(models) => {
                             let chosen = ChatGptProvider::choose_model(
                                 &models,
+                                auth.load_state().selected_model.as_deref(),
                                 loaded.config.provider.chatgpt.model.as_deref(),
                             );
                             checks.push(check(

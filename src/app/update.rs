@@ -3,7 +3,7 @@
 use super::editor::EditOp;
 use super::state::*;
 use crate::i18n::Msg;
-use crate::llm::types::{LlmError, LlmRequest, Operation, Turn};
+use crate::llm::types::{LlmError, LlmRequest, Operation, ProviderLabel, Turn};
 use crate::safety::{self, Level};
 
 pub fn update(state: &mut State, action: Action) -> Vec<Effect> {
@@ -41,6 +41,187 @@ pub fn update(state: &mut State, action: Action) -> Vec<Effect> {
         Action::LoginDone(result) => on_login_done(state, result),
         Action::Paste(text) => on_paste(state, &text),
         Action::Key(key) => on_key(state, key),
+        Action::Click(hit) => on_click(state, hit),
+        Action::Scroll(delta) => {
+            if let Some(view) = &mut state.settings {
+                move_cursor(view, delta as i32);
+            }
+            Vec::new()
+        }
+        Action::SettingsLoaded(result) => on_settings_loaded(state, result),
+        Action::ModelSelected(result) => on_model_selected(state, result),
+        Action::SignedOut => {
+            state.settings = None;
+            state.phase = Phase::LoginRequired;
+            state.provider.chatgpt_plan = false;
+            state.status = Some(Status::info(Msg::StatusSignedOut));
+            Vec::new()
+        }
+    }
+}
+
+// 설정 화면 (CR-005): 에이전트와 모델 확인, 모델 변경, 로그아웃
+
+fn open_settings(state: &mut State) -> Vec<Effect> {
+    if state.settings.take().is_some() {
+        return Vec::new();
+    }
+    state.settings = Some(SettingsView::default());
+    state.status = None;
+    vec![Effect::LoadSettings]
+}
+
+fn move_cursor(view: &mut SettingsView, delta: i32) {
+    let n = view.entries().len() as i32;
+    if n > 0 {
+        view.cursor = (view.cursor as i32 + delta).clamp(0, n - 1) as usize;
+    }
+}
+
+fn on_settings_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
+    let Some(view) = state.settings.as_mut() else {
+        return Vec::new();
+    };
+    match key {
+        KeyAction::Quit => vec![Effect::Exit(ExitOutcome::Cancelled)],
+        KeyAction::Cancel | KeyAction::Settings => {
+            state.settings = None;
+            Vec::new()
+        }
+        KeyAction::Edit(EditOp::Up) => {
+            move_cursor(view, -1);
+            Vec::new()
+        }
+        KeyAction::Edit(EditOp::Down) | KeyAction::ToggleFocus => {
+            move_cursor(view, 1);
+            Vec::new()
+        }
+        KeyAction::Edit(EditOp::Home) => {
+            view.cursor = 0;
+            Vec::new()
+        }
+        KeyAction::Edit(EditOp::End) => {
+            move_cursor(view, i32::MAX / 2);
+            Vec::new()
+        }
+        KeyAction::Submit => choose_setting(state),
+        _ => Vec::new(),
+    }
+}
+
+fn choose_setting(state: &mut State) -> Vec<Effect> {
+    let Some(view) = state.settings.as_mut() else {
+        return Vec::new();
+    };
+    if view.applying {
+        return Vec::new();
+    }
+    let entries = view.entries();
+    let Some(data) = view.data.as_ref() else {
+        return Vec::new();
+    };
+    match entries.get(view.cursor) {
+        Some(SettingsEntry::Model(i)) => {
+            let id = data.models[*i].id.clone();
+            if data.current.as_deref() == Some(id.as_str()) {
+                state.settings = None;
+                return Vec::new();
+            }
+            view.applying = true;
+            view.error = None;
+            vec![Effect::SelectModel(id)]
+        }
+        Some(SettingsEntry::SignOut) => {
+            view.applying = true;
+            view.error = None;
+            vec![Effect::SignOut]
+        }
+        None => Vec::new(),
+    }
+}
+
+fn on_settings_loaded(
+    state: &mut State,
+    result: Result<crate::llm::types::ProviderSettings, LlmError>,
+) -> Vec<Effect> {
+    let Some(view) = state.settings.as_mut() else {
+        return Vec::new();
+    };
+    match result {
+        Ok(data) => {
+            view.cursor = data
+                .current
+                .as_ref()
+                .and_then(|c| data.models.iter().position(|m| &m.id == c))
+                .unwrap_or(0);
+            view.data = Some(data);
+        }
+        Err(e @ (LlmError::AuthRequired | LlmError::AuthFailed { .. })) => {
+            state.settings = None;
+            state.phase = Phase::LoginRequired;
+            state.status = Some(error_status(&e));
+        }
+        Err(e) => view.error = Some(error_status(&e)),
+    }
+    Vec::new()
+}
+
+fn on_model_selected(state: &mut State, result: Result<ProviderLabel, LlmError>) -> Vec<Effect> {
+    match result {
+        Ok(label) => {
+            let model = label.model.clone().unwrap_or_default();
+            state.provider = label;
+            state.settings = None;
+            state.status = Some(Status {
+                kind: StatusKind::Info,
+                msg: Msg::StatusModelChanged,
+                args: vec![("model", model)],
+            });
+        }
+        Err(e) => match state.settings.as_mut() {
+            Some(view) => {
+                view.applying = false;
+                view.error = Some(error_status(&e));
+            }
+            None => state.status = Some(error_status(&e)),
+        },
+    }
+    Vec::new()
+}
+
+fn on_click(state: &mut State, hit: Hit) -> Vec<Effect> {
+    if state.too_small {
+        return Vec::new();
+    }
+    if state.settings.is_some() {
+        return match hit {
+            Hit::SettingsItem(i) => {
+                if let Some(view) = state.settings.as_mut() {
+                    if view.applying || i >= view.entries().len() {
+                        return Vec::new();
+                    }
+                    view.cursor = i;
+                }
+                choose_setting(state)
+            }
+            Hit::CloseSettings => {
+                state.settings = None;
+                Vec::new()
+            }
+            _ => Vec::new(),
+        };
+    }
+    match (state.phase, hit) {
+        (Phase::Ready, Hit::OpenSettings) => open_settings(state),
+        (Phase::Ready | Phase::Requesting, Hit::Question) => {
+            state.focus = Focus::Question;
+            Vec::new()
+        }
+        (Phase::Ready | Phase::Requesting, Hit::Command) if state.has_command() => {
+            state.focus = Focus::Command;
+            Vec::new()
+        }
+        _ => Vec::new(),
     }
 }
 
@@ -108,6 +289,7 @@ fn on_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
                 Vec::new()
             }
         },
+        Phase::Ready if state.settings.is_some() => on_settings_key(state, key),
         Phase::Ready => on_ready_key(state, key),
     }
 }
@@ -115,6 +297,7 @@ fn on_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
 fn on_ready_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
     match key {
         KeyAction::Cancel | KeyAction::Quit => vec![Effect::Exit(ExitOutcome::Cancelled)],
+        KeyAction::Settings => open_settings(state),
         KeyAction::ToggleFocus => {
             toggle_focus(state);
             Vec::new()
@@ -260,6 +443,11 @@ fn submit_question(state: &mut State) -> Vec<Effect> {
         return Vec::new();
     }
     let question = state.question.text().trim().to_string();
+    // Codex CLI와 같은 입력으로 설정 화면 열기
+    if matches!(question.as_str(), "/model" | "/models" | "/settings") {
+        state.question.clear();
+        return open_settings(state);
+    }
     let op = if state.has_command() {
         Operation::Revise
     } else {

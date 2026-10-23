@@ -31,6 +31,8 @@ pub struct UiConfig {
     pub mode: UiMode,
     pub inline_height: u16,
     pub language: LangSetting,
+    /// 클릭 입력 (CR-005). 끄면 터미널 기본 마우스 선택과 스크롤 유지
+    pub mouse: bool,
 }
 
 impl Default for UiConfig {
@@ -39,6 +41,7 @@ impl Default for UiConfig {
             mode: UiMode::Inline,
             inline_height: DEFAULT_HEIGHT,
             language: LangSetting::Auto,
+            mouse: true,
         }
     }
 }
@@ -84,6 +87,7 @@ const KNOWN_KEYS: &[&str] = &[
     "ui.mode",
     "ui.inline_height",
     "ui.language",
+    "ui.mouse",
     "provider",
     "provider.default",
     "provider.chatgpt",

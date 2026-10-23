@@ -69,6 +69,9 @@ pub struct StateFile {
     pub credential_store: Option<String>,
     #[serde(default)]
     pub models: Option<ModelCache>,
+    /// 설정 화면에서 고른 모델 (CR-005). 설정 파일 값보다 우선
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_model: Option<String>,
     #[serde(default)]
     pub structured_output: Option<bool>,
     #[serde(default)]

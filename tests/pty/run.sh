@@ -207,5 +207,29 @@ if finish korean; then
   if grep -q '질문' "$OUT/korean.screen"; then pass korean; else fail korean "Korean labels missing"; fi
 fi
 
+# (17) 설정 화면: Ctrl+O 모델 변경, 상태줄 모델 버튼 클릭, 항목 클릭, 마우스 모드 복구 (TC-UI-019, TC-UI-020)
+# 클릭은 SGR 마우스 시퀀스(ESC [ < 0 ; 열 ; 행 M/m, 1부터)로 입력
+click() { lit $'\e'"[<0;$1;$2M"; lit $'\e'"[<0;$1;$2m"; }
+tmux pipe-pane -t "$P" -o "cat > $OUT/settings_raw.log" 2>&1 | cat
+start settings "$ENV $MOCK $BIN > $OUT/settings.out"
+send C-o; sleep 0.5; snap settings_open
+send Down; send Enter; sleep 0.5; snap settings_changed
+pos=$(tmux capture-pane -p -t "$P" | cat | grep -n '\[mock-2\]' | tail -1)
+crow=${pos%%:*}; line=${pos#*:}; prefix=${line%%\[mock-2\]*}; ccol=$(( ${#prefix} + 2 ))
+click "$ccol" "$crow"; sleep 0.5; snap settings_clicked
+irow=$(tmux capture-pane -p -t "$P" | cat | grep -n 'Mock mock-model' | tail -1 | cut -d: -f1)
+click 12 "$irow"; sleep 0.5; snap settings_item
+send Escape; sleep 0.3
+# 설정 화면이 남아 있으면 첫 Esc는 닫기
+[ -f "$OUT/settings.done" ] || send Escape
+tmux pipe-pane -t "$P" 2>&1 | cat
+if finish settings; then
+  if grep -q 'Settings  Agent: Mock' "$OUT/settings_open.screen" && grep -q '(\*) Mock mock-model' "$OUT/settings_open.screen" \
+    && grep -q 'Model: mock-2' "$OUT/settings_changed.screen" && grep -q '\[mock-2\]' "$OUT/settings_changed.screen" \
+    && grep -q 'Settings  Agent: Mock' "$OUT/settings_clicked.screen" && grep -q '\[mock-model\]' "$OUT/settings_item.screen" \
+    && grep -q $'\e\[?1000h' "$OUT/settings_raw.log" && grep -q $'\e\[?1000l' "$OUT/settings_raw.log" \
+    && [ "$(rc_of settings)" = 130 ]; then pass settings; else fail settings "settings view, clicks or mouse mode"; fi
+fi
+
 echo "result: $( [ $FAILED = 0 ] && echo ok || echo failed ) ($OUT)"
 exit $FAILED

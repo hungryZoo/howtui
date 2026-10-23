@@ -559,3 +559,120 @@ fn arrows_move_between_question_and_command() {
     key(&mut s, KeyAction::Edit(EditOp::Up));
     assert_eq!(s.focus, Focus::Question);
 }
+
+fn settings_data() -> crate::llm::types::ProviderSettings {
+    use crate::llm::types::{ModelChoice, ProviderSettings};
+    ProviderSettings {
+        agent: "ChatGPT".into(),
+        account: None,
+        models: vec![
+            ModelChoice {
+                id: "a".into(),
+                name: "A".into(),
+            },
+            ModelChoice {
+                id: "b".into(),
+                name: "B".into(),
+            },
+        ],
+        current: Some("b".into()),
+        can_sign_out: true,
+    }
+}
+
+/// CR-005: Ctrl+O로 열기, 목록 수신 시 현재 모델에 커서, 다른 모델 선택, 반영 후 닫힘.
+#[test]
+fn settings_select_model_flow() {
+    let mut s = ready();
+    assert_eq!(key(&mut s, KeyAction::Settings), vec![Effect::LoadSettings]);
+    assert!(s.is_busy(), "목록 수신 전 진행 표시");
+    update(&mut s, Action::SettingsLoaded(Ok(settings_data())));
+    assert_eq!(s.settings.as_ref().unwrap().cursor, 1);
+    key(&mut s, KeyAction::Edit(EditOp::Up));
+    assert_eq!(
+        key(&mut s, KeyAction::Submit),
+        vec![Effect::SelectModel("a".into())]
+    );
+    assert!(
+        key(&mut s, KeyAction::Submit).is_empty(),
+        "적용 중 중복 선택 없음"
+    );
+    update(
+        &mut s,
+        Action::ModelSelected(Ok(ProviderLabel {
+            model: Some("a".into()),
+            chatgpt_plan: true,
+        })),
+    );
+    assert!(s.settings.is_none());
+    assert_eq!(s.provider.model.as_deref(), Some("a"));
+    assert_eq!(
+        s.status.as_ref().map(|st| st.msg),
+        Some(Msg::StatusModelChanged)
+    );
+}
+
+/// 현재 모델 다시 선택은 닫기만, Esc와 Ctrl+O는 닫기, `/model` 입력으로 열기.
+#[test]
+fn settings_close_and_slash_command() {
+    let mut s = ready();
+    type_text(&mut s, "/model");
+    assert_eq!(key(&mut s, KeyAction::Submit), vec![Effect::LoadSettings]);
+    assert!(s.question.is_empty());
+    update(&mut s, Action::SettingsLoaded(Ok(settings_data())));
+    assert!(key(&mut s, KeyAction::Submit).is_empty());
+    assert!(s.settings.is_none(), "현재 모델 선택 시 닫힘");
+    key(&mut s, KeyAction::Settings);
+    key(&mut s, KeyAction::Cancel);
+    assert!(s.settings.is_none());
+    assert_eq!(s.phase, Phase::Ready, "Esc는 종료가 아닌 닫기");
+    key(&mut s, KeyAction::Settings);
+    assert!(key(&mut s, KeyAction::Settings).is_empty());
+    assert!(s.settings.is_none());
+}
+
+/// 클릭: 상태줄 모델 버튼으로 열기, 항목 클릭으로 선택, 로그아웃 후 로그인 필요 화면.
+#[test]
+fn settings_clicks_and_sign_out() {
+    let mut s = ready();
+    generate(&mut s, "list", "ls");
+    update(&mut s, Action::Click(Hit::Command));
+    assert_eq!(s.focus, Focus::Command);
+    update(&mut s, Action::Click(Hit::Question));
+    assert_eq!(s.focus, Focus::Question);
+    assert_eq!(
+        update(&mut s, Action::Click(Hit::OpenSettings)),
+        vec![Effect::LoadSettings]
+    );
+    update(&mut s, Action::SettingsLoaded(Ok(settings_data())));
+    update(&mut s, Action::Scroll(-1));
+    assert_eq!(s.settings.as_ref().unwrap().cursor, 0);
+    assert_eq!(
+        update(&mut s, Action::Click(Hit::SettingsItem(2))),
+        vec![Effect::SignOut]
+    );
+    update(&mut s, Action::SignedOut);
+    assert!(s.settings.is_none());
+    assert_eq!(s.phase, Phase::LoginRequired);
+    assert_eq!(s.command.text(), "ls", "명령어 유지");
+    // 요청 중에는 설정 화면 미개방
+    let mut s = ready();
+    type_text(&mut s, "q");
+    key(&mut s, KeyAction::Submit);
+    assert!(update(&mut s, Action::Click(Hit::OpenSettings)).is_empty());
+}
+
+/// 목록 조회 실패는 설정 화면 안에 표시, 인증 오류는 로그인 필요 화면.
+#[test]
+fn settings_load_errors() {
+    let mut s = ready();
+    key(&mut s, KeyAction::Settings);
+    update(&mut s, Action::SettingsLoaded(Err(LlmError::ModelNotFound)));
+    assert!(s.settings.as_ref().unwrap().error.is_some());
+    assert!(!s.is_busy(), "오류 표시 중 진행 표시 없음");
+    key(&mut s, KeyAction::Cancel);
+    key(&mut s, KeyAction::Settings);
+    update(&mut s, Action::SettingsLoaded(Err(LlmError::AuthRequired)));
+    assert!(s.settings.is_none());
+    assert_eq!(s.phase, Phase::LoginRequired);
+}

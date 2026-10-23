@@ -3,7 +3,7 @@
 use super::editor::{EditOp, TextBuffer};
 use crate::i18n::{Lang, Msg};
 use crate::llm::types::{
-    EnvContext, LlmError, LlmRequest, LlmResponse, ProviderLabel, RequestId, Turn,
+    EnvContext, LlmError, LlmRequest, LlmResponse, ProviderLabel, ProviderSettings, RequestId, Turn,
 };
 use crate::safety::Finding;
 
@@ -106,6 +106,46 @@ pub struct LoginInfo {
     pub show_plan_notice: bool,
 }
 
+/// 마우스 클릭 대상. 렌더러가 화면 영역과 함께 기록하고 런타임이 클릭 좌표로 찾는다 (CR-005).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Hit {
+    OpenSettings,
+    Question,
+    Command,
+    SettingsItem(usize),
+    CloseSettings,
+}
+
+/// 설정 화면 항목: 모델 목록 다음에 로그아웃.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SettingsEntry {
+    Model(usize),
+    SignOut,
+}
+
+/// 설정 화면 (에이전트와 모델, CR-005). 열려 있는 동안 메인 화면 대신 표시.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SettingsView {
+    pub data: Option<ProviderSettings>,
+    pub cursor: usize,
+    /// 모델 변경 또는 로그아웃 진행 중
+    pub applying: bool,
+    pub error: Option<Status>,
+}
+
+impl SettingsView {
+    pub fn entries(&self) -> Vec<SettingsEntry> {
+        let Some(d) = &self.data else {
+            return Vec::new();
+        };
+        let mut v: Vec<SettingsEntry> = (0..d.models.len()).map(SettingsEntry::Model).collect();
+        if d.can_sign_out {
+            v.push(SettingsEntry::SignOut);
+        }
+        v
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum KeyAction {
     Submit,
@@ -117,6 +157,8 @@ pub enum KeyAction {
     Undo,
     Redo,
     Edit(EditOp),
+    /// 설정 화면 열기와 닫기 (Ctrl+O)
+    Settings,
     /// 그 외 키 (위험 확인 해제용)
     Other,
 }
@@ -140,6 +182,12 @@ pub enum Action {
     /// 시작 준비 중 인증 정보 무효 확인
     AuthLost,
     Notice(Status),
+    Click(Hit),
+    /// 휠 (음수 위, 양수 아래)
+    Scroll(i8),
+    SettingsLoaded(Result<ProviderSettings, LlmError>),
+    ModelSelected(Result<ProviderLabel, LlmError>),
+    SignedOut,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -155,6 +203,9 @@ pub enum Effect {
     StartLogin,
     CancelLogin,
     SubmitRedirect(String),
+    LoadSettings,
+    SelectModel(String),
+    SignOut,
     Exit(ExitOutcome),
 }
 
@@ -181,6 +232,7 @@ pub struct State {
     /// 로그인 완료 직후 질문 자동 제출 여부 (CLI 질문 인자).
     pub auto_submit: bool,
     pub next_request_id: RequestId,
+    pub settings: Option<SettingsView>,
 }
 
 impl State {
@@ -210,6 +262,7 @@ impl State {
             login_paste: TextBuffer::new(),
             auto_submit: false,
             next_request_id: 1,
+            settings: None,
         }
     }
 
@@ -219,5 +272,9 @@ impl State {
 
     pub fn is_busy(&self) -> bool {
         matches!(self.phase, Phase::Requesting | Phase::LoggingIn)
+            || self
+                .settings
+                .as_ref()
+                .is_some_and(|s| (s.data.is_none() && s.error.is_none()) || s.applying)
     }
 }

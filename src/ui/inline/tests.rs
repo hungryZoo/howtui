@@ -29,10 +29,15 @@ fn state(lang: Lang) -> State {
 }
 
 fn screen(s: &State, w: u16, h: u16) -> Vec<String> {
+    screen_hits(s, w, h).0
+}
+
+fn screen_hits(s: &State, w: u16, h: u16) -> (Vec<String>, super::Hits) {
     let mut term = Terminal::new(TestBackend::new(w, h)).unwrap();
-    term.draw(|f| render(f, s)).unwrap();
+    let mut hits = Vec::new();
+    term.draw(|f| hits = render(f, s)).unwrap();
     let buf = term.backend().buffer().clone();
-    (0..h)
+    let lines = (0..h)
         .map(|y| {
             let mut line = String::new();
             let mut x = 0;
@@ -48,7 +53,8 @@ fn screen(s: &State, w: u16, h: u16) -> Vec<String> {
             }
             line.trim_end().to_string()
         })
-        .collect()
+        .collect();
+    (lines, hits)
 }
 
 fn with_response(lang: Lang, cmd: &str, explanation: &str, notes: Vec<String>) -> State {
@@ -206,4 +212,71 @@ fn login_screen_shows_url_and_paste_field() {
         "{lines:?}"
     );
     assert!(lines[9].contains("Esc cancel"));
+}
+
+/// CR-005: 설정 화면 표시, 현재 모델 표시, 클릭 영역, 상태줄 모델 버튼.
+#[test]
+fn settings_view_lists_models_and_click_targets() {
+    use crate::app::Hit;
+    use crate::llm::types::{ModelChoice, ProviderSettings};
+    let mut s = state(Lang::En);
+    let (lines, hits) = screen_hits(&s, 80, 10);
+    assert!(lines[9].contains("[model-a]"), "{lines:?}");
+    let open = hits
+        .iter()
+        .find(|(_, h)| *h == Hit::OpenSettings)
+        .expect("model button");
+    assert_eq!(open.0.y, 9);
+    assert!(
+        lines[9]
+            .chars()
+            .skip(open.0.x as usize)
+            .collect::<String>()
+            .starts_with("[model-a]"),
+        "x={} line={:?}",
+        open.0.x,
+        lines[9]
+    );
+    assert!(hits.iter().any(|(r, h)| *h == Hit::Question && r.y == 0));
+
+    update(&mut s, Action::Key(KeyAction::Settings));
+    let lines = screen(&s, 80, 10);
+    assert!(lines[0].starts_with("Settings  Agent:"), "{lines:?}");
+    assert!(lines[9].contains("Loading models"), "{lines:?}");
+    let data = ProviderSettings {
+        agent: "ChatGPT".into(),
+        account: Some("h***@example.com".into()),
+        models: vec![
+            ModelChoice {
+                id: "gpt-6.1-sol".into(),
+                name: "GPT-6.1-Sol".into(),
+            },
+            ModelChoice {
+                id: "model-a".into(),
+                name: "Model A".into(),
+            },
+        ],
+        current: Some("model-a".into()),
+        can_sign_out: true,
+    };
+    update(&mut s, Action::SettingsLoaded(Ok(data)));
+    let (lines, hits) = screen_hits(&s, 80, 10);
+    assert!(lines[0].contains("ChatGPT (h***@example.com)"), "{lines:?}");
+    assert!(lines[0].ends_with("[Close]"));
+    assert!(
+        lines[1].starts_with("Model  ( ) GPT-6.1-Sol  gpt-6.1-sol"),
+        "{lines:?}"
+    );
+    assert!(lines[2].contains("(*) Model A  model-a"), "{lines:?}");
+    assert!(lines[3].contains("Sign out"), "{lines:?}");
+    assert!(lines[9].contains("Enter choose"));
+    let items: Vec<_> = hits
+        .iter()
+        .filter_map(|(r, h)| match h {
+            Hit::SettingsItem(i) => Some((r.y, *i)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(items, vec![(1, 0), (2, 1), (3, 2)]);
+    assert!(hits.iter().any(|(_, h)| *h == Hit::CloseSettings));
 }

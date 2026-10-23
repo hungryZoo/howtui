@@ -11,9 +11,12 @@
 #   HOWTUI_INSTALL_DIR      install directory (default: %LOCALAPPDATA%\Programs\howtui\bin)
 #   HOWTUI_NO_MODIFY_PATH   set to 1 to skip adding the directory to the user PATH
 #   HOWTUI_ARCH             override the detected architecture (x86_64 or aarch64)
+#   HOWTUI_SETUP_SHELL      yes or no: enable shell integration without asking, or skip the question
 #
-# This script only downloads the release archive and SHA256SUMS of this repository, verifies the
-# checksum, and copies howtui.exe. It never edits PowerShell profiles. (ASCII only for 5.1.)
+# This script downloads the release archive and SHA256SUMS of this repository, verifies the checksum,
+# and copies howtui.exe and howtui-uninstall.ps1. It edits your PowerShell profiles only if you answer
+# yes to the shell integration question, and then only inside a marked block that
+# `howtui init powershell --uninstall` removes. (ASCII only for 5.1.)
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -97,16 +100,56 @@ function Install-Howtui {
         $installed = (& $dest --version) | Out-String
         if ($installed.Trim() -ne "howtui $version") { throw "howtui install: installed binary reports '$($installed.Trim())'" }
         Write-Host "==> installed $($installed.Trim()) to $dest"
+        # uninstall script from the same verified archive
+        $uninstallSrc = Join-Path $extract 'uninstall.ps1'
+        $uninstall = Join-Path $dir 'howtui-uninstall.ps1'
+        if (Test-Path -LiteralPath $uninstallSrc) { Copy-Item -LiteralPath $uninstallSrc -Destination $uninstall -Force }
 
         if ($env:HOWTUI_NO_MODIFY_PATH -eq '1') {
             Write-Host "Add $dir to your PATH to run howtui."
         } else {
             Add-HowtuiUserPath -Dir $dir
         }
+        Set-HowtuiShellIntegration -Exe $dest
         Write-Host ''
-        Write-Host 'Run: howtui'
+        Write-Host 'Run: howtui   (in a new terminal if you enabled shell integration)'
+        if (Test-Path -LiteralPath $uninstall) { Write-Host "Uninstall: & '$uninstall'" }
     } finally {
         Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+# Shell integration (CR-004): asks on the console (also under irm | iex), changes nothing without a yes.
+function Set-HowtuiShellIntegration {
+    param([string]$Exe)
+    $mode = "$env:HOWTUI_SETUP_SHELL".ToLowerInvariant()
+    if ($mode -in 'no', 'n', '0') { return }
+    if ($mode -in 'yes', 'y', '1') {
+        $answer = 'y'
+    } elseif ($env:HOWTUI_TEST_ANSWER -ne $null) {
+        $answer = $env:HOWTUI_TEST_ANSWER
+    } elseif ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and $env:HOWTUI_TEST_NO_TTY -ne '1') {
+        Write-Host ''
+        Write-Host 'Shell integration for PowerShell: Ctrl+G opens howtui on the current command line, and a'
+        Write-Host 'typed `howtui` puts the accepted command into your next prompt. Nothing runs by itself.'
+        Write-Host 'This adds a marked block to your PowerShell 7 and Windows PowerShell 5.1 profiles.'
+        Write-Host 'Remove it later with: howtui init powershell --uninstall'
+        $answer = Read-Host 'Enable shell integration? [Y/n]'
+    } else {
+        Write-Host ''
+        Write-Host 'Shell integration: run `howtui init powershell --install` to enable it.'
+        return
+    }
+    if ($answer -notmatch '^(|y|yes)$') {
+        Write-Host 'Skipped. Enable it later with: howtui init powershell --install'
+        return
+    }
+    & $Exe init powershell --install | Out-Host
+    # Windows PowerShell 5.1 runs profiles only when the execution policy allows local scripts
+    $policy = "$(Get-ExecutionPolicy)"
+    if ($policy -in 'Restricted', 'AllSigned') {
+        Write-Host "Note: the execution policy is $policy, so PowerShell does not run your profile."
+        Write-Host '  To allow it for your account: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned'
     }
 }
 

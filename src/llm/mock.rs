@@ -33,11 +33,15 @@ pub struct Scenario {
     pub steps: Vec<Step>,
     #[serde(default)]
     pub model: Option<String>,
+    /// 설정 화면 모델 목록 (기본: `mock`, `mock-2`)
+    #[serde(default)]
+    pub models: Vec<String>,
 }
 
 pub struct MockProvider {
     scenario: Scenario,
     next: Mutex<usize>,
+    selected: Mutex<Option<String>>,
 }
 
 impl MockProvider {
@@ -51,6 +55,7 @@ impl MockProvider {
         Ok(Self {
             scenario,
             next: Mutex::new(0),
+            selected: Mutex::new(None),
         })
     }
 
@@ -66,8 +71,10 @@ impl MockProvider {
                     error: None,
                 }],
                 model: None,
+                models: Vec::new(),
             },
             next: Mutex::new(0),
+            selected: Mutex::new(None),
         }
     }
 
@@ -79,7 +86,28 @@ impl MockProvider {
     }
 
     fn model(&self) -> String {
+        if let Some(s) = self
+            .selected
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+        {
+            return s;
+        }
         self.scenario.model.clone().unwrap_or_else(|| "mock".into())
+    }
+
+    fn model_ids(&self) -> Vec<String> {
+        if self.scenario.models.is_empty() {
+            let base = self.scenario.model.clone().unwrap_or_else(|| "mock".into());
+            if base == "mock-2" {
+                vec![base]
+            } else {
+                vec![base, "mock-2".into()]
+            }
+        } else {
+            self.scenario.models.clone()
+        }
     }
 }
 
@@ -116,6 +144,37 @@ impl Provider for MockProvider {
             model: Some(self.model()),
             chatgpt_plan: false,
         }
+    }
+
+    fn settings(&self) -> SettingsFuture<'_> {
+        let models = self
+            .model_ids()
+            .into_iter()
+            .map(|id| ModelChoice {
+                name: format!("Mock {id}"),
+                id,
+            })
+            .collect();
+        let current = Some(self.model());
+        Box::pin(async move {
+            Ok(ProviderSettings {
+                agent: "Mock".into(),
+                account: None,
+                models,
+                current,
+                can_sign_out: false,
+            })
+        })
+    }
+
+    fn select_model(&self, id: String) -> PrepareFuture<'_> {
+        Box::pin(async move {
+            if !self.model_ids().contains(&id) {
+                return Err(LlmError::ModelNotFound);
+            }
+            *self.selected.lock().unwrap_or_else(|e| e.into_inner()) = Some(id);
+            Ok(self.label())
+        })
     }
 
     fn complete(&self, req: LlmRequest, cancel: CancelToken) -> LlmFuture<'_> {

@@ -10,11 +10,21 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::PlaceholderQuestion => "Describe what you want to do",
         Msg::PlaceholderFollowUp => "Type a change, or press Enter to accept the command",
         Msg::PlaceholderLoginPaste => "Paste the address here (step 2 only)",
-        Msg::HintQuestion => "Enter submit  Tab command  Esc quit",
+        Msg::HintQuestion => "Enter submit  Tab command  Ctrl+O model  Esc quit",
         Msg::HintCommand => "Enter accept  Ctrl+J newline  Ctrl+E explain  Tab ask  Esc quit",
         Msg::HintFollowUp => "Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit",
         Msg::HintRequesting => "Esc cancel",
         Msg::HintLogin => "Enter sign in  Esc quit",
+        Msg::HintSettings => "Up/Down move  Enter choose  Esc close  (click works too)",
+        Msg::SettingsTitle => "Settings",
+        Msg::SettingsAgent => "Agent",
+        Msg::SettingsModel => "Model",
+        Msg::SettingsSignOut => "Sign out (switch account)",
+        Msg::SettingsLoading => "Loading models",
+        Msg::SettingsApplying => "Applying",
+        Msg::SettingsClose => "[Close]",
+        Msg::StatusModelChanged => "Model: {model} (saved for next time)",
+        Msg::StatusSignedOut => "Signed out.",
         Msg::StatusGenerating => "Generating",
         Msg::StatusRevising => "Revising",
         Msg::StatusExplaining => "Explaining",
@@ -121,7 +131,7 @@ pub fn text(msg: Msg) -> &'static str {
             "Could not hand the command to the shell ({detail}). Copy it manually:"
         }
         Msg::ErrInstallUnsupported => {
-            "--install supports bash and zsh. For PowerShell add `howtui init powershell | Out-String | Invoke-Expression` to $PROFILE."
+            "Could not find your home directory for the shell startup file."
         }
         Msg::ErrRcWrite => "Could not update {path}: {detail}",
         Msg::RiskHigh => "High risk",
@@ -174,7 +184,7 @@ pub fn text(msg: Msg) -> &'static str {
             "Do not define the howtui shell function (results then go to stdout only)"
         }
         Msg::HelpInstall => {
-            "Add the integration line to your shell startup file (~/.bashrc or ~/.zshrc) in a marked block"
+            "Add the integration line to your shell startup file (~/.bashrc, ~/.zshrc or the PowerShell profile) in a marked block"
         }
         Msg::HelpUninstall => "Remove the block added by --install",
         Msg::InitAdded => "Shell integration added to {path}. Open a new terminal to use it.",

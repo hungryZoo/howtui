@@ -183,18 +183,40 @@ async fn model_preference_and_cache() {
         },
     ];
     assert_eq!(
-        ChatGptProvider::choose_model(&models, None).as_deref(),
+        ChatGptProvider::choose_model(&models, None, None).as_deref(),
         Some("a")
     );
     assert_eq!(
-        ChatGptProvider::choose_model(&models, Some("b")).as_deref(),
+        ChatGptProvider::choose_model(&models, None, Some("b")).as_deref(),
         Some("b")
     );
     assert_eq!(
-        ChatGptProvider::choose_model(&models, Some("zzz")).as_deref(),
+        ChatGptProvider::choose_model(&models, None, Some("zzz")).as_deref(),
         Some("a")
     );
-    assert_eq!(ChatGptProvider::choose_model(&[], None), None);
+    assert_eq!(ChatGptProvider::choose_model(&[], None, None), None);
+}
+
+/// CR-005: 설정 화면 선택 > 설정 파일 > 기본 모델(gpt-6-luna) > 첫 모델. 목록에 없는 선택은 무시.
+#[test]
+fn model_choice_order_with_selection_and_default() {
+    let m = |s: &str| ModelInfo {
+        slug: s.into(),
+        display_name: None,
+    };
+    let models = vec![m("gpt-6.1-sol"), m("gpt-6-luna"), m("b")];
+    let pick = |sel, pref| ChatGptProvider::choose_model(&models, sel, pref);
+    assert_eq!(pick(None, None).as_deref(), Some("gpt-6-luna"));
+    assert_eq!(pick(None, Some("b")).as_deref(), Some("b"));
+    assert_eq!(
+        pick(Some("gpt-6.1-sol"), Some("b")).as_deref(),
+        Some("gpt-6.1-sol")
+    );
+    assert_eq!(pick(Some("gone"), None).as_deref(), Some("gpt-6-luna"));
+    assert_eq!(
+        ChatGptProvider::choose_model(&[m("x"), m("y")], None, None).as_deref(),
+        Some("x")
+    );
 }
 
 #[tokio::test]
@@ -433,5 +455,42 @@ fn error_mapping_table() {
     assert_eq!(
         e(502, json!("bad gateway")),
         LlmError::Transient { status: Some(502) }
+    );
+}
+
+/// CR-005: 설정 화면 내용과 모델 선택 저장 (다음 실행에도 유지).
+#[tokio::test]
+async fn settings_list_models_and_selection_persists() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v1/models"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"models": [
+            {"slug": "gpt-6.1-sol", "display_name": "GPT-6.1-Sol", "visibility": "list"},
+            {"slug": "gpt-6-luna", "display_name": "GPT-6-Luna", "visibility": "list"},
+            {"slug": "hidden", "visibility": "hide"}
+        ]})))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let dir = tempfile::tempdir().unwrap();
+    let p = setup(&server, dir.path(), PLAN_SCOPE, None);
+    let s = p.settings().await.unwrap();
+    assert_eq!(s.agent, "ChatGPT");
+    assert_eq!(
+        s.models.iter().map(|m| m.id.as_str()).collect::<Vec<_>>(),
+        ["gpt-6.1-sol", "gpt-6-luna"]
+    );
+    assert_eq!(s.current.as_deref(), Some("gpt-6-luna"), "기본 모델");
+    assert!(matches!(
+        p.select_model("hidden".into()).await,
+        Err(LlmError::ModelNotFound)
+    ));
+    let label = p.select_model("gpt-6.1-sol".into()).await.unwrap();
+    assert_eq!(label.model.as_deref(), Some("gpt-6.1-sol"));
+    // 같은 데이터 디렉터리의 새 Provider (다음 실행): 저장된 선택 사용, 목록은 캐시
+    let next = setup(&server, dir.path(), PLAN_SCOPE, Some("gpt-6-luna"));
+    assert_eq!(
+        next.prepare().await.unwrap().model.as_deref(),
+        Some("gpt-6.1-sol")
     );
 }

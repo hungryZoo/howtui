@@ -152,9 +152,29 @@ pub struct ProviderLabel {
     pub chatgpt_plan: bool,
 }
 
+/// 설정 화면의 모델 항목 (CR-005).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ModelChoice {
+    pub id: String,
+    pub name: String,
+}
+
+/// 설정 화면 내용: 현재 에이전트(Provider)와 선택 가능한 모델.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProviderSettings {
+    pub agent: String,
+    /// 마스킹된 계정 표시
+    pub account: Option<String>,
+    pub models: Vec<ModelChoice>,
+    pub current: Option<String>,
+    pub can_sign_out: bool,
+}
+
 pub type LlmFuture<'a> = Pin<Box<dyn Future<Output = Result<LlmResponse, LlmError>> + Send + 'a>>;
 pub type PrepareFuture<'a> =
     Pin<Box<dyn Future<Output = Result<ProviderLabel, LlmError>> + Send + 'a>>;
+pub type SettingsFuture<'a> =
+    Pin<Box<dyn Future<Output = Result<ProviderSettings, LlmError>> + Send + 'a>>;
 
 /// dyn 호환을 위해 표준 라이브러리 Box<dyn Future> 반환.
 pub trait Provider: Send + Sync {
@@ -165,4 +185,8 @@ pub trait Provider: Send + Sync {
         let label = self.label();
         Box::pin(async move { Ok(label) })
     }
+    /// 설정 화면 내용 조회.
+    fn settings(&self) -> SettingsFuture<'_>;
+    /// 모델 변경 후 저장 (다음 실행에도 유지).
+    fn select_model(&self, id: String) -> PrepareFuture<'_>;
 }

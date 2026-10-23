@@ -259,6 +259,12 @@ main() {
     cp "$TMP_DIR/$BIN" "$staged" || err "cannot write to $BIN_DIR"
     chmod 0755 "$staged"
     mv -f "$staged" "$BIN_DIR/$BIN" || { rm -f "$staged"; err "cannot replace $BIN_DIR/$BIN"; }
+    # 제거 스크립트 (같은 압축 파일, 체크섬 검증 범위)
+    if tar -xzf "$TMP_DIR/$asset" -C "$TMP_DIR" uninstall.sh 2>/dev/null; then
+        cp "$TMP_DIR/uninstall.sh" "$BIN_DIR/.$BIN-uninstall.new.$$" && chmod 0755 "$BIN_DIR/.$BIN-uninstall.new.$$" \
+            && mv -f "$BIN_DIR/.$BIN-uninstall.new.$$" "$BIN_DIR/$BIN-uninstall.sh" \
+            || { rm -f "$BIN_DIR/.$BIN-uninstall.new.$$"; echo "howtui install: uninstall script was not installed" >&2; }
+    fi
 
     installed=$("$BIN_DIR/$BIN" --version 2>/dev/null || true)
     [ "$installed" = "$BIN $VERSION" ] || err "installed binary reports '$installed', expected '$BIN $VERSION'"
@@ -275,6 +281,8 @@ main() {
     setup_shell
     echo
     echo "Run: $BIN   (in a new terminal if you enabled shell integration)"
+    [ -x "$BIN_DIR/$BIN-uninstall.sh" ] && echo "Uninstall: $BIN_DIR/$BIN-uninstall.sh"
+    return 0
 }
 
 main "$@"

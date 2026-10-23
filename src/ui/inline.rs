@@ -8,7 +8,9 @@ use ratatui::widgets::Paragraph;
 
 use super::text::{truncate, wrap_buffer, wrap_words};
 use crate::app::editor::display_width;
-use crate::app::{Focus, MIN_HEIGHT, MIN_WIDTH, Phase, State, StatusKind};
+use crate::app::{
+    Focus, Hit, MIN_HEIGHT, MIN_WIDTH, Phase, SettingsEntry, SettingsView, State, StatusKind,
+};
 use crate::i18n::{Msg, tr_in, trf_in};
 use crate::llm::types::Operation;
 use crate::safety::Level;
@@ -19,7 +21,11 @@ fn dim() -> Style {
     Style::default().fg(Color::DarkGray)
 }
 
-pub fn render(frame: &mut Frame, state: &State) {
+/// 클릭 대상 영역 (화면 좌표). 런타임이 마우스 좌표로 찾는다 (CR-005).
+pub type Hits = Vec<(Rect, Hit)>;
+
+pub fn render(frame: &mut Frame, state: &State) -> Hits {
+    let mut hits = Hits::new();
     let area = frame.area();
     if state.too_small || area.width < MIN_WIDTH || area.height < MIN_HEIGHT {
         let msg = trf_in(
@@ -34,12 +40,138 @@ pub fn render(frame: &mut Frame, state: &State) {
             Paragraph::new(truncate(&msg, area.width)).style(Style::default().fg(Color::Yellow)),
             row(area, 0),
         );
-        return;
+        return hits;
     }
-    match state.phase {
-        Phase::LoginRequired | Phase::LoggingIn => render_login(frame, state, area),
-        _ => render_main(frame, state, area),
+    match (state.phase, &state.settings) {
+        (Phase::LoginRequired | Phase::LoggingIn, _) => render_login(frame, state, area),
+        (_, Some(view)) => render_settings(frame, state, view, area, &mut hits),
+        _ => render_main(frame, state, area, &mut hits),
     }
+    hits
+}
+
+/// 설정 화면 (CR-005): 제목과 에이전트 1행, 모델 목록과 로그아웃, 안내 1행.
+fn render_settings(
+    frame: &mut Frame,
+    state: &State,
+    view: &SettingsView,
+    area: Rect,
+    hits: &mut Hits,
+) {
+    let lang = state.lang;
+    let width = area.width;
+    let close = tr_in(lang, Msg::SettingsClose);
+    let close_w = display_width(close) as u16;
+    let mut head = format!(
+        "{}  {}: ",
+        tr_in(lang, Msg::SettingsTitle),
+        tr_in(lang, Msg::SettingsAgent)
+    );
+    if let Some(d) = &view.data {
+        head.push_str(&d.agent);
+        if let Some(acc) = &d.account {
+            head.push_str(&format!(" ({acc})"));
+        }
+    }
+    frame.render_widget(
+        Paragraph::new(Span::styled(
+            truncate(&head, width.saturating_sub(close_w + 1)),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )),
+        row(area, 0),
+    );
+    if width > close_w + 1 {
+        let r = Rect {
+            x: area.x + width - close_w,
+            y: area.y,
+            width: close_w,
+            height: 1,
+        };
+        frame.render_widget(Paragraph::new(Span::styled(close, dim())), r);
+        hits.push((r, Hit::CloseSettings));
+    }
+
+    let model_label = tr_in(lang, Msg::SettingsModel);
+    let lw = display_width(model_label) + 2;
+    let list_rows = (area.height.saturating_sub(2) as usize).max(1);
+    let entries = view.entries();
+    let start = (view.cursor + 1).saturating_sub(list_rows);
+    if let Some(d) = &view.data {
+        for (n, (i, entry)) in entries
+            .iter()
+            .enumerate()
+            .skip(start)
+            .take(list_rows)
+            .enumerate()
+        {
+            let prefix = if i == 0 {
+                format!("{model_label}  ")
+            } else {
+                " ".repeat(lw)
+            };
+            let (text, base) = match entry {
+                SettingsEntry::Model(m) => {
+                    let model = &d.models[*m];
+                    let mark = if d.current.as_deref() == Some(model.id.as_str()) {
+                        "(*)"
+                    } else {
+                        "( )"
+                    };
+                    let name = if model.name == model.id {
+                        model.id.clone()
+                    } else {
+                        format!("{}  {}", model.name, model.id)
+                    };
+                    (format!("{mark} {name}"), Style::default())
+                }
+                SettingsEntry::SignOut => (
+                    tr_in(lang, Msg::SettingsSignOut).to_string(),
+                    Style::default().fg(Color::Red),
+                ),
+            };
+            let style = if i == view.cursor {
+                base.add_modifier(Modifier::REVERSED)
+            } else {
+                base
+            };
+            let r = row(area, 1 + n as u16);
+            frame.render_widget(
+                Paragraph::new(Line::from(vec![
+                    Span::styled(prefix, dim()),
+                    Span::styled(truncate(&text, width.saturating_sub(lw as u16)), style),
+                ])),
+                r,
+            );
+            hits.push((r, Hit::SettingsItem(i)));
+        }
+    }
+
+    let (msg, style) = if let Some(err) = &view.error {
+        let args: Vec<(&str, &str)> = err.args.iter().map(|(k, v)| (*k, v.as_str())).collect();
+        (
+            trf_in(lang, err.msg, &args),
+            Style::default().fg(Color::Red),
+        )
+    } else if view.data.is_none() || view.applying {
+        let spin = SPINNER[state.spinner % SPINNER.len()];
+        let what = if view.applying {
+            Msg::SettingsApplying
+        } else {
+            Msg::SettingsLoading
+        };
+        (
+            format!("{spin} {}", tr_in(lang, what)),
+            Style::default().fg(Color::Yellow),
+        )
+    } else {
+        (tr_in(lang, Msg::HintSettings).to_string(), dim())
+    };
+    frame.render_widget(
+        Paragraph::new(Span::styled(truncate(&msg, width), style)),
+        row(area, area.height - 1),
+    );
 }
 
 fn row(area: Rect, y: u16) -> Rect {
@@ -72,7 +204,7 @@ fn label(state: &State, msg: Msg, width: u16, style: Style) -> Span<'static> {
     Span::styled(format!("{text}{} > ", " ".repeat(pad)), style)
 }
 
-fn render_main(frame: &mut Frame, state: &State, area: Rect) {
+fn render_main(frame: &mut Frame, state: &State, area: Rect, hits: &mut Hits) {
     let lw = label_width(state);
     let content_w = area.width.saturating_sub(lw).max(1);
     let total = area.height;
@@ -140,6 +272,7 @@ fn render_main(frame: &mut Frame, state: &State, area: Rect) {
             spans.push(Span::raw(text.clone()));
         }
         frame.render_widget(Paragraph::new(Line::from(spans)), row(area, y));
+        hits.push((row(area, y), Hit::Question));
         y += 1;
     }
     if q_focus
@@ -176,6 +309,7 @@ fn render_main(frame: &mut Frame, state: &State, area: Rect) {
             spans.push(Span::styled(text.clone(), style));
         }
         frame.render_widget(Paragraph::new(Line::from(spans)), row(area, y));
+        hits.push((row(area, y), Hit::Command));
         y += 1;
     }
     if c_focus
@@ -250,7 +384,7 @@ fn render_main(frame: &mut Frame, state: &State, area: Rect) {
         }
     }
 
-    render_status(frame, state, row(area, area.height - 1));
+    render_status(frame, state, row(area, area.height - 1), hits);
 }
 
 fn render_login(frame: &mut Frame, state: &State, area: Rect) {
@@ -337,14 +471,16 @@ fn render_login(frame: &mut Frame, state: &State, area: Rect) {
         };
         frame.set_cursor_position((area.x + cursor_x.min(width - 1), area.y + y));
     }
-    render_status(frame, state, row(area, area.height - 1));
+    render_status(frame, state, row(area, area.height - 1), &mut Hits::new());
 }
 
-fn render_status(frame: &mut Frame, state: &State, area: Rect) {
+fn render_status(frame: &mut Frame, state: &State, area: Rect, hits: &mut Hits) {
     let lang = state.lang;
     let mut right = Vec::new();
-    if let Some(model) = &state.provider.model {
-        right.push(model.clone());
+    // 모델 이름은 설정 화면 버튼 (클릭, CR-005)
+    let model_seg = state.provider.model.as_ref().map(|m| format!("[{m}]"));
+    if let Some(seg) = &model_seg {
+        right.push(seg.clone());
     }
     right.push(state.env.shell.name().to_string());
     if state.provider.chatgpt_plan {
@@ -401,6 +537,19 @@ fn render_status(frame: &mut Frame, state: &State, area: Rect) {
     let mut spans = vec![Span::styled(left.clone(), left_style)];
     if left_max >= 10 {
         let gap = width.saturating_sub(display_width(&left) + right_w);
+        if let Some(seg) = &model_seg
+            && state.phase == Phase::Ready
+        {
+            hits.push((
+                Rect {
+                    x: area.x + (display_width(&left) + gap) as u16,
+                    y: area.y,
+                    width: display_width(seg) as u16,
+                    height: 1,
+                },
+                Hit::OpenSettings,
+            ));
+        }
         spans.push(Span::raw(" ".repeat(gap)));
         spans.push(Span::styled(right_text, dim()));
     }

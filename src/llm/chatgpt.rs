@@ -16,6 +16,8 @@ use crate::auth::state::{ModelCache, ModelInfo};
 use crate::auth::{AuthError, AuthManager, now};
 
 const MODELS_MAX_AGE: u64 = 24 * 3600;
+/// 목록에 있을 때 쓰는 기본 모델 (사용자 지정, 2026-10-23)
+const DEFAULT_MODELS: &[&str] = &["gpt-6-luna"];
 const FIRST_EVENT_TIMEOUT: Duration = Duration::from_secs(60);
 const TOTAL_TIMEOUT: Duration = Duration::from_secs(120);
 
@@ -91,28 +93,40 @@ impl ChatGptProvider {
         Ok(models)
     }
 
-    /// 설정 모델이 목록에 있으면 사용, 아니면 서버 순서 첫 모델 (PRD-LLM-009).
-    pub fn choose_model(models: &[ModelInfo], preference: Option<&str>) -> Option<String> {
+    /// 우선순위 (PRD-LLM-009, CR-005): 설정 화면 선택 > 설정 파일 > 기본 모델 > 서버 순서 첫 모델.
+    /// 목록에 없는 선택은 무시. 설정 파일 값은 목록이 비어 있어도 사용 (목록 조회 실패 대비).
+    pub fn choose_model(
+        models: &[ModelInfo],
+        selected: Option<&str>,
+        preference: Option<&str>,
+    ) -> Option<String> {
+        if let Some(s) = selected
+            && models.iter().any(|m| m.slug == s)
+        {
+            return Some(s.to_string());
+        }
         if let Some(p) = preference
             && (models.is_empty() || models.iter().any(|m| m.slug == p))
         {
             return Some(p.to_string());
         }
-        models.first().map(|m| m.slug.clone())
+        DEFAULT_MODELS
+            .iter()
+            .find(|d| models.iter().any(|m| m.slug == **d))
+            .map(|d| d.to_string())
+            .or_else(|| models.first().map(|m| m.slug.clone()))
     }
 
-    async fn ensure_model(&self, token: &str, refresh: bool) -> Result<String, LlmError> {
-        if !refresh && let Some(m) = self.model.lock().unwrap_or_else(|e| e.into_inner()).clone() {
-            return Ok(m);
-        }
+    /// 캐시 또는 서버 모델 목록.
+    async fn models(&self, token: &str, refresh: bool) -> Result<Vec<ModelInfo>, LlmError> {
         let mut state = self.auth.load_state();
         let cached = state
             .models
             .as_ref()
             .filter(|c| !refresh && c.fetched_at + MODELS_MAX_AGE > now())
             .map(|c| c.models.clone());
-        let models = match cached {
-            Some(m) => m,
+        match cached {
+            Some(m) => Ok(m),
             None => {
                 let m = self.list_models(token).await?;
                 state.models = Some(ModelCache {
@@ -120,10 +134,18 @@ impl ChatGptProvider {
                     models: m.clone(),
                 });
                 self.auth.save_state(&state);
-                m
+                Ok(m)
             }
-        };
-        let chosen = Self::choose_model(&models, self.model_pref.as_deref())
+        }
+    }
+
+    async fn ensure_model(&self, token: &str, refresh: bool) -> Result<String, LlmError> {
+        if !refresh && let Some(m) = self.model.lock().unwrap_or_else(|e| e.into_inner()).clone() {
+            return Ok(m);
+        }
+        let models = self.models(token, refresh).await?;
+        let selected = self.auth.load_state().selected_model;
+        let chosen = Self::choose_model(&models, selected.as_deref(), self.model_pref.as_deref())
             .ok_or(LlmError::ModelNotFound)?;
         *self.model.lock().unwrap_or_else(|e| e.into_inner()) = Some(chosen.clone());
         Ok(chosen)
@@ -293,6 +315,50 @@ impl Provider for ChatGptProvider {
             }
             let token = self.token().await?;
             self.ensure_model(&token, false).await?;
+            Ok(self.label())
+        })
+    }
+
+    fn settings(&self) -> SettingsFuture<'_> {
+        Box::pin(async move {
+            if self.auth.tokens().is_none() {
+                return Err(LlmError::AuthRequired);
+            }
+            let token = self.token().await?;
+            let current = self.ensure_model(&token, false).await?;
+            let models = self.models(&token, false).await?;
+            Ok(ProviderSettings {
+                agent: "ChatGPT".into(),
+                account: self
+                    .auth
+                    .status()
+                    .email
+                    .as_deref()
+                    .map(crate::auth::mask_email),
+                models: models
+                    .into_iter()
+                    .map(|m| ModelChoice {
+                        name: m.display_name.unwrap_or_else(|| m.slug.clone()),
+                        id: m.slug,
+                    })
+                    .collect(),
+                current: Some(current),
+                can_sign_out: true,
+            })
+        })
+    }
+
+    fn select_model(&self, id: String) -> PrepareFuture<'_> {
+        Box::pin(async move {
+            let token = self.token().await?;
+            let models = self.models(&token, false).await?;
+            if !models.iter().any(|m| m.slug == id) {
+                return Err(LlmError::ModelNotFound);
+            }
+            let mut state = self.auth.load_state();
+            state.selected_model = Some(id.clone());
+            self.auth.save_state(&state);
+            *self.model.lock().unwrap_or_else(|e| e.into_inner()) = Some(id);
             Ok(self.label())
         })
     }

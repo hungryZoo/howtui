@@ -327,8 +327,21 @@ fn init_install_edits_only_the_marked_block() {
     assert!(zsh(&["--uninstall"]).status.success());
     assert_eq!(std::fs::read_to_string(&rc).unwrap(), "export A=1\n");
     assert_eq!(zsh(&["--install", "--uninstall"]).status.code(), Some(2));
+    // PowerShell (Unix): ~/.config/powershell Profile, ASCII 구간
     let ps = run(bin(dir.path()).args(["init", "powershell", "--install"]));
-    assert_eq!(ps.status.code(), Some(2));
+    assert!(ps.status.success());
+    let profile = dir
+        .path()
+        .join(".config/powershell/Microsoft.PowerShell_profile.ps1");
+    let text = std::fs::read_to_string(&profile).unwrap();
+    assert!(text.contains("howtui init powershell | Out-String | Invoke-Expression"));
+    assert!(text.is_ascii());
+    assert!(
+        run(bin(dir.path()).args(["init", "powershell", "--uninstall"]))
+            .status
+            .success()
+    );
+    assert_eq!(std::fs::read_to_string(&profile).unwrap(), "");
 }
 
 /// 위젯 모드는 쉘 스크립트가 만든 출력 파일 경로 필수 (SRS 9.2절).

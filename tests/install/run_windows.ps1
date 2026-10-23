@@ -1,5 +1,6 @@
-# install.ps1 verification (TC-INS-005, TC-INS-003): local fake release over HTTP, install, latest lookup,
-# tamper detection, user PATH registration as REG_EXPAND_SZ. Run under both powershell (5.1) and pwsh (7).
+# install.ps1 verification (TC-INS-005, TC-INS-003, TC-INS-011, TC-INS-012): local fake release over HTTP,
+# install, latest lookup, tamper detection, user PATH registration as REG_EXPAND_SZ, shell integration
+# question, uninstall script. Run under both powershell (5.1) and pwsh (7).
 # Usage: tests/install/run_windows.ps1 -Exe target\release\howtui.exe
 param([Parameter(Mandatory = $true)][string]$Exe)
 $ErrorActionPreference = 'Stop'
@@ -12,6 +13,13 @@ $dist = Join-Path $work 'dist'
 New-Item -ItemType Directory -Path (Join-Path $dist "v$version"), (Join-Path $dist 'latest'), (Join-Path $work 'pkg') | Out-Null
 Copy-Item $Exe (Join-Path $work 'pkg\howtui.exe')
 Copy-Item (Join-Path $root 'README.md'), (Join-Path $root 'LICENSE') (Join-Path $work 'pkg')
+Copy-Item (Join-Path $root 'scripts\uninstall.ps1') (Join-Path $work 'pkg\uninstall.ps1')
+# never touch the runner's real profiles or data
+$env:HOWTUI_TEST_PS_PROFILE = Join-Path $work 'profile\Microsoft.PowerShell_profile.ps1'
+$env:HOWTUI_DATA_DIR = Join-Path $work 'data'
+$env:HOWTUI_SETUP_SHELL = 'no'
+# never wait for console input (Read-Host) on CI
+$env:HOWTUI_TEST_NO_TTY = '1'
 Compress-Archive -Path (Join-Path $work 'pkg\*') -DestinationPath (Join-Path $dist "v$version\$asset")
 $hash = (Get-FileHash (Join-Path $dist "v$version\$asset") -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -Path (Join-Path $dist "v$version\SHA256SUMS") -Value "$hash  $asset" -Encoding ascii
@@ -62,6 +70,39 @@ try {
     if (-not $threw) { Fail 'tampered archive accepted' } else { Write-Host 'PASS tamper detection' }
     $still = ((& (Join-Path $env:HOWTUI_INSTALL_DIR 'howtui.exe') --version) | Out-String).Trim()
     if ($still -ne "howtui $version") { Fail 'existing binary damaged' }
+
+    # shell integration question and uninstall script (CR-004, CR-006)
+    Compress-Archive -Path (Join-Path $work 'pkg\*') -DestinationPath (Join-Path $dist "v$version\$asset") -Force
+    $hash = (Get-FileHash (Join-Path $dist "v$version\$asset") -Algorithm SHA256).Hash.ToLowerInvariant()
+    Set-Content -Path (Join-Path $dist "v$version\SHA256SUMS") -Value "$hash  $asset" -Encoding ascii
+    Remove-Item Env:HOWTUI_SETUP_SHELL
+    $env:HOWTUI_TEST_ANSWER = 'n'
+    Invoke-Expression $script
+    if (Test-Path -LiteralPath $env:HOWTUI_TEST_PS_PROFILE) { Fail 'profile written after answering no' } else { Write-Host 'PASS answer no keeps profile' }
+    # setting an empty environment variable deletes it, so the Enter default is covered by the regex only
+    $env:HOWTUI_TEST_ANSWER = 'yes'
+    Invoke-Expression $script
+    Invoke-Expression $script
+    $profileText = Get-Content -Raw -LiteralPath $env:HOWTUI_TEST_PS_PROFILE
+    $blocks = ([regex]::Matches($profileText, '>>> howtui shell integration >>>')).Count
+    if ($blocks -ne 1 -or $profileText -notlike '*howtui init powershell | Out-String | Invoke-Expression*') { Fail "profile block ($blocks)" } else { Write-Host 'PASS default answer adds one profile block' }
+    $uninstall = Join-Path $env:HOWTUI_INSTALL_DIR 'howtui-uninstall.ps1'
+    if (-not (Test-Path -LiteralPath $uninstall)) { Fail 'uninstall script not installed' }
+    New-Item -ItemType Directory -Path $env:HOWTUI_DATA_DIR -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $env:HOWTUI_DATA_DIR 'state.json') -Value '{}'
+    & $uninstall
+    if (-not (Test-Path -LiteralPath (Join-Path $env:HOWTUI_INSTALL_DIR 'howtui.exe'))) { Fail 'uninstall ran without confirmation' }
+    & $uninstall -Yes
+    $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment')
+    $raw = $key.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+    $key.Close()
+    $leftPath = ($raw -split ';') | Where-Object { $_.TrimEnd('\') -ieq $env:HOWTUI_INSTALL_DIR.TrimEnd('\') }
+    $profileAfter = Get-Content -Raw -LiteralPath $env:HOWTUI_TEST_PS_PROFILE
+    if ((Test-Path -LiteralPath $env:HOWTUI_INSTALL_DIR) -or (Test-Path -LiteralPath $env:HOWTUI_DATA_DIR) -or $leftPath -or $profileAfter -like '*howtui shell integration*') {
+        Fail 'uninstall left files, PATH entry or profile block'
+    } else {
+        Write-Host 'PASS uninstall script'
+    }
 } finally {
     Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue

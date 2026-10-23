@@ -10,11 +10,21 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::PlaceholderQuestion => "하고 싶은 작업을 입력",
         Msg::PlaceholderFollowUp => "수정 요청 입력, 또는 바로 Enter로 명령어 확정",
         Msg::PlaceholderLoginPaste => "여기에 주소 붙여넣기 (2단계에 해당할 때만)",
-        Msg::HintQuestion => "Enter 제출  Tab 명령  Esc 종료",
+        Msg::HintQuestion => "Enter 제출  Tab 명령  Ctrl+O 모델  Esc 종료",
         Msg::HintCommand => "Enter 확정  Ctrl+J 줄바꿈  Ctrl+E 설명  Tab 질문  Esc 종료",
         Msg::HintFollowUp => "Enter 확정 또는 수정 요청  ↓ 명령 편집  Ctrl+E 설명  Esc 종료",
         Msg::HintRequesting => "Esc 취소",
         Msg::HintLogin => "Enter 로그인  Esc 종료",
+        Msg::HintSettings => "위/아래 이동  Enter 선택  Esc 닫기  (클릭 가능)",
+        Msg::SettingsTitle => "설정",
+        Msg::SettingsAgent => "에이전트",
+        Msg::SettingsModel => "모델",
+        Msg::SettingsSignOut => "로그아웃 (계정 변경)",
+        Msg::SettingsLoading => "모델 목록 불러오는 중",
+        Msg::SettingsApplying => "적용 중",
+        Msg::SettingsClose => "[닫기]",
+        Msg::StatusModelChanged => "모델: {model} (다음 실행에도 유지)",
+        Msg::StatusSignedOut => "로그아웃 완료",
         Msg::StatusGenerating => "생성 중",
         Msg::StatusRevising => "수정 중",
         Msg::StatusExplaining => "설명 생성 중",
@@ -111,9 +121,7 @@ pub fn text(msg: Msg) -> &'static str {
             "--widget은 쉘 통합 스크립트 전용 (HOWTUI_OUTPUT_FILE 미설정). `howtui init --help` 참고"
         }
         Msg::ErrWidgetWrite => "쉘에 명령어 전달 실패 ({detail}). 아래 명령어를 직접 복사:",
-        Msg::ErrInstallUnsupported => {
-            "--install은 bash, zsh 전용. PowerShell은 $PROFILE에 `howtui init powershell | Out-String | Invoke-Expression` 추가"
-        }
+        Msg::ErrInstallUnsupported => "쉘 시작 파일 위치(홈 디렉터리)를 찾지 못함",
         Msg::ErrRcWrite => "{path} 수정 실패: {detail}",
         Msg::RiskHigh => "위험 높음",
         Msg::RiskCaution => "주의",
@@ -158,7 +166,9 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::HelpInitKey => "현재 입력 줄로 howtui를 여는 키 (ctrl+<영문자> 또는 alt+<영문자>)",
         Msg::HelpNoBind => "단축키 미등록",
         Msg::HelpNoWrap => "howtui 쉘 함수 미정의 (결과는 stdout으로만 전달)",
-        Msg::HelpInstall => "쉘 시작 파일(~/.bashrc 또는 ~/.zshrc)에 통합 줄을 표식 구간으로 추가",
+        Msg::HelpInstall => {
+            "쉘 시작 파일(~/.bashrc, ~/.zshrc, PowerShell Profile)에 통합 줄을 표식 구간으로 추가"
+        }
         Msg::HelpUninstall => "--install로 추가한 구간 제거",
         Msg::InitAdded => "{path}에 쉘 통합 추가 완료. 새 터미널에서 적용",
         Msg::InitUpdated => "{path}의 쉘 통합 갱신 완료. 새 터미널에서 적용",

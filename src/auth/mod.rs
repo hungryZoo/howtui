@@ -16,7 +16,7 @@ use tokio::net::TcpListener;
 
 use crate::app::{LoginFailure, LoginInfo, LoginView};
 use crate::llm::types::CancelToken;
-use crate::runtime::{LoginFuture, LoginProgress, LoginService};
+use crate::runtime::{LoginFuture, LoginProgress, LoginService, LogoutFuture};
 use oauth::{AuthorizeParams, Endpoints, OAuthError};
 use secret::Secret;
 use state::{Registration, StateFile};
@@ -628,6 +628,12 @@ impl LoginService for TuiLogin {
             self.auth
                 .login(LoginOptions::from_env(), &*progress, paste, cancel)
                 .await
+        })
+    }
+
+    fn logout(&self) -> LogoutFuture<'_> {
+        Box::pin(async move {
+            let _ = self.auth.logout(false).await;
         })
     }
 }
