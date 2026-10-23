@@ -506,6 +506,7 @@ CI 도입 중 발견과 수정: (1) Bash 5.2의 `bind -x` 안 `$(<file)` 치환 
 | `TC-INS-013` | 통과 | CI installers (windows-2025 powershell 5.1.26100, pwsh 7.6.7) | run 39932086714: answer no keeps profile, default answer adds one profile block, uninstall script |
 | `TC-REL-001` | 통과 | 태그 `v0.1.0` 릴리스 워크플로 | run 39932957686: 7개 대상 빌드, 초안 생성, 체크섬과 압축 파일 구성과 출처 증명(`gh attestation verify`) 확인 후 공개 (2026-10-23T09:42Z) |
 | `TC-REL-008` | 통과 | `release-smoke.yml` | run 39934903418: ubuntu-24.04, ubuntu-24.04-arm, macos-15, windows-2025 (5.1, 7), windows-11-arm 공개 설치, `--version`, 제거 |
+| `TC-REL-001`, `TC-REL-008` (v0.1.1) | 통과 | 릴리스 워크플로, `release-smoke.yml` | release run 39964971837 (7개 대상, 체크섬, 압축 파일 구성, 출처 증명 `refs/tags/v0.1.1`), 공개 2026-10-23T14:02Z, smoke run 39966262288 (6개 러너 설치 0.1.1, 제거) |
 | `TC-SH-021` | 통과 | 단위 `cargo test`, 통합 `tests/cli.rs` | rc_path_rules, powershell_block_is_ascii_and_creates_profile_dir, init_install_edits_only_the_marked_block |
 | `TC-CTX-001` | 통과 | 통합 `tests/cli.rs` | folder_listing_is_sent_only_when_enabled |
 | `TC-CTX-002` | 통과 | 단위 `cargo test`, PTY `tests/pty/run.sh` | folder_toggle_sets_request_flag_and_saves, settings_view_lists_models_and_click_targets, folder |
