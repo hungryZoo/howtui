@@ -1,0 +1,67 @@
+# 공개 릴리스 설치 확인 (TC-REL-008): 실제 공개 설치 명령으로 설치, 버전 확인, 제거 스크립트 실행.
+# 릴리스 공개 시 자동 실행, 수동 재실행 가능.
+name: release-smoke
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # 러너가 대화형으로 판정되어도 질문 대기 없음
+  HOWTUI_SETUP_SHELL: "no"
+
+jobs:
+  unix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - name: Install from the public script (no terminal: shell integration question skipped)
+        run: curl -fsSL https://raw.githubusercontent.com/hungryZoo/howtui/main/scripts/install.sh | sh
+      - name: Installed files
+        run: |
+          ~/.local/bin/howtui --version
+          ~/.local/bin/howtui --help | grep -q "init"
+          test -x ~/.local/bin/howtui-uninstall.sh
+      - name: Uninstall
+        run: |
+          ~/.local/bin/howtui-uninstall.sh -y
+          test ! -e ~/.local/bin/howtui
+          test ! -e ~/.local/bin/howtui-uninstall.sh
+
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2025
+            shell: powershell
+          - runner: windows-2025
+            shell: pwsh
+          - runner: windows-11-arm
+            shell: pwsh
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - name: Install from the public script
+        run: irm https://raw.githubusercontent.com/hungryZoo/howtui/main/scripts/install.ps1 | iex
+      - name: Installed files
+        run: |
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\howtui\bin'
+          & (Join-Path $dir 'howtui.exe') --version
+          if (-not (Test-Path (Join-Path $dir 'howtui-uninstall.ps1'))) { throw 'uninstall script missing' }
+      - name: Uninstall
+        run: |
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\howtui\bin'
+          & (Join-Path $dir 'howtui-uninstall.ps1') -Yes
+          if (Test-Path (Join-Path $dir 'howtui.exe')) { throw 'howtui.exe left' }

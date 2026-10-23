@@ -245,6 +245,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-REL-002 | 자산 명명과 체크섬 | PRD-REL-002, SRS-BLD-006 | 릴리스 산출물 | 파일명 규칙 검사, `sha256sum -c SHA256SUMS` | 규칙 일치, 검증 통과 | 통합 | Linux | 통과 | - |
 | TC-REL-003 | 7개 타깃 | PRD-REL-003, PRD-PLAT-002, SRS-BLD-001, SRS-BLD-003, SRS-BLD-004, SRS-BLD-009, SRS-CMP-005 | P4 | 릴리스 산출물 검사 (`file`, ELF 속성, PE 머신 타입과 임포트 DLL, Mach-O minos와 `codesign -v`) | 7개 타깃 형식 일치, Windows VCRUNTIME 임포트 없음, macOS minos 11.0과 서명 유효 | 통합 | Linux, macOS, Windows | 통과 | - |
 | TC-REL-007 | CI 워크플로 동작 | SRS-BLD-007, PRD-REL-001 | 테스트 PR | PR 생성 | fmt, clippy, 5개 러너 테스트, armv7 교차 빌드와 GLIBC 검사, 추적성 검사, 설치 스크립트 구문 검사 실행과 결과 표시 | 통합 | 전체 | 미실행 | - |
+| TC-REL-008 | 공개 릴리스 설치 확인 | PRD-INS-001, PRD-INS-002, PRD-INS-008, SRS-INS-013 | 공개 릴리스, GitHub 러너 (ubuntu x64와 arm64, macos, windows x64 5.1과 7, windows arm64) | `.github/workflows/release-smoke.yml`: 공개 설치 명령, `--version`, 제거 스크립트 | 설치와 제거 성공 | 통합 | 전체 | 미실행 | - |
 | TC-REL-004 | 최소 타깃과 glibc 하한 | PRD-REL-004, SRS-BLD-002, SRS-CMP-001, SRS-MOD-007 | P1 릴리스 | Linux 자산 GLIBC 심볼 최대 버전 검사 | 2.17 이하 | 통합 | Linux | 통과 | - |
 | TC-REL-005 | 릴리스 노트 | PRD-REL-005, SRS-BLD-011 | 릴리스 초안 | 노트 확인 | 변경 사항, 설치 명령, 체크섬 검증 방법 포함 | 수동 | 전체 | 미실행 | - |
 | TC-REL-006 | 출처 증명 | PRD-REL-006, SRS-BLD-010 | P4 | `gh attestation verify` | 검증 통과 | 통합 | 전체 | 미실행 | - |

@@ -10,7 +10,7 @@
 | MRD 항목 | 77 |
 | PRD 요구사항 | 165 |
 | SRS 설계 요구사항 | 184 |
-| TC | 205 |
+| TC | 206 |
 | 오류 (누락, 불일치) | 0 |
 | 경고 (TC 미연결 SRS) | 0 |
 
@@ -144,14 +144,14 @@
 | PRD-DOC-007 | P4 | 필수 | MRD-SCP-103 | SRS-DOC-005 | TC-DOC-007 | `src/doctor/` | 미실행 1 |
 | PRD-DOC-008 | P6 | 필수 | MRD-SCP-105 | SRS-DOC-005 | TC-DOC-008 | `src/doctor/` | 미실행 1 |
 | PRD-DOC-009 | P1 | 필수 | MRD-SCN-008 | SRS-DOC-004 | TC-DOC-006 | `src/doctor/mod.rs` | 통과 1 |
-| PRD-INS-001 | P1 | 필수 | MRD-SCP-007, MRD-SCN-009 | SRS-INS-001, SRS-INS-003, SRS-INS-004, SRS-INS-005, SRS-INS-006, SRS-INS-007, SRS-INS-014, SRS-SEC-006 | TC-SH-009, TC-INS-001, TC-INS-002, TC-INS-003, TC-INS-011 | `scripts/`<br>`scripts/install.sh`<br>`scripts/install.sh`, `scripts/install.ps1` | 통과 5 |
-| PRD-INS-002 | P1 | 필수 | MRD-SCP-007 | SRS-INS-008, SRS-INS-009, SRS-INS-010, SRS-INS-015 | TC-INS-005, TC-INS-006, TC-INS-013 | `scripts/install.ps1`<br>`scripts/install.ps1`, `src/shell/rc.rs` | 미실행 1, 통과 2 |
+| PRD-INS-001 | P1 | 필수 | MRD-SCP-007, MRD-SCN-009 | SRS-INS-001, SRS-INS-003, SRS-INS-004, SRS-INS-005, SRS-INS-006, SRS-INS-007, SRS-INS-014, SRS-SEC-006 | TC-SH-009, TC-INS-001, TC-INS-002, TC-INS-003, TC-INS-011, TC-REL-008 | `scripts/`<br>`scripts/install.sh`<br>`scripts/install.sh`, `scripts/install.ps1` | 미실행 1, 통과 5 |
+| PRD-INS-002 | P1 | 필수 | MRD-SCP-007 | SRS-INS-008, SRS-INS-009, SRS-INS-010, SRS-INS-015 | TC-INS-005, TC-INS-006, TC-INS-013, TC-REL-008 | `scripts/install.ps1`<br>`scripts/install.ps1`, `src/shell/rc.rs` | 미실행 2, 통과 2 |
 | PRD-INS-003 | P1 | 필수 | MRD-PLT-004 | SRS-INS-002 | TC-INS-004 | `scripts/install.sh` | 통과 1 |
 | PRD-INS-004 | P1 | 필수 | MRD-SCP-007 | SRS-INS-002, SRS-INS-009 | TC-INS-004 | `scripts/install.ps1`<br>`scripts/install.sh` | 통과 1 |
 | PRD-INS-005 | P1 | 필수 | MRD-EXC-005 | SRS-INS-005 | TC-INS-001 | `scripts/install.sh` | 통과 1 |
 | PRD-INS-006 | P1 | 필수 | MRD-SCN-009 | SRS-INS-011 | TC-INS-007 | `README.md` | 미실행 1 |
 | PRD-INS-007 | P4 | 필수 | MRD-SCN-009 | SRS-INS-012 | TC-INS-008 | `README.md`, `scripts/` | 미실행 1 |
-| PRD-INS-008 | P2 | 필수 | MRD-SCN-009 | SRS-INS-013 | TC-INS-009, TC-INS-012, TC-INS-013 | `scripts/uninstall.sh`, `scripts/uninstall.ps1`, `scripts/install.sh`, `scripts/install.ps1`, `README.md` | 미실행 1, 통과 2 |
+| PRD-INS-008 | P2 | 필수 | MRD-SCN-009 | SRS-INS-013 | TC-INS-009, TC-INS-012, TC-INS-013, TC-REL-008 | `scripts/uninstall.sh`, `scripts/uninstall.ps1`, `scripts/install.sh`, `scripts/install.ps1`, `README.md` | 미실행 2, 통과 2 |
 | PRD-INS-009 | P1 | 필수 | MRD-SCN-009 | SRS-INS-004, SRS-SEC-006 | TC-INS-003, TC-INS-010 | `scripts/`<br>`scripts/install.sh`, `scripts/install.ps1` | 통과 2 |
 | PRD-REL-001 | P1 | 필수 | MRD-SCP-007 | SRS-MOD-004, SRS-BLD-005, SRS-BLD-007, SRS-BLD-008, SRS-SEC-005, SRS-PERF-003, SRS-TEST-005 | TC-REL-001, TC-REL-007, TC-NFR-004, TC-NFR-008, TC-NFR-010, TC-NFR-012 | CI<br>`.github/workflows/`<br>`.github/workflows/ci.yml`<br>`.github/workflows/release.yml`<br>`Cargo.toml`<br>`scripts/trace_check.py` | 미실행 3, 통과 3 |
 | PRD-REL-002 | P1 | 필수 | MRD-SCP-007 | SRS-BLD-006 | TC-REL-002 | `.github/workflows/release.yml` | 통과 1 |
