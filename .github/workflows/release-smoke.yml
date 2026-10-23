@@ -23,7 +23,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
-      - name: Install from the public script (no terminal: shell integration question skipped)
+      - name: Install from the public script (no terminal, so no shell integration question)
         run: curl -fsSL https://raw.githubusercontent.com/hungryZoo/howtui/main/scripts/install.sh | sh
       - name: Installed files
         run: |
