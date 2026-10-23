@@ -215,42 +215,14 @@ pub fn status_command(_loaded: &Loaded, _rt: &tokio::runtime::Runtime) -> ExitCo
     if let Some(exp) = st.expires_at {
         println!(
             "{}",
-            trf(Msg::AuthStatusExpires, &[("time", &format_utc(exp))])
+            trf(
+                Msg::AuthStatusExpires,
+                &[("time", &crate::platform::time::format_utc(exp))]
+            )
         );
     }
     if let Some(store) = st.store {
         println!("{}", trf(Msg::AuthStatusStore, &[("store", store.name())]));
     }
     ExitCode::SUCCESS
-}
-
-/// Unix 시각 → `YYYY-MM-DD HH:MM:SS UTC` (외부 crate 없이 그레고리력 변환).
-pub fn format_utc(secs: u64) -> String {
-    let days = (secs / 86_400) as i64;
-    let rem = secs % 86_400;
-    let (h, m, s) = (rem / 3600, (rem % 3600) / 60, rem % 60);
-    // Howard Hinnant civil_from_days
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let mo = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = if mo <= 2 { y + 1 } else { y };
-    format!("{y:04}-{mo:02}-{d:02} {h:02}:{m:02}:{s:02} UTC")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::format_utc;
-
-    #[test]
-    fn utc_formatting() {
-        assert_eq!(format_utc(0), "1970-01-01 00:00:00 UTC");
-        assert_eq!(format_utc(1_792_253_674), "2026-10-17 16:14:34 UTC");
-        assert_eq!(format_utc(951_782_400), "2000-02-29 00:00:00 UTC");
-    }
 }

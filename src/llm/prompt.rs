@@ -104,7 +104,7 @@ pub fn build(req: &LlmRequest) -> Prompt {
     // 사용자가 켠 경우에만 (CR-007). 이력에는 남기지 않음
     if let Some(listing) = &req.folder {
         last.push_str(&format!(
-            "\n\nCurrent folder listing (names, types and sizes only):\n{}",
+            "\n\nCurrent folder listing (like ls -al; file contents are not included):\n{}",
             fence(listing)
         ));
     }

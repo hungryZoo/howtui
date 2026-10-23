@@ -80,7 +80,7 @@ Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit             g
 - **Inline UI.** Uses only a few lines below your prompt (10 by default) and never switches to the alternate screen.
 - **Edit, then ask.** Edit the command in place (multi-line, undo and redo, Unicode aware), then ask a follow-up; the model sees your edits.
 - **Explain on demand.** After editing by hand, press Ctrl+E to explain the current command.
-- **Folder-aware on request.** Turn on the folder listing (Ctrl+F or the `[folder: off]` button) and *"extract the archive"* picks the archive that is actually in the current folder. Only names, types and sizes are sent, never file contents; it is off until you turn it on.
+- **Folder-aware on request.** Turn on the folder listing (Ctrl+F or the `[folder: off]` button) and *"extract the archive"* picks the archive that is actually in the current folder. It sends an `ls -al` style listing (no file contents, owners or paths); it is off until you turn it on.
 - **Pick the model.** Ctrl+O, `/model` or a click on the model name in the status line opens the settings view: your agent and account, the models your ChatGPT plan offers, and sign-out. The choice is kept for next time. Default: GPT-6-Luna when your account lists it.
 - **Clean stdout.** The UI draws on the controlling terminal, so `cmd=$(howtui)` and `howtui | pbcopy` receive only the command.
 - **Shell integration (optional).** Ctrl+G opens howtui on the current command line in Bash, Zsh or PowerShell, and typing `howtui` puts the result into the next prompt. The installer asks before adding it to your rc file; nothing is changed without a yes.
@@ -313,18 +313,22 @@ added there; the Codex CLI was evaluated as an agent and not adopted, see
 
 Off by default. Turn it on with **Ctrl+F**, a click on `[folder: off]` at the right of the status line, or the line in
 Settings; the choice is kept for next time (`context.folder = true` in the config file sets the starting value). While it
-is on, every request also carries a listing of the current folder:
+is on, every request also carries an `ls -al` style listing of the current folder, built by howtui itself (no `ls` is run,
+so it works the same on Windows):
 
 ```text
-data/
-backup-2026-10.tar.gz  48.2 MB
-notes.txt  1.2 KB
-(3 hidden entries not listed)
+listed 2026-10-24 01:40 UTC; mode, size, modified (UTC), name; owners and link targets omitted
+drwxr-xr-x       - 2026-10-20 14:03 data/
+-rw-------      48 2026-10-22 18:40 .env
+-rw-r--r--   48.8K 2026-10-23 09:12 backup-2026-10.tar.gz
+-rwxr-xr-x     310 2026-10-01 11:00 run.sh
+lrwxrwxrwx       - 2026-09-30 08:00 current@
 ```
 
-Only the first level, at most 150 entries: names, `/` for folders, `@` for links, file sizes. Not sent: file contents,
-hidden entries (names starting with `.`), what is inside subfolders, the folder path. File names are passed to the model as
-data, and howtui still never runs the suggested command. `--no-tui` follows the same setting.
+Only the first level, at most 150 entries, hidden entries included: type and permissions, size, modification time, name.
+Not sent: file contents, owner and group (your account name), link targets, what is inside subfolders, the folder path.
+File names are passed to the model as data, and howtui still never runs the suggested command. `--no-tui` follows the same
+setting.
 
 While howtui is open it receives mouse clicks, so selecting terminal text needs Shift+drag (Option+drag in iTerm2). Set
 `ui.mouse = false` to keep the terminal's own mouse handling. Clicks are off on the sign-in screen so you can copy the URL.
@@ -397,7 +401,7 @@ language = "auto"      # "auto", "en" or "ko"
 mouse = true           # false: no clicks, terminal keeps its own text selection and scrolling
 
 [context]
-folder = false         # true: send the current folder listing (names, sizes) unless turned off with Ctrl+F
+folder = false         # true: send the ls -al style folder listing unless turned off with Ctrl+F
 
 [provider]
 default = "chatgpt"
@@ -458,8 +462,9 @@ Zero W (ARMv6) are not supported, and no Raspberry Pi hardware has been tested y
 
 - **Sent to OpenAI when you submit a request:** your question, the current command (including your edits), your OS, CPU
   architecture and shell name, and earlier turns of the same session. Only when you turn on the
-  [folder listing](#folder-listing): the names, types and sizes in the current folder. Never sent: environment variables,
-  file contents, hidden files, shell history, the folder path.
+  [folder listing](#folder-listing): an `ls -al` style listing of the current folder (names including hidden ones,
+  permissions, sizes, modification times). Never sent: environment variables, file contents, owner names, shell history,
+  the folder path.
 - **Received at sign-in:** your account email and name. howtui keeps the email to show it masked.
 - **Stored on your machine:** OAuth tokens in the OS credential store (Keychain, Credential Manager, Secret Service) or, when
   none is available, in a `0600` file in the data directory.

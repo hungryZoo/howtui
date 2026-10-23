@@ -49,7 +49,7 @@
 | PRD-UI-014 | P1 | 필수 | MRD-EXC-012 | SRS-TUI-013 | TC-UI-013 | `src/ui/`, `README.md` | 통과 1 |
 | PRD-UI-015 | P2 | 필수 | MRD-SCN-002 | SRS-LLM-013, SRS-TUI-014 | TC-UI-019 | `src/app/update.rs`, `src/ui/inline.rs`<br>`src/llm/types.rs`, `src/llm/chatgpt.rs`, `src/runtime.rs` | 통과 1 |
 | PRD-UI-016 | P2 | 필수 | MRD-SCN-002 | SRS-TUI-015 | TC-UI-020 | `src/runtime.rs`, `src/ui/terminal.rs`, `src/config/mod.rs` | 통과 1 |
-| PRD-CTX-001 | P2 | 필수 | MRD-SCN-002, MRD-EXC-006 | SRS-CTX-001, SRS-CTX-002 | TC-CTX-001, TC-CTX-002 | `src/app/update.rs`, `src/ui/inline.rs`, `src/cli/mod.rs`, `src/config/mod.rs`<br>`src/context/mod.rs`, `src/llm/prompt.rs`, `src/runtime.rs`, `src/cli/no_tui.rs` | 통과 2 |
+| PRD-CTX-001 | P2 | 필수 | MRD-SCN-002, MRD-EXC-006 | SRS-CTX-001, SRS-CTX-002 | TC-CTX-001, TC-CTX-002 | `src/app/update.rs`, `src/ui/inline.rs`, `src/cli/mod.rs`, `src/config/mod.rs`<br>`src/context/mod.rs`, `src/platform/time.rs`, `src/llm/prompt.rs`, `src/runtime.rs`, `src/cli/no_tui.rs` | 통과 2 |
 | PRD-KEY-001 | P1 | 필수 | MRD-SCP-001, MRD-SCP-002 | SRS-TUI-002, SRS-TUI-005 | TC-KEY-001, TC-KEY-002, TC-KEY-005 | `src/app/update.rs`<br>`src/ui/keymap.rs` | 미실행 1, 통과 2 |
 | PRD-KEY-002 | P1 | 권장 | MRD-SCP-002 | SRS-TUI-008 | TC-KEY-003 | `src/ui/terminal.rs` | 미실행 1 |
 | PRD-KEY-003 | P1 | 필수 | MRD-SCP-001 | SRS-TUI-012 | TC-KEY-004 | `src/config/mod.rs` | 통과 1 |
@@ -168,8 +168,8 @@
 | PRD-SAFE-005 | P1 | 필수 | MRD-SCP-008 | SRS-SAFE-007 | TC-SAFE-005 | `src/ui/inline.rs` | 통과 1 |
 | PRD-SAFE-006 | P1 | 필수 | MRD-EXC-001 | SRS-SAFE-004 | TC-SAFE-001 | 저장소 전체 | 통과 1 |
 | PRD-SAFE-007 | P1 | 필수 | MRD-SCP-008 | SRS-SAFE-005, SRS-TEST-003 | TC-SAFE-006 | `src/safety/`<br>`src/safety/tests.rs` | 통과 1 |
-| PRD-PRIV-001 | P1 | 필수 | MRD-EXC-006 | SRS-CTX-001, SRS-SEC-004 | TC-PRIV-001 | `src/context/mod.rs`, `src/llm/prompt.rs`, `src/runtime.rs`, `src/cli/no_tui.rs`<br>`src/llm/prompt.rs` | 통과 1 |
-| PRD-PRIV-002 | P1 | 필수 | MRD-EXC-006 | SRS-CTX-001, SRS-SEC-004 | TC-CTX-001, TC-PRIV-001 | `src/context/mod.rs`, `src/llm/prompt.rs`, `src/runtime.rs`, `src/cli/no_tui.rs`<br>`src/llm/prompt.rs` | 통과 2 |
+| PRD-PRIV-001 | P1 | 필수 | MRD-EXC-006 | SRS-CTX-001, SRS-SEC-004 | TC-PRIV-001 | `src/context/mod.rs`, `src/platform/time.rs`, `src/llm/prompt.rs`, `src/runtime.rs`, `src/cli/no_tui.rs`<br>`src/llm/prompt.rs` | 통과 1 |
+| PRD-PRIV-002 | P1 | 필수 | MRD-EXC-006 | SRS-CTX-001, SRS-SEC-004 | TC-CTX-001, TC-PRIV-001 | `src/context/mod.rs`, `src/platform/time.rs`, `src/llm/prompt.rs`, `src/runtime.rs`, `src/cli/no_tui.rs`<br>`src/llm/prompt.rs` | 통과 2 |
 | PRD-PRIV-003 | P1 | 필수 | MRD-EXC-006 | SRS-CLI-004, SRS-AUTH-013 | TC-AUTH-018, TC-PRIV-002 | `src/auth/notice.rs`<br>`src/cli/mod.rs` | 통과 2 |
 | PRD-PRIV-004 | P1 | 필수 | MRD-EXC-006 | SRS-SEC-007 | TC-PRIV-002, TC-PRIV-005 | `src/app/update.rs`, `src/llm/prompt.rs` | 미실행 1, 통과 1 |
 | PRD-PRIV-005 | P1 | 필수 | MRD-EXC-006 | SRS-OUT-004, SRS-AUTH-012 | TC-OUT-011, TC-PRIV-003 | `src/auth/secret.rs`<br>`src/main.rs` | 통과 2 |

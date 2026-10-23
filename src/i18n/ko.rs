@@ -25,7 +25,7 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::FolderOff => "폴더: 끔",
         Msg::StateOn => "켬",
         Msg::StateOff => "끔",
-        Msg::StatusFolderOn => "폴더 목록 보내기 켬: 이 폴더의 이름과 크기 전송 (내용 제외)",
+        Msg::StatusFolderOn => "폴더 목록 보내기 켬: ls -al 형식 목록 전송 (내용 제외)",
         Msg::StatusFolderOff => "폴더 목록 보내기 끔",
         Msg::SettingsLoading => "모델 목록 불러오는 중",
         Msg::SettingsApplying => "적용 중",
@@ -75,8 +75,9 @@ pub fn text(msg: Msg) -> &'static str {
             "howtui는 ChatGPT 계정(Sign in with ChatGPT)으로 로그인하고, 발급된 토큰을 이 기기에 저장 \
              (OS 보안 저장소, 또는 본인만 읽을 수 있는 파일). OpenAI로부터 계정 이메일과 이름을 수신. \
              요청 제출 시 질문, 현재 명령어(사용자 수정본과 시작 시점의 쉘 입력란 포함), OS, CPU 아키텍처, 쉘 이름을 \
-             OpenAI로 전송. 폴더 목록 보내기(Ctrl+F)를 켠 경우에만 현재 폴더의 파일 이름, 종류, 크기를 함께 전송. \
-             환경변수, 파일 내용, 숨김 파일, 쉘 히스토리, 작업 디렉터리 경로는 전송하지 않으며 명령어를 실행하지 않음."
+             OpenAI로 전송. 폴더 목록 보내기(Ctrl+F)를 켠 경우에만 현재 폴더의 ls -al 형식 목록(숨김 항목 포함 이름, 종류와 권한, \
+             크기, 수정 시각)을 함께 전송. 환경변수, 파일 내용, 소유자 이름, 쉘 히스토리, 작업 디렉터리 경로는 전송하지 않으며 \
+             명령어를 실행하지 않음."
         }
         Msg::LogoutDone => "로그아웃 완료",
         Msg::LogoutForgetDone => "로그아웃과 계정 등록 정보 삭제 완료",
@@ -190,7 +191,7 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::HelpVersion => "버전 출력",
         Msg::HelpAfter => {
             "종료 코드: 0 확정, 2 사용법, 3 터미널 없음, 4 인증, 5 플랜과 사용량, 6 네트워크, 7 Provider, 8 설정, 130 취소\n\
-             모델 전송 정보: 질문, 현재 명령어, OS, CPU 아키텍처, 쉘 이름. 현재 폴더 목록(이름, 크기)은 켠 경우만 (Ctrl+F, 설정 context.folder)\n\
+             모델 전송 정보: 질문, 현재 명령어, OS, CPU 아키텍처, 쉘 이름. 현재 폴더의 ls -al 형식 목록(내용 제외)은 켠 경우만 (Ctrl+F, 설정 context.folder)\n\
              위험 경고는 규칙 기반 참고 정보이며 보안 보장 수단이 아님. howtui는 명령어를 실행하지 않음"
         }
     }

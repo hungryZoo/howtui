@@ -502,7 +502,7 @@ mod chatgpt_e2e {
         assert!(v["instructions"].as_str().unwrap().contains("shell=Zsh"));
     }
 
-    /// 현재 폴더 목록은 켠 경우에만 이름과 크기로 전송, 파일 내용과 숨김 항목과 절대 경로 제외 (TC-CTX-001).
+    /// 현재 폴더 목록은 켠 경우에만 ls -al 형식(숨김 항목 포함)으로 전송, 파일 내용과 절대 경로 제외 (TC-CTX-001).
     #[tokio::test(flavor = "multi_thread")]
     async fn folder_listing_is_sent_only_when_enabled() {
         let server = MockServer::start().await;
@@ -560,7 +560,8 @@ mod chatgpt_e2e {
             )
             .into_owned();
             assert_eq!(raw.contains("backup.tar.gz"), enabled, "enabled={enabled}");
-            for absent in ["SECRET-CONTENT", ".env", "TOKEN=1"] {
+            assert_eq!(raw.contains(".env"), enabled, "숨김 항목 이름 (켬일 때만)");
+            for absent in ["SECRET-CONTENT", "TOKEN=1"] {
                 assert!(!raw.contains(absent), "{absent}");
             }
             assert!(!raw.contains(&work.display().to_string()), "absolute path");

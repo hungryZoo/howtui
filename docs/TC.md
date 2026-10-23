@@ -68,9 +68,9 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-UI-018 | 빈 질문 영역 Undo | PRD-EDIT-007, SRS-TUI-005 | Mock 응답 | 후속 수정 응답 후 질문 영역에서 Ctrl+Z | AI 반영 직전 명령어 복원 | 단위 | 전체 | 통과 | - |
 | TC-UI-019 | 설정 화면 키보드 조작 | PRD-UI-015, SRS-TUI-014, SRS-LLM-013 | Mock Provider | Ctrl+O, `/model`, 위아래, Enter, Esc, 현재 모델 Enter, 목록 오류, 인증 오류 | 목록과 현재 모델 표시, 선택 반영과 저장 안내, Esc 닫기(종료 아님), 오류 표시, 인증 오류는 로그인 필요 화면 | 단위, PTY | 전체 | 통과 | - |
 | TC-UI-020 | 클릭 입력 | PRD-UI-016, SRS-TUI-015 | Mock Provider, SGR 마우스 시퀀스 | 상태줄 `[모델]` 클릭, 항목 클릭, 질문과 명령어 칸 클릭, 휠, 종료 | 설정 화면 열림, 모델 변경, 포커스 이동, 커서 이동, 종료 후 마우스 보고 해제(`?1000l`) | 단위, PTY | Unix | 통과 | - |
-| TC-CTX-001 | 폴더 목록 전송 범위 | PRD-CTX-001, PRD-PRIV-002, SRS-CTX-001 | Mock HTTP 서버, 숨김 파일과 비밀 내용 파일이 있는 작업 폴더 | `--no-tui` 실행: 설정 없음, `context.folder = true` | 끔일 때 파일 이름 미전송, 켬일 때 이름 전송, 두 경우 모두 파일 내용과 숨김 항목과 절대 경로 미전송 | 통합 | 전체 | 통과 | - |
+| TC-CTX-001 | 폴더 목록 전송 범위 | PRD-CTX-001, PRD-PRIV-002, SRS-CTX-001 | Mock HTTP 서버, 숨김 파일과 비밀 내용 파일이 있는 작업 폴더 | `--no-tui` 실행: 설정 없음, `context.folder = true` | 끔일 때 파일 이름과 숨김 항목 이름 미전송, 켬일 때 둘 다 전송, 두 경우 모두 파일 내용과 절대 경로 미전송 | 통합 | 전체 | 통과 | - |
 | TC-CTX-002 | 폴더 목록 켜기와 끄기 | PRD-CTX-001, SRS-CTX-002 | Mock Provider | 시작, Ctrl+F, 상태줄 `[folder: on]` 클릭, 설정 화면 항목 클릭 | 기본 `[folder: off]`, 켬 안내와 `[folder: on]`, 클릭으로 끔, 요청 `include_folder` 반영, 저장 Effect | 단위, PTY | 전체 | 통과 | - |
-| TC-CTX-003 | 폴더 목록 형식 | SRS-CTX-001 | 임시 폴더 (폴더, 파일, 숨김 파일, 심볼릭 링크, 155개 파일, 제어 문자 이름) | 목록 생성, 프롬프트 구성 | 폴더 먼저, 크기 표시, 링크 미추적, 숨김 개수만, 상한과 생략 표시, 제어 문자 치환, 마지막 사용자 메시지에만 추가 | 단위 | 전체 | 통과 | - |
+| TC-CTX-003 | 폴더 목록 형식 | SRS-CTX-001 | 임시 폴더 (폴더, 파일, 숨김 파일, 권한 0640 파일, 심볼릭 링크, 155개 파일, 제어 문자 이름) | 목록 생성, 프롬프트 구성 | 첫 줄 시각과 열 설명, 폴더 먼저, `-rw-r-----` 권한과 크기, 숨김 항목 포함, 링크 대상과 소유자 이름 미포함, 상한과 생략 표시, 제어 문자 치환, 마지막 사용자 메시지에만 추가 | 단위 | 전체 | 통과 | - |
 | TC-UI-016 | Windows ConPTY 자동 E2E | PRD-UI-001, PRD-UI-010, SRS-TERM-003, SRS-TEST-006 | windows-2025, windows-11-arm 러너, Mock 시나리오 | `tests/conpty.rs`: 의사 콘솔에서 질문 입력, 응답 표시 확인, 확정, Ctrl+C 취소 | 화면 렌더링(한글, 이모지 포함), 확정 0, 취소 130 | PTY | Windows | 통과 | - |
 
 ## 4. 키 바인딩과 편집
@@ -508,6 +508,6 @@ CI 도입 중 발견과 수정: (1) Bash 5.2의 `bind -x` 안 `$(<file)` 치환 
 | `TC-REL-008` | 통과 | `release-smoke.yml` | run 39934903418: ubuntu-24.04, ubuntu-24.04-arm, macos-15, windows-2025 (5.1, 7), windows-11-arm 공개 설치, `--version`, 제거 |
 | `TC-REL-001`, `TC-REL-008` (v0.1.1) | 통과 | 릴리스 워크플로, `release-smoke.yml` | release run 39964971837 (7개 대상, 체크섬, 압축 파일 구성, 출처 증명 `refs/tags/v0.1.1`), 공개 2026-10-23T14:02Z, smoke run 39966262288 (6개 러너 설치 0.1.1, 제거) |
 | `TC-SH-021` | 통과 | 단위 `cargo test`, 통합 `tests/cli.rs` | rc_path_rules, powershell_block_is_ascii_and_creates_profile_dir, init_install_edits_only_the_marked_block |
-| `TC-CTX-001` | 통과 | 통합 `tests/cli.rs` | folder_listing_is_sent_only_when_enabled |
+| `TC-CTX-001` | 통과 | 통합 `tests/cli.rs` | folder_listing_is_sent_only_when_enabled (CR-008 이후 숨김 항목 조건 포함) |
 | `TC-CTX-002` | 통과 | 단위 `cargo test`, PTY `tests/pty/run.sh` | folder_toggle_sets_request_flag_and_saves, settings_view_lists_models_and_click_targets, folder |
-| `TC-CTX-003` | 통과 | 단위 `cargo test` | lists_names_types_sizes_without_contents_or_hidden, caps_entries_and_cleans_names, folder_listing_only_when_given |
+| `TC-CTX-003` | 통과 | 단위 `cargo test` | ls_al_like_listing_without_contents_owners_or_link_targets, caps_entries_and_cleans_names, folder_listing_only_when_given (CR-008 이후 재실행) |

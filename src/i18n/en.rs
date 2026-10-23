@@ -25,7 +25,7 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::FolderOff => "folder: off",
         Msg::StateOn => "on",
         Msg::StateOff => "off",
-        Msg::StatusFolderOn => "Folder listing on: names and sizes here are sent (no contents).",
+        Msg::StatusFolderOn => "Folder listing on: an ls -al style listing is sent (no contents).",
         Msg::StatusFolderOff => "Folder listing off.",
         Msg::SettingsLoading => "Loading models",
         Msg::SettingsApplying => "Applying",
@@ -80,8 +80,9 @@ pub fn text(msg: Msg) -> &'static str {
              (OS credential store, or a file readable only by you). It receives your account email and name from OpenAI. \
              When you submit a request it sends your question, the current command (including your edits or the shell line \
              you started from), the OS, CPU architecture and shell name to OpenAI. Only if you turn on the folder listing \
-             (Ctrl+F) it also sends the names, types and sizes of the entries in the current folder. It never sends \
-             environment variables, file contents, hidden files, shell history or the folder path, and it never runs commands."
+             (Ctrl+F) it also sends an ls -al style listing of the current folder (names including hidden ones, types and \
+             permissions, sizes, modification times). It never sends environment variables, file contents, owner names, \
+             shell history or the folder path, and it never runs commands."
         }
         Msg::LogoutDone => "Signed out.",
         Msg::LogoutForgetDone => "Signed out and removed the account registration.",
@@ -207,7 +208,7 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::HelpVersion => "Print version",
         Msg::HelpAfter => {
             "Exit codes: 0 accepted, 2 usage, 3 no terminal, 4 auth, 5 plan/usage, 6 network, 7 provider, 8 config, 130 cancelled.\n\
-             Sent to the model: your question, the current command, OS, CPU architecture and shell name; the current folder listing (names, sizes) only when turned on (Ctrl+F, context.folder).\n\
+             Sent to the model: your question, the current command, OS, CPU architecture and shell name; an ls -al style listing of the current folder (no contents) only when turned on (Ctrl+F, context.folder).\n\
              Danger warnings are rule-based hints, not a security guarantee. howtui never runs commands."
         }
     }
