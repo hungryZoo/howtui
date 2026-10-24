@@ -90,7 +90,7 @@
 | PRD-AUTH-004 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-004 | TC-AUTH-005, TC-AUTH-006 | `src/auth/idtoken.rs` | 통과 2 |
 | PRD-AUTH-005 | P1 | 필수 | MRD-SCN-007, MRD-RSK-004 | SRS-AUTH-005 | TC-AUTH-007, TC-AUTH-009 | `src/auth/mod.rs`, `src/cli/provider.rs` | 미실행 1, 통과 1 |
 | PRD-AUTH-006 | P1 | 필수 | MRD-SCN-007 | SRS-AUTH-006 | TC-AUTH-008, TC-AUTH-023, TC-AUTH-025 | `src/auth/callback.rs`, `src/app/update.rs` | 통과 3 |
-| PRD-AUTH-007 | P4 | 권장 | MRD-SCN-007 | SRS-AUTH-015 | TC-AUTH-010 | `src/auth/transfer.rs` | 미실행 1 |
+| PRD-AUTH-007 | P4 | 권장 | MRD-SCN-007 | SRS-AUTH-015 | TC-AUTH-010 | `src/auth/transfer.rs` | 보류 1 |
 | PRD-AUTH-008 | P1 | 필수 | MRD-SCP-004 | SRS-MOD-006, SRS-AUTH-007 | TC-AUTH-011 | `src/auth/store.rs` | 통과 1 |
 | PRD-AUTH-009 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-008 | TC-AUTH-012, TC-AUTH-013, TC-AUTH-022 | `src/auth/session.rs` | 미실행 1, 통과 2 |
 | PRD-AUTH-010 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-009 | TC-AUTH-014, TC-AUTH-022 | `src/auth/session.rs` | 미실행 1, 통과 1 |
@@ -155,14 +155,14 @@
 | PRD-INS-005 | P1 | 필수 | MRD-EXC-005 | SRS-INS-005 | TC-INS-001 | `scripts/install.sh` | 통과 1 |
 | PRD-INS-006 | P1 | 필수 | MRD-SCN-009 | SRS-INS-011 | TC-INS-007 | `README.md` | 통과 1 |
 | PRD-INS-007 | P2 | 필수 | MRD-SCN-009 | SRS-INS-012 | TC-INS-008 | `README.md`, `scripts/` | 통과 1 |
-| PRD-INS-008 | P2 | 필수 | MRD-SCN-009 | SRS-INS-013 | TC-INS-009, TC-INS-012, TC-INS-013, TC-REL-008 | `scripts/uninstall.sh`, `scripts/uninstall.ps1`, `scripts/install.sh`, `scripts/install.ps1`, `README.md` | 미실행 1, 통과 3 |
+| PRD-INS-008 | P2 | 필수 | MRD-SCN-009 | SRS-INS-013 | TC-INS-009, TC-INS-012, TC-INS-013, TC-REL-008 | `scripts/uninstall.sh`, `scripts/uninstall.ps1`, `scripts/install.sh`, `scripts/install.ps1`, `README.md` | 통과 4 |
 | PRD-INS-009 | P1 | 필수 | MRD-SCN-009 | SRS-INS-004, SRS-SEC-006 | TC-INS-003, TC-INS-010 | `scripts/`<br>`scripts/install.sh`, `scripts/install.ps1` | 통과 2 |
 | PRD-REL-001 | P1 | 필수 | MRD-SCP-007 | SRS-MOD-004, SRS-BLD-005, SRS-BLD-007, SRS-BLD-008, SRS-SEC-005, SRS-PERF-003, SRS-TEST-005 | TC-REL-001, TC-REL-007, TC-NFR-004, TC-NFR-008, TC-NFR-010, TC-NFR-012 | CI<br>`.github/workflows/`<br>`.github/workflows/ci.yml`<br>`.github/workflows/release.yml`<br>`Cargo.toml`<br>`scripts/trace_check.py` | 통과 6 |
 | PRD-REL-002 | P1 | 필수 | MRD-SCP-007 | SRS-BLD-006 | TC-REL-002 | `.github/workflows/release.yml` | 통과 1 |
 | PRD-REL-003 | P4 | 필수 | MRD-SCP-103, MRD-DIF-008 | SRS-BLD-001, SRS-BLD-009 | TC-REL-003 | `.github/workflows/release.yml` | 통과 1 |
 | PRD-REL-004 | P1 | 필수 | MRD-SCP-007 | SRS-BLD-001, SRS-BLD-002, SRS-CMP-001 | TC-REL-004 | CI<br>`.github/workflows/`<br>`.github/workflows/release.yml` | 통과 1 |
 | PRD-REL-005 | P1 | 필수 | MRD-SCN-009 | SRS-BLD-011 | TC-REL-005 | `.github/release-notes/` | 미실행 1 |
-| PRD-REL-006 | P4 | 권장 | MRD-SCN-009 | SRS-BLD-010 | TC-REL-006 | `.github/workflows/release.yml`, 문서 | 미실행 1 |
+| PRD-REL-006 | P4 | 권장 | MRD-SCN-009 | SRS-BLD-010 | TC-REL-006 | `.github/workflows/release.yml`, 문서 | 통과 1 |
 | PRD-REL-007 | P1 | 필수 | MRD-SCP-007 | SRS-BLD-008 | TC-REL-001 | `.github/workflows/release.yml` | 통과 1 |
 | PRD-SAFE-001 | P1 | 필수 | MRD-EXC-001, MRD-DIF-002 | SRS-SAFE-004 | TC-SAFE-001 | 저장소 전체 | 통과 1 |
 | PRD-SAFE-002 | P1 | 필수 | MRD-SCP-008, MRD-DIF-009 | SRS-SAFE-001, SRS-SAFE-002, SRS-SAFE-003 | TC-SAFE-002, TC-SAFE-007 | `src/app/update.rs`<br>`src/safety/`<br>`src/safety/lexer.rs` | 통과 2 |
@@ -179,8 +179,8 @@
 | PRD-PRIV-006 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-007, SRS-CFG-008, SRS-SEC-003 | TC-CFG-007, TC-PRIV-004 | `src/auth/store.rs`<br>`src/platform/fs.rs` | 통과 2 |
 | PRD-PLAT-001 | P1 | 필수 | MRD-PLT-001, MRD-PLT-002, MRD-PLT-003 | SRS-ARC-004, SRS-CMP-004, SRS-CMP-006 | TC-PLAT-001 | `README.md`<br>`src/platform/`, `src/shell/`<br>`src/platform/tty.rs` | 미실행 1 |
 | PRD-PLAT-002 | P4 | 필수 | MRD-DIF-008 | SRS-MOD-007, SRS-BLD-001, SRS-BLD-003, SRS-BLD-004, SRS-CMP-005 | TC-REL-003, TC-PLAT-002, TC-PLAT-005 | CI<br>`.cargo/config.toml`<br>`.github/workflows/release.yml` | 미확인 2, 통과 1 |
-| PRD-PLAT-003 | P4 | 필수 | MRD-PLT-004 | SRS-BLD-002, SRS-BLD-012, SRS-PERF-004, SRS-CMP-001 | TC-PLAT-002, TC-PLAT-003, TC-NFR-005 | CI<br>Phase 4<br>`.github/workflows/`<br>`README.md`, `docs/` | 미실행 1, 미확인 2 |
-| PRD-PLAT-004 | P1 | 필수 | MRD-PLT-004 | SRS-BLD-009, SRS-BLD-012, SRS-TEST-004 | TC-PLAT-004 | `.github/workflows/release.yml`<br>`README.md`, `docs/`<br>`docs/TC.md` | 미실행 1 |
+| PRD-PLAT-003 | P4 | 필수 | MRD-PLT-004 | SRS-BLD-002, SRS-BLD-012, SRS-PERF-004, SRS-CMP-001 | TC-PLAT-002, TC-PLAT-003, TC-NFR-005 | CI<br>Phase 4<br>`.github/workflows/`<br>`README.md`, `docs/` | 미확인 3 |
+| PRD-PLAT-004 | P1 | 필수 | MRD-PLT-004 | SRS-BLD-009, SRS-BLD-012, SRS-TEST-004 | TC-PLAT-004 | `.github/workflows/release.yml`<br>`README.md`, `docs/`<br>`docs/TC.md` | 통과 1 |
 | PRD-I18N-001 | P1 | 필수 | MRD-SCP-009 | SRS-I18N-001 | TC-I18N-001, TC-I18N-004 | `src/i18n/` | 통과 2 |
 | PRD-I18N-002 | P1 | 필수 | MRD-SCP-009 | SRS-I18N-002 | TC-I18N-002, TC-I18N-004, TC-I18N-007 | `src/i18n/detect.rs` | 미실행 1, 통과 2 |
 | PRD-I18N-003 | P1 | 필수 | MRD-SCP-009 | SRS-I18N-001, SRS-I18N-003 | TC-I18N-001, TC-I18N-003 | `src/i18n/` | 통과 2 |

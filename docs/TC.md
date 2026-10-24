@@ -140,7 +140,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-AUTH-025 | 콜백 주소 붙여넣기 자동 제출 | PRD-AUTH-006, SRS-AUTH-006 | 로그인 진행 상태 | `/auth/callback` 포함 문자열 붙여넣기, 그 외 문자열 붙여넣기 후 Enter | 콜백 주소는 Enter 없이 제출, 그 외 문자열은 Enter로 제출 | 단위 | 전체 | 통과 | - |
 | TC-AUTH-024 | 플랜 사용 불가 처리 | PRD-AUTH-019, SRS-AUTH-017 | Mock 응답: scope 미부여, not_eligible, client_not_enabled, 지역 403 | 질문 제출, `--no-tui` 실행 | 원인별 메시지, 요청 중단, 다른 Provider 요청 없음, `--no-tui` 종료 코드 5 또는 7 | 통합 | 전체 | 통과 | - |
 | TC-AUTH-009 | SSH 포트 포워딩 로그인 | PRD-AUTH-005, SRS-AUTH-005 | 원격 Linux와 로컬 브라우저 | `ssh -L` 후 원격 `howtui login --no-browser --port N` | 로그인 성공, 원격 장치 host ID 사용 | 실연동 | Linux, RPi | 미실행 | - |
-| TC-AUTH-010 | 자격증명 이전 | PRD-AUTH-007, SRS-AUTH-015 | P4 | 내보내기 후 다른 장치 가져오기 | 대상 host ID 유지, 원본 사용 중지 안내 | 수동 | 전체 | 미실행 | - |
+| TC-AUTH-010 | 자격증명 이전 | PRD-AUTH-007, SRS-AUTH-015 | P4 | 내보내기 후 다른 장치 가져오기 | 대상 host ID 유지, 원본 사용 중지 안내 | 수동 | 전체 | 보류 | CR-010 |
 | TC-AUTH-011 | 저장소 우선순위와 대체 | PRD-AUTH-008, SRS-AUTH-007, SRS-MOD-006 | (a) 보안 저장소 사용 가능 (b) Linux Secret Service 없음 | 로그인 | (a) 보안 저장소 저장 (b) 0600 파일 저장과 고지 | 통합 | 전체 | 통과 | - |
 | TC-AUTH-012 | 갱신 조건 | PRD-AUTH-009, SRS-AUTH-008 | 만료 30초 전 토큰, earliest_refresh_at 미래/과거 | 요청 전 갱신 판정 | 과거: 갱신, 미래: 보류 | 단위 | 전체 | 통과 | - |
 | TC-AUTH-013 | 갱신 직렬화 | PRD-AUTH-009, SRS-AUTH-008 | Mock 토큰 서버, 프로세스 2개 동시 실행 | 동시 갱신 | 토큰 서버 갱신 요청 1회, 두 프로세스 같은 새 토큰 사용 | 통합 | 전체 | 통과 | - |
@@ -244,7 +244,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-INS-006 | install.ps1 아키텍처 | PRD-INS-002, SRS-INS-009 | ARM64 Windows의 x64 PowerShell | 판별 | aarch64 자산 선택 | 수동 | WinARM | 미실행 | - |
 | TC-INS-007 | 대안 설치 문서 | PRD-INS-006, SRS-INS-011 | 릴리스 존재 | 문서 절차 수행 (스크립트 검토 후 실행, 직접 다운로드, 체크섬 독립 검증) | 각 절차 성공 | 수동 | 전체 | 통과 | - |
 | TC-INS-008 | 업데이트 | PRD-INS-007, SRS-INS-012 | P4, 구버전 설치 | 같은 방식 재실행 | 기존 경로에 신버전 | 통합 | Unix | 통과 | - |
-| TC-INS-009 | 제거 문서 | PRD-INS-008, SRS-INS-013 | P4 | 문서 절차 수행 | 바이너리, 설정, 자격증명, 쉘 통합 줄 제거 | 수동 | 전체 | 미실행 | - |
+| TC-INS-009 | 제거 문서 | PRD-INS-008, SRS-INS-013 | P4 | 문서 절차 수행 | 바이너리, 설정, 자격증명, 쉘 통합 줄 제거 | 수동 | 전체 | 통과 | - |
 | TC-INS-010 | 원격 코드 실행 부재 | PRD-INS-009, SRS-INS-004 | 스크립트 원문 | 다운로드 대상 검사 | 릴리스 자산과 SHA256SUMS 외 다운로드 없음, 다운로드 내용 실행 없음 | 단위 | 전체 | 통과 | - |
 | TC-INS-011 | 설치 후 쉘 통합 확인 질문 | PRD-INS-001, PRD-SH-014, SRS-INS-014 | 임시 HOME, PATH 밖 설치 디렉터리 | 질문에 y 2회, `--shell-integration`(zsh), `--no-shell-integration`, `cat install.sh \| sh`로 실제 터미널 질문에 Enter | 구간 1개와 PATH 추가 줄, 재실행 중복 없음, zsh는 `.zshrc`, 거부 옵션은 무변경, 파이프 실행에서도 질문 표시 | 통합 | Unix | 통과 | - |
 | TC-INS-012 | 제거 스크립트 | PRD-INS-008, SRS-INS-013 | 임시 HOME, 설치와 쉘 통합 상태, 데이터와 설정 파일 | 설치 후 `howtui-uninstall.sh` 존재 확인, 터미널 없이 실행, `-y` 실행 | 확인 없이는 중단, 바이너리와 스크립트와 rc 구간과 데이터 삭제, 설정 유지 | 통합 | Unix | 통과 | - |
@@ -256,7 +256,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-REL-008 | 공개 릴리스 설치 확인 | PRD-INS-001, PRD-INS-002, PRD-INS-008, SRS-INS-013 | 공개 릴리스, GitHub 러너 (ubuntu x64와 arm64, macos, windows x64 5.1과 7, windows arm64) | `.github/workflows/release-smoke.yml`: 공개 설치 명령, `--version`, 제거 스크립트 | 설치와 제거 성공 | 통합 | 전체 | 통과 | - |
 | TC-REL-004 | 최소 타깃과 glibc 하한 | PRD-REL-004, SRS-BLD-002, SRS-CMP-001, SRS-MOD-007 | P1 릴리스 | Linux 자산 GLIBC 심볼 최대 버전 검사 | 2.17 이하 | 통합 | Linux | 통과 | - |
 | TC-REL-005 | 릴리스 노트 | PRD-REL-005, SRS-BLD-011 | 릴리스 초안 | 노트 확인 | 변경 사항, 설치 명령, 체크섬 검증 방법 포함 | 수동 | 전체 | 미실행 | - |
-| TC-REL-006 | 출처 증명 | PRD-REL-006, SRS-BLD-010 | P4 | `gh attestation verify` | 검증 통과 | 통합 | 전체 | 미실행 | - |
+| TC-REL-006 | 출처 증명 | PRD-REL-006, SRS-BLD-010 | P4 | `gh attestation verify` | 검증 통과 | 통합 | 전체 | 통과 | - |
 
 ## 13. 안전과 개인정보
 
@@ -282,7 +282,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-PLAT-001 | 1차 조합 동작 | PRD-PLAT-001, SRS-ARC-004 | Linux+Bash, macOS+Zsh, Windows+PowerShell | 생성, 편집, 확정, 출력 | 3조합 모두 성공 | 수동 | 전체 | 미실행 | - |
 | TC-PLAT-002 | ARMv7 실행 | PRD-PLAT-002, PRD-PLAT-003, SRS-BLD-001 | Raspberry Pi 2, 3 (32비트 OS) | 설치, TUI 실행, 원격 LLM 요청 | 동작, OS 버전과 glibc 버전 기록 | 실기기 | RPi | 미확인 | 실기기 없음, 사용자 결정으로 동작 가정 (2026-10-24). 실패 보고 시 수정 |
 | TC-PLAT-003 | ARM64 Raspberry Pi | PRD-PLAT-003 | Raspberry Pi 4, 5 (64비트 OS), 64비트 커널 + 32비트 사용자 공간 | 설치, 실행 | 사용자 공간 기준 자산 선택, 동작 | 실기기 | RPi | 미확인 | 실기기 없음, 사용자 결정으로 동작 가정 (2026-10-24). 실패 보고 시 수정 |
-| TC-PLAT-004 | 지원 상태 표기 | PRD-PLAT-004, SRS-TEST-004, SRS-BLD-012, SRS-CMP-006 | 릴리스 문서 | 표기 확인 | 실기기, 에뮬레이션, 빌드만, 미검증 구분 | 수동 | 전체 | 미실행 | - |
+| TC-PLAT-004 | 지원 상태 표기 | PRD-PLAT-004, SRS-TEST-004, SRS-BLD-012, SRS-CMP-006 | 릴리스 문서 | 표기 확인 | 실기기, 에뮬레이션, 빌드만, 미검증 구분 | 수동 | 전체 | 통과 | - |
 | TC-PLAT-005 | Windows ARM64 실행 | PRD-PLAT-002 | Windows ARM64 장치 | 설치, 실행 | 동작 | 실기기 | WinARM | 미확인 | 실기기 없음, 사용자 결정으로 동작 가정 (2026-10-24). 실패 보고 시 수정 |
 | TC-ERR-001 | 오류 메시지 구성 | PRD-ERR-001, SRS-ERR-002 | 오류 분류 전체 | 메시지 생성 | 원인 1줄 + 조치 1줄 | 단위 | 전체 | 통과 | - |
 | TC-ERR-002 | TUI 오류 유지 | PRD-ERR-002, SRS-ERR-002 | Mock 오류 후 정상 | 질문 제출 2회 | 1회차 오류 표시 후 상태 유지, 2회차 성공 | 단위 | 전체 | 통과 | - |
@@ -310,7 +310,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-NFR-002 | 첫 화면 시간 | SRS-PERF-001, SRS-ASYNC-006, PRD-UI-001 | 릴리스 빌드, 네트워크 차단 | 실행부터 첫 프레임까지 측정 10회 | 중앙값 기록, 100ms 목표 대비 판정 | 수동 | 전체 | 통과 | - |
 | TC-NFR-003 | 유휴 CPU | SRS-PERF-002, SRS-ASYNC-005, PRD-UI-007 | 입력 대기 상태 10초 | CPU 시간 측정 | 1% 미만 (기록) | 수동 | Linux | 통과 | - |
 | TC-NFR-004 | 바이너리 크기 | SRS-PERF-003, PRD-REL-001, SRS-BLD-005 | 릴리스 빌드 | 타깃별 크기 기록 | 기록 완료 | 통합 | 전체 | 통과 | - |
-| TC-NFR-005 | Raspberry Pi 첫 화면 | SRS-PERF-004, PRD-PLAT-003 | Pi 2 | 첫 화면 시간 측정 | 기록 | 실기기 | RPi | 미실행 | - |
+| TC-NFR-005 | Raspberry Pi 첫 화면 | SRS-PERF-004, PRD-PLAT-003 | Pi 2 | 첫 화면 시간 측정 | 기록 | 실기기 | RPi | 미확인 | 실기기 없음 (E-08) |
 | TC-NFR-006 | TLS 검증 고정 | SRS-SEC-001, PRD-AUTH-001, SRS-MOD-005 | 자체 서명 인증서 Mock 서버 | 요청 | 연결 거부 | 통합 | 전체 | 통과 | - |
 | TC-NFR-007 | 프록시 | SRS-SEC-002, PRD-LLM-001 | 로컬 프록시, `HTTP_PROXY` (평문 API 주소). `HTTPS_PROXY` CONNECT 경로는 미실행 | 모델 목록 요청 | 프록시 경유 | 통합 | Linux | 통과 | - |
 | TC-NFR-008 | 의존성 취약점 | SRS-SEC-005, PRD-REL-001 | CI | `cargo deny check` 또는 `cargo audit` | 오류 0건 | 통합 | Linux | 통과 | - |
@@ -546,3 +546,14 @@ CI 도입 중 발견과 수정: (1) Bash 5.2의 `bind -x` 안 `$(<file)` 치환 
 | `TC-NFR-008` | 통과 | CI `audit` 작업 (`cargo audit --deny warnings`) | run 40073443763 (커밋 1c6ccf1): 취약점 0건. 첫 실행(run 40072506488)의 ctutils 취약점은 0.4.5 갱신으로 해소, zbus 계열 unmaintained 경고 3건은 `.cargo/audit.toml` 예외 |
 
 CI 실행 기록 (run 40073443763, 커밋 1c6ccf1, 15개 작업 전체 통과): lint, audit, 5개 러너 테스트, armv7 교차 빌드, pty 2개 러너, 설치 스크립트 4개 작업.
+
+## 21. 실행 기록 (Phase 4, 2026-10-25)
+
+| TC | 결과 | 실행 수단 | 근거 |
+| --- | --- | --- | --- |
+| `TC-REL-006` | 통과 | `gh attestation verify` | v0.1.0, v0.1.1, v0.1.2 공개 전 7개 자산 검증 (TC 19절 릴리스 기록) |
+| `TC-PLAT-004` | 통과 | 문서 검토 | README 6절 대상별 검증 수준 표기 (CI 테스트, PTY E2E, 빌드와 glibc 검사만, 수동 확인), Raspberry Pi 실기기 미시험 명시 |
+| `TC-INS-009` | 통과 | `tests/install/run_unix.sh`, CI installers | README 제거 절차: 제거 스크립트(로그아웃과 토큰 삭제, 쉘 통합 블록, 바이너리, 데이터 폴더, `--purge` 설정), 수동 절차의 하위 명령(`logout --forget`, `init --uninstall`)은 TC-AUTH-014, TC-SH-020 근거 |
+| `TC-AUTH-010` | 보류 | - | CR-010 |
+| `TC-NFR-005` | 미확인 | - | 실기기 없음 (E-08) |
+

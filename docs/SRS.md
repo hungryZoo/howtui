@@ -710,7 +710,7 @@ tokio 작업 스레드: LLM 요청, 토큰 갱신, 콜백 리스너, 시그널 �
 | SRS-AUTH-012 | 토큰 문자열 타입은 `Debug`, `Display`에서 마스킹, 로그 기록 금지. `id_token_hint` 포함 URL 로그 금지 | PRD-PRIV-005 | `src/auth/secret.rs` |
 | SRS-AUTH-013 | 로그인 전 개인정보 처리 고지 문구 표시 (CLI와 TUI) | PRD-AUTH-015, PRD-PRIV-003 | `src/auth/notice.rs` |
 | SRS-AUTH-014 | 비공식 경로 미사용: `~/.codex` 경로 접근 코드 부재, `backend-api` 문자열 부재 (CI grep 검사) | PRD-AUTH-016 | 저장소 전체 |
-| SRS-AUTH-015 | P4 자격증명 내보내기와 가져오기: 가져오기 대상 장치 host ID 유지, 원본 장치 사본 사용 중지 안내 | PRD-AUTH-007 | `src/auth/transfer.rs` |
+| SRS-AUTH-015 | P4 자격증명 내보내기와 가져오기: 가져오기 대상 장치 host ID 유지, 원본 장치 사본 사용 중지 안내. 보류 (CR-010) | PRD-AUTH-007 | `src/auth/transfer.rs` |
 | SRS-AUTH-016 | 일시 장애와 네트워크 오류에서 자격증명 보존 | PRD-AUTH-018 | `src/auth/session.rs` |
 | SRS-AUTH-017 | 플랜 사용 불가 판정(scope 미부여, `subscription_sharing_user_not_eligible`, `subscription_sharing_v2_client_not_enabled`, 지역 403) 시 원인별 메시지 후 요청 중단, 대체 Provider 전환 없음 | PRD-AUTH-019 | `src/llm/chatgpt.rs`, `src/app/update.rs` |
 
