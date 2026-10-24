@@ -15,7 +15,9 @@ fn bin(data: &Path) -> Command {
         .env("HOME", data)
         .env("HOWTUI_DATA_DIR", data.join("data"))
         .env("HOWTUI_CONFIG", data.join("config.toml"))
-        .env("HOWTUI_LANG", "en");
+        .env("HOWTUI_LANG", "en")
+        // 시험 중 GitHub 접속 없음 (업데이트 시험은 Mock 서버로 따로)
+        .env("HOWTUI_NO_UPDATE_CHECK", "1");
     #[cfg(windows)]
     {
         for k in [
@@ -703,5 +705,238 @@ mod signed_in {
                 .to_string(),
         )
         .unwrap();
+    }
+}
+
+/// 새 버전 확인과 업데이트 (TC-UPD-003, TC-UPD-004): Mock 릴리스 서버, 설치 스크립트 위치에 복사한 실제 바이너리를 교체.
+mod self_update {
+    use super::*;
+    use std::io::Write;
+    use std::path::{Path, PathBuf};
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    const CURRENT: &str = env!("CARGO_PKG_VERSION");
+
+    fn target() -> &'static str {
+        if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+            "x86_64-unknown-linux-gnu"
+        } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+            "aarch64-unknown-linux-gnu"
+        } else if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+            "aarch64-apple-darwin"
+        } else if cfg!(all(target_os = "macos", target_arch = "x86_64")) {
+            "x86_64-apple-darwin"
+        } else if cfg!(all(windows, target_arch = "aarch64")) {
+            "aarch64-pc-windows-msvc"
+        } else {
+            "x86_64-pc-windows-msvc"
+        }
+    }
+
+    fn archive(files: &[(&str, &[u8])]) -> Vec<u8> {
+        if cfg!(windows) {
+            let mut w = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+            let opts = zip::write::SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Stored);
+            for (name, data) in files {
+                w.start_file(*name, opts).unwrap();
+                w.write_all(data).unwrap();
+            }
+            w.finish().unwrap().into_inner()
+        } else {
+            // 디버그 바이너리가 커서 압축 수준 최소
+            let enc = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+            let mut b = tar::Builder::new(enc);
+            for (name, data) in files {
+                let mut h = tar::Header::new_gnu();
+                h.set_size(data.len() as u64);
+                h.set_mode(0o755);
+                h.set_cksum();
+                b.append_data(&mut h, name, *data).unwrap();
+            }
+            b.into_inner().unwrap().finish().unwrap()
+        }
+    }
+
+    fn sha(bytes: &[u8]) -> String {
+        use sha2::Digest;
+        sha2::Sha256::digest(bytes)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect()
+    }
+
+    /// 설치 위치에 현재 바이너리 복사. (임시 디렉터리, 홈, 실행 파일 경로)
+    fn install_copy(sub: &[&str]) -> (tempfile::TempDir, PathBuf, PathBuf) {
+        let dir = tempfile::tempdir().unwrap();
+        let home = dir.path().canonicalize().unwrap();
+        let mut bin_dir = home.clone();
+        for s in sub {
+            bin_dir = bin_dir.join(s);
+        }
+        std::fs::create_dir_all(&bin_dir).unwrap();
+        let exe = bin_dir.join(if cfg!(windows) {
+            "howtui.exe"
+        } else {
+            "howtui"
+        });
+        std::fs::copy(env!("CARGO_BIN_EXE_howtui"), &exe).unwrap();
+        (dir, home, exe)
+    }
+
+    fn run_copy(exe: &Path, home: &Path, latest_url: &str, base: &str, args: &[&str]) -> Output {
+        let mut cmd = std::process::Command::new(exe);
+        cmd.env_clear()
+            .env("PATH", std::env::var("PATH").unwrap_or_default())
+            .env("HOME", home)
+            .env("USERPROFILE", home)
+            .env("LOCALAPPDATA", home)
+            .env("XDG_CACHE_HOME", home.join(".cache"))
+            .env("HOWTUI_LANG", "en")
+            .env("HOWTUI_CONFIG", home.join("none.toml"))
+            .env("HOWTUI_DATA_DIR", home.join("data"))
+            .env("HOWTUI_LATEST_URL", latest_url)
+            .env("HOWTUI_DOWNLOAD_BASE", base)
+            .args(args);
+        for k in ["SYSTEMROOT", "TEMP", "TMP"] {
+            if let Ok(v) = std::env::var(k) {
+                cmd.env(k, v);
+            }
+        }
+        cmd.output().unwrap()
+    }
+
+    async fn release_server(version: &str, files: &[(&str, &[u8])]) -> MockServer {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/releases/latest"))
+            .respond_with(ResponseTemplate::new(302).insert_header(
+                "location",
+                format!("{}/releases/tag/v{version}", server.uri()),
+            ))
+            .mount(&server)
+            .await;
+        let ext = if cfg!(windows) { "zip" } else { "tar.gz" };
+        let asset = format!("howtui-{version}-{}.{ext}", target());
+        let data = archive(files);
+        Mock::given(method("GET"))
+            .and(path(format!("/v{version}/SHA256SUMS")))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_string(format!("{}  {asset}\n", sha(&data))),
+            )
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path(format!("/v{version}/{asset}")))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(data))
+            .mount(&server)
+            .await;
+        server
+    }
+
+    fn script_sub() -> Vec<&'static str> {
+        if cfg!(windows) {
+            vec!["Programs", "howtui", "bin"]
+        } else {
+            vec![".local", "bin"]
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn check_update_reports_and_update_replaces_binary() {
+        let mut new_bin = std::fs::read(env!("CARGO_BIN_EXE_howtui")).unwrap();
+        new_bin.extend_from_slice(b"\nhowtui-update-test-marker\n");
+        let (bin_name, un_name, un_src) = if cfg!(windows) {
+            ("howtui.exe", "howtui-uninstall.ps1", "uninstall.ps1")
+        } else {
+            ("howtui", "howtui-uninstall.sh", "uninstall.sh")
+        };
+        let server =
+            release_server("9.9.9", &[(bin_name, &new_bin), (un_src, b"new uninstall")]).await;
+        let (_dir, home, exe) = install_copy(&script_sub());
+        let bin_dir = exe.parent().unwrap().to_path_buf();
+        std::fs::write(bin_dir.join(un_name), "old uninstall").unwrap();
+        let latest = format!("{}/releases/latest", server.uri());
+        let base = server.uri();
+        let (e, h) = (exe.clone(), home.clone());
+        let (check, update) = tokio::task::spawn_blocking(move || {
+            (
+                run_copy(&e, &h, &latest, &base, &["--check-update"]),
+                run_copy(&e, &h, &latest, &base, &["--update"]),
+            )
+        })
+        .await
+        .unwrap();
+        let text = String::from_utf8_lossy(&check.stdout);
+        assert_eq!(check.status.code(), Some(10), "{text}");
+        assert!(
+            text.contains(&format!("{CURRENT} -> 9.9.9 available")),
+            "{text}"
+        );
+        assert!(text.contains("Update: howtui --update"), "{text}");
+        let err = String::from_utf8_lossy(&update.stderr);
+        assert_eq!(update.status.code(), Some(0), "{err}");
+        assert!(
+            err.contains(&format!("Updated howtui {CURRENT} -> 9.9.9")),
+            "{err}"
+        );
+        assert!(std::fs::read(&exe).unwrap() == new_bin, "binary replaced");
+        assert_eq!(
+            std::fs::read_to_string(bin_dir.join(un_name)).unwrap(),
+            "new uninstall"
+        );
+        let cache_dir = if cfg!(windows) {
+            home.join("howtui").join("cache")
+        } else if cfg!(target_os = "macos") {
+            home.join("Library").join("Caches").join("howtui")
+        } else {
+            home.join(".cache").join("howtui")
+        };
+        let cache = std::fs::read_to_string(cache_dir.join("update-check")).unwrap();
+        assert!(cache.contains("latest=9.9.9"), "{cache}");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn up_to_date_unreachable_and_cargo_installs() {
+        let server = release_server(CURRENT, &[("x", b"x")]).await;
+        let (latest, base) = (format!("{}/releases/latest", server.uri()), server.uri());
+        let (_dir, home, exe) = install_copy(&script_sub());
+        let out = tokio::task::spawn_blocking(move || {
+            (
+                run_copy(&exe, &home, &latest, &base, &["--check-update"]),
+                run_copy(&exe, &home, &latest, &base, &["--update"]),
+                run_copy(
+                    &exe,
+                    &home,
+                    "http://127.0.0.1:9/releases/latest",
+                    &base,
+                    &["--update"],
+                ),
+            )
+        })
+        .await
+        .unwrap();
+        assert_eq!(out.0.status.code(), Some(0));
+        assert!(String::from_utf8_lossy(&out.0.stdout).contains("is up to date"));
+        assert_eq!(out.1.status.code(), Some(0));
+        assert_eq!(out.2.status.code(), Some(11));
+
+        // cargo 설치본: 직접 교체 없이 명령 안내, 종료 코드 1
+        let server = release_server("9.9.9", &[("x", b"x")]).await;
+        let (latest, base) = (format!("{}/releases/latest", server.uri()), server.uri());
+        let (_dir, home, exe) = install_copy(&[".cargo", "bin"]);
+        let before = std::fs::read(&exe).unwrap();
+        let e = exe.clone();
+        let out =
+            tokio::task::spawn_blocking(move || run_copy(&e, &home, &latest, &base, &["--update"]))
+                .await
+                .unwrap();
+        assert_eq!(out.status.code(), Some(1));
+        assert!(String::from_utf8_lossy(&out.stderr).contains("cargo install --git"));
+        assert!(
+            std::fs::read(&exe).unwrap() == before,
+            "cargo binary untouched"
+        );
     }
 }

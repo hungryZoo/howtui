@@ -301,6 +301,52 @@ pub fn collect(
             }),
         json!({"loaded": integration.is_some(), "shell": integration}),
     ));
+
+    // 새 버전 (CR-009): doctor는 명시 실행이므로 즉시 확인 (2초 상한)
+    let method = crate::update::detect_install_method(&env).to_app();
+    let method_name = match &method {
+        crate::app::UpdateMethod::Script { .. } => "script",
+        crate::app::UpdateMethod::Cargo => "cargo",
+        crate::app::UpdateMethod::Brew => "brew",
+        crate::app::UpdateMethod::Unknown => "unknown",
+    };
+    let current = crate::update::CURRENT_VERSION;
+    if !loaded.config.update.check || crate::update::disabled_by_env(&env) {
+        checks.push(check(
+            "update",
+            CheckStatus::Skip,
+            "update check disabled",
+            json!({"current": current, "install": method_name}),
+        ));
+    } else {
+        use crate::update::CheckOutcome;
+        let (status, summary, latest) = match rt.block_on(crate::update::check_now(&env)) {
+            CheckOutcome::UpdateAvailable { latest } => (
+                CheckStatus::Warn,
+                format!(
+                    "{current} -> {latest} available (update: {})",
+                    crate::update::upgrade_hint(&method)
+                ),
+                Some(latest),
+            ),
+            CheckOutcome::UpToDate { latest } => (
+                CheckStatus::Pass,
+                format!("{current} is up to date"),
+                Some(latest),
+            ),
+            CheckOutcome::Unreachable => (
+                CheckStatus::Info,
+                format!("{current}; could not reach the release page"),
+                None,
+            ),
+        };
+        checks.push(check(
+            "update",
+            status,
+            summary,
+            json!({"current": current, "latest": latest, "install": method_name}),
+        ));
+    }
     checks
 }
 

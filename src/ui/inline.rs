@@ -10,7 +10,9 @@ use super::text::{truncate, wrap_buffer, wrap_words};
 use crate::app::editor::display_width;
 use crate::app::{
     Focus, Hit, MIN_HEIGHT, MIN_WIDTH, Phase, SettingsEntry, SettingsView, State, StatusKind,
+    UpdateMethod, UpdateView,
 };
+use crate::i18n::Lang;
 use crate::i18n::{Msg, tr_in, trf_in};
 use crate::llm::types::Operation;
 use crate::safety::Level;
@@ -42,12 +44,141 @@ pub fn render(frame: &mut Frame, state: &State) -> Hits {
         );
         return hits;
     }
-    match (state.phase, &state.settings) {
-        (Phase::LoginRequired | Phase::LoggingIn, _) => render_login(frame, state, area),
-        (_, Some(view)) => render_settings(frame, state, view, area, &mut hits),
+    match (state.phase, &state.update_view, &state.settings) {
+        (Phase::LoginRequired | Phase::LoggingIn, _, _) => render_login(frame, state, area),
+        (_, Some(view), _) => render_update(frame, state, view, area, &mut hits),
+        (_, None, Some(view)) => render_settings(frame, state, view, area, &mut hits),
         _ => render_main(frame, state, area, &mut hits),
     }
     hits
+}
+
+/// 설치 방식 표시 (업데이트 화면, `--update` 안내).
+pub fn method_label(lang: Lang, method: &UpdateMethod) -> String {
+    match method {
+        UpdateMethod::Script { dir } => trf_in(lang, Msg::MethodScript, &[("dir", dir)]),
+        UpdateMethod::Cargo => tr_in(lang, Msg::MethodCargo).to_string(),
+        UpdateMethod::Brew => tr_in(lang, Msg::MethodBrew).to_string(),
+        UpdateMethod::Unknown => tr_in(lang, Msg::MethodUnknown).to_string(),
+    }
+}
+
+/// 업데이트 화면 (CR-009): 현재와 최신 버전, 설치 방식, Enter 동작, 안내 1행.
+fn render_update(frame: &mut Frame, state: &State, view: &UpdateView, area: Rect, hits: &mut Hits) {
+    let lang = state.lang;
+    let width = area.width;
+    let close = tr_in(lang, Msg::SettingsClose);
+    let close_w = display_width(close) as u16;
+    let title = match view {
+        UpdateView::Ready(info) => trf_in(
+            lang,
+            Msg::UpdateTitle,
+            &[("current", &info.current), ("latest", &info.latest)],
+        ),
+        _ => tr_in(lang, Msg::UpdateChecking).to_string(),
+    };
+    frame.render_widget(
+        Paragraph::new(Span::styled(
+            truncate(&title, width.saturating_sub(close_w + 1)),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )),
+        row(area, 0),
+    );
+    if width > close_w + 1 {
+        let r = Rect {
+            x: area.x + width - close_w,
+            y: area.y,
+            width: close_w,
+            height: 1,
+        };
+        frame.render_widget(Paragraph::new(Span::styled(close, dim())), r);
+        hits.push((r, Hit::CloseUpdate));
+    }
+    let mut lines: Vec<(String, Style, Option<Hit>)> = Vec::new();
+    match view {
+        UpdateView::Checking => {
+            let spin = SPINNER[state.spinner % SPINNER.len()];
+            lines.push((
+                format!("{spin} {}", tr_in(lang, Msg::UpdateChecking)),
+                Style::default().fg(Color::Yellow),
+                None,
+            ));
+        }
+        UpdateView::UpToDate { current, latest } => lines.push((
+            trf_in(
+                lang,
+                Msg::UpdateUpToDate,
+                &[("current", current), ("latest", latest)],
+            ),
+            Style::default(),
+            None,
+        )),
+        UpdateView::Unreachable => lines.push((
+            tr_in(lang, Msg::UpdateUnreachable).to_string(),
+            Style::default().fg(Color::Red),
+            None,
+        )),
+        UpdateView::Ready(info) => {
+            lines.push((
+                trf_in(
+                    lang,
+                    Msg::UpdateMethodLine,
+                    &[("method", &method_label(lang, &info.method))],
+                ),
+                Style::default(),
+                None,
+            ));
+            let action = match &info.method {
+                UpdateMethod::Script { dir } => {
+                    let exe = if cfg!(windows) {
+                        "howtui.exe"
+                    } else {
+                        "howtui"
+                    };
+                    let path = std::path::Path::new(dir).join(exe).display().to_string();
+                    trf_in(lang, Msg::UpdateActionBuiltIn, &[("path", &path)])
+                }
+                other => trf_in(
+                    lang,
+                    Msg::UpdateActionCommand,
+                    &[("command", &crate::update::upgrade_hint(other))],
+                ),
+            };
+            lines.push((
+                action,
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+                Some(Hit::ConfirmUpdate),
+            ));
+        }
+    }
+    let max = area.height.saturating_sub(2) as usize;
+    let mut y = 1;
+    for (text, style, hit) in lines {
+        for part in wrap_words(&text, width).into_iter() {
+            if (y as usize) > max {
+                break;
+            }
+            let r = row(area, y);
+            frame.render_widget(Paragraph::new(Span::styled(part, style)), r);
+            if let Some(h) = hit {
+                hits.push((r, h));
+            }
+            y += 1;
+        }
+    }
+    let hint = if matches!(view, UpdateView::Ready(_)) {
+        Msg::HintUpdate
+    } else {
+        Msg::HintUpdateClose
+    };
+    frame.render_widget(
+        Paragraph::new(Span::styled(truncate(tr_in(lang, hint), width), dim())),
+        row(area, area.height - 1),
+    );
 }
 
 /// 설정 화면 (CR-005): 제목과 에이전트 1행, 모델 목록과 로그아웃, 안내 1행.
@@ -144,6 +275,17 @@ fn render_settings(
                             Color::Reset
                         }),
                     )
+                }
+                SettingsEntry::Update => {
+                    let text = match &state.update {
+                        Some(info) => format!(
+                            "{}  ({})",
+                            tr_in(lang, Msg::SettingsUpdate),
+                            trf_in(lang, Msg::UpdateNotice, &[("latest", &info.latest)])
+                        ),
+                        None => tr_in(lang, Msg::SettingsUpdate).to_string(),
+                    };
+                    (text, Style::default())
                 }
                 SettingsEntry::SignOut => (
                     tr_in(lang, Msg::SettingsSignOut).to_string(),
@@ -495,35 +637,52 @@ fn render_login(frame: &mut Frame, state: &State, area: Rect) {
 
 fn render_status(frame: &mut Frame, state: &State, area: Rect, hits: &mut Hits) {
     let lang = state.lang;
-    let mut right = Vec::new();
-    // 폴더 목록 전송 상태 버튼 (클릭, CR-007)
-    let folder_seg = format!(
-        "[{}]",
-        tr_in(
-            lang,
-            if state.send_folder {
-                Msg::FolderOn
-            } else {
-                Msg::FolderOff
-            }
-        )
-    );
-    right.push(folder_seg.clone());
-    // 모델 이름은 설정 화면 버튼 (클릭, CR-005)
-    let model_seg = state.provider.model.as_ref().map(|m| format!("[{m}]"));
-    if let Some(seg) = &model_seg {
-        right.push(seg.clone());
+    // 오른쪽 버튼과 표시: (문자열, 클릭 대상, 스타일). 좁은 화면은 뒤쪽부터 생략
+    let mut right: Vec<(String, Option<Hit>, Style)> = Vec::new();
+    // 새 버전 알림 (CR-009): 맨 앞이라 좁은 화면에서도 유지, 강조색 1개 (기울임 등 수정자 제거)
+    if let Some(u) = &state.update {
+        right.push((
+            format!(
+                "[{}]",
+                trf_in(lang, Msg::UpdateNotice, &[("latest", &u.latest)])
+            ),
+            (state.phase == Phase::Ready).then_some(Hit::OpenUpdate),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD)
+                .remove_modifier(Modifier::ITALIC),
+        ));
     }
-    right.push(state.env.shell.name().to_string());
+    // 폴더 목록 전송 상태 버튼 (CR-007)
+    let folder_msg = if state.send_folder {
+        Msg::FolderOn
+    } else {
+        Msg::FolderOff
+    };
+    right.push((
+        format!("[{}]", tr_in(lang, folder_msg)),
+        matches!(state.phase, Phase::Ready | Phase::Requesting).then_some(Hit::ToggleFolder),
+        dim(),
+    ));
+    // 모델 이름은 설정 화면 버튼 (CR-005)
+    if let Some(m) = &state.provider.model {
+        right.push((
+            format!("[{m}]"),
+            (state.phase == Phase::Ready).then_some(Hit::OpenSettings),
+            dim(),
+        ));
+    }
+    right.push((state.env.shell.name().to_string(), None, dim()));
     if state.provider.chatgpt_plan {
-        right.push(tr_in(lang, Msg::UsingChatGptPlan).to_string());
+        right.push((tr_in(lang, Msg::UsingChatGptPlan).to_string(), None, dim()));
     }
-    // 좁은 화면: 왼쪽 안내 20칸 확보까지 뒤쪽 항목부터 생략 (플랜 표시, 쉘, 모델 순)
-    while right.len() > 1 && display_width(&right.join("  ")) + 22 > area.width as usize {
+    let joined_width = |r: &[(String, Option<Hit>, Style)]| {
+        r.iter().map(|s| display_width(&s.0)).sum::<usize>() + 2 * r.len().saturating_sub(1)
+    };
+    while right.len() > 1 && joined_width(&right) + 22 > area.width as usize {
         right.pop();
     }
-    let model_shown = model_seg.is_some() && right.len() >= 2;
-    let right_text = right.join("  ");
+    let right_w = joined_width(&right);
 
     let (left_text, left_style) = if let Some(pending) = &state.pending {
         let spin = SPINNER[state.spinner % SPINNER.len()];
@@ -564,7 +723,6 @@ fn render_status(frame: &mut Frame, state: &State, area: Rect, hits: &mut Hits) 
     };
 
     let width = area.width as usize;
-    let right_w = display_width(&right_text);
     let left_max = width.saturating_sub(right_w + 2);
     let left = if left_max >= 10 {
         truncate(&left_text, left_max as u16)
@@ -574,35 +732,28 @@ fn render_status(frame: &mut Frame, state: &State, area: Rect, hits: &mut Hits) 
     let mut spans = vec![Span::styled(left.clone(), left_style)];
     if left_max >= 10 {
         let gap = width.saturating_sub(display_width(&left) + right_w);
-        let start = area.x + (display_width(&left) + gap) as u16;
-        let folder_w = display_width(&folder_seg) as u16;
-        if matches!(state.phase, Phase::Ready | Phase::Requesting) {
-            hits.push((
-                Rect {
-                    x: start,
-                    y: area.y,
-                    width: folder_w,
-                    height: 1,
-                },
-                Hit::ToggleFolder,
-            ));
-        }
-        if let Some(seg) = &model_seg
-            && model_shown
-            && state.phase == Phase::Ready
-        {
-            hits.push((
-                Rect {
-                    x: start + folder_w + 2,
-                    y: area.y,
-                    width: display_width(seg) as u16,
-                    height: 1,
-                },
-                Hit::OpenSettings,
-            ));
-        }
         spans.push(Span::raw(" ".repeat(gap)));
-        spans.push(Span::styled(right_text, dim()));
+        let mut x = area.x + (display_width(&left) + gap) as u16;
+        for (i, (text, hit, style)) in right.into_iter().enumerate() {
+            if i > 0 {
+                spans.push(Span::raw("  "));
+                x += 2;
+            }
+            let w = display_width(&text) as u16;
+            if let Some(h) = hit {
+                hits.push((
+                    Rect {
+                        x,
+                        y: area.y,
+                        width: w,
+                        height: 1,
+                    },
+                    h,
+                ));
+            }
+            spans.push(Span::styled(text, style));
+            x += w;
+        }
     }
     frame.render_widget(Paragraph::new(Line::from(spans)), area);
 }

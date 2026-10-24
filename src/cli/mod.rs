@@ -37,6 +37,12 @@ pub struct Cli {
     pub question: Vec<String>,
     #[arg(long, conflicts_with = "widget")]
     pub no_tui: bool,
+    /// 새 버전 즉시 확인 (CR-009)
+    #[arg(long, conflicts_with_all = ["no_tui", "widget", "update"])]
+    pub check_update: bool,
+    /// 새 버전으로 즉시 업데이트 (CR-009)
+    #[arg(long, conflicts_with_all = ["no_tui", "widget"])]
+    pub update: bool,
     #[arg(long, value_enum)]
     pub shell: Option<ShellKind>,
     #[arg(long, value_parser = clap::value_parser!(u16).range(config::MIN_HEIGHT as i64..=config::MAX_HEIGHT as i64))]
@@ -118,6 +124,8 @@ fn localized_command() -> clap::Command {
         )
         .mut_arg("question", |a| a.help(tr(Msg::HelpQuestion)))
         .mut_arg("no_tui", |a| a.help(tr(Msg::HelpNoTui)))
+        .mut_arg("check_update", |a| a.help(tr(Msg::HelpCheckUpdate)))
+        .mut_arg("update", |a| a.help(tr(Msg::HelpUpdate)))
         .mut_arg("shell", |a| a.help(tr(Msg::HelpShell)))
         .mut_arg("height", |a| a.help(tr(Msg::HelpHeight)))
         .mut_arg("mode", |a| a.help(tr(Msg::HelpMode)))
@@ -227,6 +235,15 @@ pub fn run() -> ExitCode {
             return ExitCode::from(1);
         }
     };
+
+    // Windows: 지난 업데이트가 남긴 실행 파일 정리
+    crate::update::cleanup_previous();
+    if cli.check_update {
+        return check_update_command(&rt);
+    }
+    if cli.update {
+        return update_command(&rt);
+    }
 
     match cli.command {
         None => run_main(cli, loaded, &rt),
@@ -407,6 +424,13 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
         .unwrap_or(loaded.config.ui.mode == UiMode::Fullscreen);
     let startup_notice = wants_fullscreen.then(|| Status::warn(Msg::StatusFullscreenUnavailable));
     let height = cli.height.unwrap_or(loaded.config.ui.inline_height);
+    // 새 버전: 지난 실행 캐시로 알림, 하루 지났으면 백그라운드 확인 (시작 대기 없음, CR-009)
+    let update_enabled = loaded.config.update.check && !crate::update::disabled_by_env(&env);
+    let update_notice = crate::update::plan(&env, update_enabled)
+        .map(|p| crate::update::info_for(&p.latest, &p.method));
+    if update_enabled {
+        crate::update::maybe_spawn_check(rt.handle(), &env);
+    }
     let cfg = TuiConfig {
         height,
         lang: i18n::lang(),
@@ -418,6 +442,7 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
         startup_notice,
         keep_paste: widget_input.as_ref().is_some_and(|w| w.keep_paste),
         mouse: loaded.config.ui.mouse,
+        update: update_notice,
         send_folder,
         save_folder,
     };
@@ -427,6 +452,7 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
     match runtime::run_tui(cfg, Arc::clone(&built.provider), login, rt.handle()) {
         Ok(TuiOutcome::Accepted(cmd)) => destination.deliver(&cmd),
         Ok(TuiOutcome::Cancelled) => ExitCode::from(130),
+        Ok(TuiOutcome::Update(info)) => apply_update(rt, &info),
         Ok(TuiOutcome::Signal(sig)) => ExitCode::from(128u8.saturating_add(sig as u8)),
         Err(SessionError::NoTerminal(_)) => {
             eprintln!("{}", tr(Msg::ErrNoTerminal));
@@ -437,6 +463,133 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
             ExitCode::from(1)
         }
     }
+}
+
+/// `--check-update`: 0 최신, 10 업데이트 있음, 11 접속 불가 (self-update-check 스킬).
+fn check_update_command(rt: &tokio::runtime::Runtime) -> ExitCode {
+    use crate::update::{self, CheckOutcome};
+    let env = process_env;
+    let current = update::CURRENT_VERSION;
+    match rt.block_on(update::check_now(&env)) {
+        CheckOutcome::UpdateAvailable { latest } => {
+            let method = update::detect_install_method(&env).to_app();
+            println!(
+                "{}",
+                trf(
+                    Msg::CheckUpdateAvailable,
+                    &[("current", current), ("latest", &latest)]
+                )
+            );
+            println!(
+                "{}",
+                trf(
+                    Msg::CheckUpdateHowTo,
+                    &[("hint", &update::upgrade_hint(&method))]
+                )
+            );
+            ExitCode::from(10)
+        }
+        CheckOutcome::UpToDate { latest } => {
+            println!(
+                "{}",
+                trf(
+                    Msg::UpdateUpToDate,
+                    &[("current", current), ("latest", &latest)]
+                )
+            );
+            ExitCode::SUCCESS
+        }
+        CheckOutcome::Unreachable => {
+            eprintln!(
+                "{}",
+                trf(
+                    Msg::CheckUpdateUnreachable,
+                    &[("current", current), ("url", &update::latest_url(&env))]
+                )
+            );
+            ExitCode::from(11)
+        }
+    }
+}
+
+/// `--update`: 0 완료 또는 최신, 1 실패, 11 접속 불가.
+fn update_command(rt: &tokio::runtime::Runtime) -> ExitCode {
+    use crate::update::{self, CheckOutcome};
+    let env = process_env;
+    match rt.block_on(update::check_now(&env)) {
+        CheckOutcome::UpdateAvailable { latest } => {
+            let method = update::detect_install_method(&env);
+            apply_update(rt, &update::info_for(&latest, &method))
+        }
+        CheckOutcome::UpToDate { latest } => {
+            println!(
+                "{}",
+                trf(
+                    Msg::UpdateUpToDate,
+                    &[("current", update::CURRENT_VERSION), ("latest", &latest)]
+                )
+            );
+            ExitCode::SUCCESS
+        }
+        CheckOutcome::Unreachable => {
+            eprintln!(
+                "{}",
+                trf(
+                    Msg::CheckUpdateUnreachable,
+                    &[
+                        ("current", update::CURRENT_VERSION),
+                        ("url", &update::latest_url(&env))
+                    ]
+                )
+            );
+            ExitCode::from(11)
+        }
+    }
+}
+
+/// 설치 스크립트 설치본은 내려받아 검증 후 교체, 그 외는 갱신 명령 안내 (외부 명령 실행 없음).
+fn apply_update(rt: &tokio::runtime::Runtime, info: &crate::app::UpdateInfo) -> ExitCode {
+    use crate::app::UpdateMethod;
+    let env = process_env;
+    let UpdateMethod::Script { dir } = &info.method else {
+        eprintln!(
+            "{}",
+            trf(
+                Msg::UpdateNotSelf,
+                &[
+                    ("method", &method_label(&info.method)),
+                    ("command", &crate::update::upgrade_hint(&info.method)),
+                ]
+            )
+        );
+        return ExitCode::from(1);
+    };
+    let progress = |asset: &str| eprintln!("{}", trf(Msg::UpdateDownloading, &[("asset", asset)]));
+    match rt.block_on(crate::update::apply(
+        &env,
+        &info.latest,
+        std::path::Path::new(dir),
+        &progress,
+    )) {
+        Ok(()) => {
+            eprintln!(
+                "{}",
+                trf(
+                    Msg::UpdateDone,
+                    &[("current", &info.current), ("latest", &info.latest)]
+                )
+            );
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("{}", trf(Msg::UpdateFailed, &[("detail", &e.to_string())]));
+            ExitCode::from(1)
+        }
+    }
+}
+
+fn method_label(method: &crate::app::UpdateMethod) -> String {
+    crate::ui::inline::method_label(i18n::lang(), method)
 }
 
 /// `HOWTUI_LOG`(수준) 설정 시에만 파일 로그 (SRS-OUT-004). stdout과 stderr 미사용.

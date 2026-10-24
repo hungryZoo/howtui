@@ -27,6 +27,34 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::StateOff => "off",
         Msg::StatusFolderOn => "Folder listing on: an ls -al style listing is sent (no contents).",
         Msg::StatusFolderOff => "Folder listing off.",
+        Msg::UpdateNotice => "v{latest} available",
+        Msg::UpdateTitle => "Update  howtui {current} -> {latest}",
+        Msg::UpdateChecking => "Checking for a new version",
+        Msg::UpdateUpToDate => "howtui {current} is up to date (latest release {latest}).",
+        Msg::UpdateUnreachable => "Could not reach GitHub to check for a new version.",
+        Msg::UpdateMethodLine => "Installed with: {method}",
+        Msg::UpdateActionBuiltIn => "[Enter] Download, verify SHA-256, replace {path}, then quit",
+        Msg::UpdateActionCommand => "[Enter] Quit and print the update command: {command}",
+        Msg::HintUpdate => "Enter update  Esc close",
+        Msg::HintUpdateClose => "Esc close",
+        Msg::MethodScript => "install script ({dir})",
+        Msg::MethodCargo => "cargo",
+        Msg::MethodBrew => "Homebrew",
+        Msg::MethodUnknown => "manual install",
+        Msg::SettingsUpdate => "Check for updates (/update)",
+        Msg::CheckUpdateAvailable => "howtui {current} -> {latest} available.",
+        Msg::CheckUpdateHowTo => "Update: {hint}",
+        Msg::CheckUpdateUnreachable => "howtui {current}: could not reach {url}.",
+        Msg::UpdateDownloading => "Downloading {asset}",
+        Msg::UpdateDone => "Updated howtui {current} -> {latest}. Run howtui again.",
+        Msg::UpdateNotSelf => "This copy was installed with {method}. Update it with: {command}",
+        Msg::UpdateFailed => "Update failed: {detail}. The installed version is unchanged.",
+        Msg::HelpCheckUpdate => {
+            "Check for a new version now (exit 0 up to date, 10 update available, 11 unreachable)"
+        }
+        Msg::HelpUpdate => {
+            "Update to the newest release now (exit 0 done or up to date, 1 failed, 11 unreachable)"
+        }
         Msg::SettingsLoading => "Loading models",
         Msg::SettingsApplying => "Applying",
         Msg::SettingsClose => "[Close]",

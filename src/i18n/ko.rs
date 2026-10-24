@@ -27,6 +27,34 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::StateOff => "끔",
         Msg::StatusFolderOn => "폴더 목록 보내기 켬: ls -al 형식 목록 전송 (내용 제외)",
         Msg::StatusFolderOff => "폴더 목록 보내기 끔",
+        Msg::UpdateNotice => "v{latest} 새 버전",
+        Msg::UpdateTitle => "업데이트  howtui {current} -> {latest}",
+        Msg::UpdateChecking => "새 버전 확인 중",
+        Msg::UpdateUpToDate => "howtui {current} 최신 버전 (최신 릴리스 {latest})",
+        Msg::UpdateUnreachable => "새 버전 확인을 위한 GitHub 접속 실패",
+        Msg::UpdateMethodLine => "설치 방식: {method}",
+        Msg::UpdateActionBuiltIn => "[Enter] 내려받기, SHA-256 검증, {path} 교체 후 종료",
+        Msg::UpdateActionCommand => "[Enter] 종료 후 업데이트 명령 출력: {command}",
+        Msg::HintUpdate => "Enter 업데이트  Esc 닫기",
+        Msg::HintUpdateClose => "Esc 닫기",
+        Msg::MethodScript => "설치 스크립트 ({dir})",
+        Msg::MethodCargo => "cargo",
+        Msg::MethodBrew => "Homebrew",
+        Msg::MethodUnknown => "수동 설치",
+        Msg::SettingsUpdate => "업데이트 확인 (/update)",
+        Msg::CheckUpdateAvailable => "howtui {current} -> {latest} 새 버전 있음",
+        Msg::CheckUpdateHowTo => "업데이트: {hint}",
+        Msg::CheckUpdateUnreachable => "howtui {current}: {url} 접속 실패",
+        Msg::UpdateDownloading => "{asset} 내려받는 중",
+        Msg::UpdateDone => "howtui {current} -> {latest} 업데이트 완료. howtui를 다시 실행",
+        Msg::UpdateNotSelf => "{method}로 설치한 사본. 업데이트 명령: {command}",
+        Msg::UpdateFailed => "업데이트 실패: {detail}. 설치된 버전은 그대로 유지",
+        Msg::HelpCheckUpdate => {
+            "새 버전 즉시 확인 (종료 코드 0 최신, 10 새 버전 있음, 11 접속 불가)"
+        }
+        Msg::HelpUpdate => {
+            "최신 릴리스로 즉시 업데이트 (종료 코드 0 완료 또는 최신, 1 실패, 11 접속 불가)"
+        }
         Msg::SettingsLoading => "모델 목록 불러오는 중",
         Msg::SettingsApplying => "적용 중",
         Msg::SettingsClose => "[닫기]",

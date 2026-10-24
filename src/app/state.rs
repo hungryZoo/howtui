@@ -106,11 +106,43 @@ pub struct LoginInfo {
     pub show_plan_notice: bool,
 }
 
+/// 설치 방식 (CR-009). 업데이트 적용 방법을 정한다.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum UpdateMethod {
+    /// 설치 스크립트 설치본: howtui가 직접 내려받아 검증 후 교체
+    Script {
+        dir: String,
+    },
+    Cargo,
+    Brew,
+    Unknown,
+}
+
+/// 새 버전 정보 (지난 실행이 남긴 캐시 또는 즉시 확인 결과).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UpdateInfo {
+    pub current: String,
+    pub latest: String,
+    pub method: UpdateMethod,
+}
+
+/// 업데이트 화면 상태.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum UpdateView {
+    Checking,
+    Ready(UpdateInfo),
+    UpToDate { current: String, latest: String },
+    Unreachable,
+}
+
 /// 마우스 클릭 대상. 렌더러가 화면 영역과 함께 기록하고 런타임이 클릭 좌표로 찾는다 (CR-005).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Hit {
     OpenSettings,
     ToggleFolder,
+    OpenUpdate,
+    ConfirmUpdate,
+    CloseUpdate,
     Question,
     Command,
     SettingsItem(usize),
@@ -122,6 +154,7 @@ pub enum Hit {
 pub enum SettingsEntry {
     Model(usize),
     Folder,
+    Update,
     SignOut,
 }
 
@@ -142,6 +175,7 @@ impl SettingsView {
         };
         let mut v: Vec<SettingsEntry> = (0..d.models.len()).map(SettingsEntry::Model).collect();
         v.push(SettingsEntry::Folder);
+        v.push(SettingsEntry::Update);
         if d.can_sign_out {
             v.push(SettingsEntry::SignOut);
         }
@@ -193,12 +227,15 @@ pub enum Action {
     SettingsLoaded(Result<ProviderSettings, LlmError>),
     ModelSelected(Result<ProviderLabel, LlmError>),
     SignedOut,
+    UpdateChecked(UpdateView),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExitOutcome {
     Accepted(String),
     Cancelled,
+    /// 업데이트 화면에서 Enter: TUI 종료 후 적용 또는 안내 (CR-009)
+    Update(UpdateInfo),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -212,6 +249,8 @@ pub enum Effect {
     SelectModel(String),
     /// 폴더 목록 전송 설정 저장
     SaveFolder(bool),
+    /// 즉시 업데이트 확인 (업데이트 화면)
+    CheckUpdate,
     SignOut,
     Exit(ExitOutcome),
 }
@@ -242,6 +281,9 @@ pub struct State {
     pub settings: Option<SettingsView>,
     /// 현재 폴더 목록 전송 (CR-007)
     pub send_folder: bool,
+    /// 새 버전 알림 (캐시 기준, CR-009)
+    pub update: Option<UpdateInfo>,
+    pub update_view: Option<UpdateView>,
 }
 
 impl State {
@@ -273,6 +315,8 @@ impl State {
             next_request_id: 1,
             settings: None,
             send_folder: false,
+            update: None,
+            update_view: None,
         }
     }
 
@@ -286,5 +330,6 @@ impl State {
                 .settings
                 .as_ref()
                 .is_some_and(|s| (s.data.is_none() && s.error.is_none()) || s.applying)
+            || self.update_view == Some(UpdateView::Checking)
     }
 }

@@ -71,6 +71,11 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-CTX-001 | 폴더 목록 전송 범위 | PRD-CTX-001, PRD-PRIV-002, SRS-CTX-001 | Mock HTTP 서버, 숨김 파일과 비밀 내용 파일이 있는 작업 폴더 | `--no-tui` 실행: 설정 없음, `context.folder = true` | 끔일 때 파일 이름과 숨김 항목 이름 미전송, 켬일 때 둘 다 전송, 두 경우 모두 파일 내용과 절대 경로 미전송 | 통합 | 전체 | 통과 | - |
 | TC-CTX-002 | 폴더 목록 켜기와 끄기 | PRD-CTX-001, SRS-CTX-002 | Mock Provider | 시작, Ctrl+F, 상태줄 `[folder: on]` 클릭, 설정 화면 항목 클릭 | 기본 `[folder: off]`, 켬 안내와 `[folder: on]`, 클릭으로 끔, 요청 `include_folder` 반영, 저장 Effect | 단위, PTY | 전체 | 통과 | - |
 | TC-CTX-003 | 폴더 목록 형식 | SRS-CTX-001 | 임시 폴더 (폴더, 파일, 숨김 파일, 권한 0640 파일, 심볼릭 링크, 155개 파일, 제어 문자 이름) | 목록 생성, 프롬프트 구성 | 첫 줄 시각과 열 설명, 폴더 먼저, `-rw-r-----` 권한과 크기, 숨김 항목 포함, 링크 대상과 소유자 이름 미포함, 상한과 생략 표시, 제어 문자 치환, 마지막 사용자 메시지에만 추가 | 단위 | 전체 | 통과 | - |
+| TC-UPD-001 | 버전, 캐시, 주기 | PRD-UPD-001, SRS-UPD-001, SRS-UPD-002 | 없음 | semver, 리다이렉트 URL, 캐시 왕복과 손상, 주기 경계, 캐시 경로, 비활성화 환경변수 | 규칙대로 판정, 손상 시 즉시 재확인 | 단위 | 전체 | 통과 | - |
+| TC-UPD-002 | 설치 방식과 적용 부품 | PRD-UPD-002, SRS-UPD-003, SRS-UPD-004 | 없음 | 경로 조합별 판정, SHA256SUMS 파싱, tar.gz와 zip 추출, 파일 교체, Mock 서버 적용(체크섬 불일치, 정상, 자산 없음) | Homebrew, cargo, 스크립트, 불명 판정. 불일치 시 기존 파일 유지, 정상 시 실행 파일과 제거 스크립트 교체 | 단위 | 전체 | 통과 | - |
+| TC-UPD-003 | `--check-update`와 `--update` | PRD-UPD-003, SRS-UPD-004 | Mock 릴리스 서버, 설치 스크립트 위치에 복사한 실제 바이너리 | 새 버전 확인, 업데이트, 캐시 확인 | 종료 코드 10과 안내, 업데이트 0과 바이너리 교체, 제거 스크립트 교체, 캐시 `latest` 갱신 | 통합 | 전체 | 통과 | - |
+| TC-UPD-004 | 최신, 접속 불가, cargo 설치본 | PRD-UPD-003, PRD-UPD-002 | Mock 릴리스 서버 | 현재 버전 응답, 닫힌 포트, `~/.cargo/bin` 복사본 `--update` | 0과 최신 안내, 11, cargo는 1과 `cargo install --git` 안내 후 파일 무변경 | 통합 | 전체 | 통과 | - |
+| TC-UPD-005 | 알림과 업데이트 화면 | PRD-UPD-001, PRD-UPD-002, SRS-UPD-005 | 오늘 시각과 `latest=9.9.9` 캐시 | TUI 시작, 알림 클릭, Esc, `/update`, 설정 항목 | 상태줄 알림(네트워크 없음), 업데이트 화면, Esc 닫기, 즉시 확인 결과 반영, Enter로 종료 후 적용 | 단위, PTY | Unix | 통과 | - |
 | TC-UI-016 | Windows ConPTY 자동 E2E | PRD-UI-001, PRD-UI-010, SRS-TERM-003, SRS-TEST-006 | windows-2025, windows-11-arm 러너, Mock 시나리오 | `tests/conpty.rs`: 의사 콘솔에서 질문 입력, 응답 표시 확인, 확정, Ctrl+C 취소 | 화면 렌더링(한글, 이모지 포함), 확정 0, 취소 130 | PTY | Windows | 통과 | - |
 
 ## 4. 키 바인딩과 편집
@@ -224,7 +229,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-DOC-004 | JSON 출력 | PRD-DOC-004, SRS-DOC-002 | 없음 | `howtui doctor --json` | JSON 파싱 성공, `schema_version` 1, 상태 값 집합 일치 | 통합 | 전체 | 통과 | - |
 | TC-DOC-005 | 마스킹 | PRD-DOC-005, SRS-DOC-003 | 토큰, 이메일, 홈 경로, 비밀 환경변수 설정 | `doctor`, `doctor --json` | 토큰 0건, 이메일 마스킹, `~` 치환, 환경변수 값 부재 | 단위 | 전체 | 통과 | - |
 | TC-DOC-006 | 종료 코드 | PRD-DOC-009, SRS-DOC-004 | 실패 항목 유무 | doctor 실행 | 실패 있음 1, 경고만 0 | 통합 | 전체 | 통과 | - |
-| TC-DOC-007 | 업데이트 점검 | PRD-DOC-007, SRS-DOC-005 | P4, Mock 릴리스 응답 | doctor | 최신 버전 비교와 업데이트 방법 표시 | 통합 | 전체 | 미실행 | - |
+| TC-DOC-007 | 업데이트 점검 | PRD-DOC-007, SRS-DOC-005 | P4, Mock 릴리스 응답 | doctor | 최신 버전 비교와 업데이트 방법 표시 | 통합 | 전체 | 통과 | - |
 | TC-DOC-008 | 로컬 LLM 점검 | PRD-DOC-008, SRS-DOC-005 | P6 | doctor | 서버별 연결과 모델 상태 표시 | 실연동 | Linux | 미실행 | - |
 
 ## 12. 설치와 릴리스
@@ -238,7 +243,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-INS-005 | install.ps1 정상 설치 | PRD-INS-002, SRS-INS-008, SRS-INS-010 | Windows PowerShell 5.1, PowerShell 7 | `irm ... \| iex` 동등 실행 | 사용자 경로 설치, PATH 등록, 버전 확인 | 수동 | Windows | 통과 | - |
 | TC-INS-006 | install.ps1 아키텍처 | PRD-INS-002, SRS-INS-009 | ARM64 Windows의 x64 PowerShell | 판별 | aarch64 자산 선택 | 수동 | WinARM | 미실행 | - |
 | TC-INS-007 | 대안 설치 문서 | PRD-INS-006, SRS-INS-011 | 릴리스 존재 | 문서 절차 수행 (스크립트 검토 후 실행, 직접 다운로드, 체크섬 독립 검증) | 각 절차 성공 | 수동 | 전체 | 미실행 | - |
-| TC-INS-008 | 업데이트 | PRD-INS-007, SRS-INS-012 | P4, 구버전 설치 | 같은 방식 재실행 | 기존 경로에 신버전 | 통합 | Unix | 미실행 | - |
+| TC-INS-008 | 업데이트 | PRD-INS-007, SRS-INS-012 | P4, 구버전 설치 | 같은 방식 재실행 | 기존 경로에 신버전 | 통합 | Unix | 통과 | - |
 | TC-INS-009 | 제거 문서 | PRD-INS-008, SRS-INS-013 | P4 | 문서 절차 수행 | 바이너리, 설정, 자격증명, 쉘 통합 줄 제거 | 수동 | 전체 | 미실행 | - |
 | TC-INS-010 | 원격 코드 실행 부재 | PRD-INS-009, SRS-INS-004 | 스크립트 원문 | 다운로드 대상 검사 | 릴리스 자산과 SHA256SUMS 외 다운로드 없음, 다운로드 내용 실행 없음 | 단위 | 전체 | 통과 | - |
 | TC-INS-011 | 설치 후 쉘 통합 확인 질문 | PRD-INS-001, PRD-SH-014, SRS-INS-014 | 임시 HOME, PATH 밖 설치 디렉터리 | 질문에 y 2회, `--shell-integration`(zsh), `--no-shell-integration`, `cat install.sh \| sh`로 실제 터미널 질문에 Enter | 구간 1개와 PATH 추가 줄, 재실행 중복 없음, zsh는 `.zshrc`, 거부 옵션은 무변경, 파이프 실행에서도 질문 표시 | 통합 | Unix | 통과 | - |
@@ -511,3 +516,10 @@ CI 도입 중 발견과 수정: (1) Bash 5.2의 `bind -x` 안 `$(<file)` 치환 
 | `TC-CTX-001` | 통과 | 통합 `tests/cli.rs` | folder_listing_is_sent_only_when_enabled (CR-008 이후 숨김 항목 조건 포함) |
 | `TC-CTX-002` | 통과 | 단위 `cargo test`, PTY `tests/pty/run.sh` | folder_toggle_sets_request_flag_and_saves, settings_view_lists_models_and_click_targets, folder |
 | `TC-CTX-003` | 통과 | 단위 `cargo test` | ls_al_like_listing_without_contents_owners_or_link_targets, caps_entries_and_cleans_names, folder_listing_only_when_given (CR-008 이후 재실행) |
+| `TC-UPD-001` | 통과 | 단위 `cargo test` | semver_and_release_url, cache_round_trip_staleness_and_corruption, cache_path_rules |
+| `TC-UPD-002` | 통과 | 단위 `cargo test` | install_method_classification, checksum_lines_and_asset_names, extracts_binary_and_uninstall_script, replace_file_swaps_content_and_mode, apply_verifies_and_replaces, check_now_uses_redirect_and_updates_cache |
+| `TC-UPD-003` | 통과 | 통합 `tests/cli.rs` | check_update_reports_and_update_replaces_binary |
+| `TC-UPD-004` | 통과 | 통합 `tests/cli.rs` | up_to_date_unreachable_and_cargo_installs |
+| `TC-UPD-005` | 통과 | 단위 `cargo test`, PTY `tests/pty/run.sh` | update_notice_click_and_confirm, update_check_from_slash_command_and_settings, update_notice_and_view, update |
+| `TC-DOC-007` | 통과 | 수동 실행 (실제 GitHub, 닫힌 포트), 통합 | `[ok] update 0.1.1 is up to date`, `[info] update ... could not reach the release page`, 시험 환경 비활성화 시 skip |
+| `TC-INS-008` | 통과 | 통합 `tests/cli.rs`, `tests/install/run_unix.sh` | `--update`로 기존 경로에 신버전, 설치 스크립트 재실행 덮어쓰기 |

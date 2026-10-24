@@ -78,7 +78,7 @@ if [ -n "${PTY_DOCKER_IMAGE:-}" ]; then
   BIN_DIR=/opt/howtui
 fi
 ENVS="HOME=$OUT/home ZDOTDIR=$OUT/home PATH=$BIN_DIR:/usr/bin:/bin TERM=xterm-256color LANG=${PTY_LANG:-C.UTF-8} TMPDIR=$OUT/tmp BASH_SILENCE_DEPRECATION_WARNING=1 \
-HOWTUI_LANG=en HOWTUI_MOCK_SCENARIO=echo HOWTUI_DATA_DIR=$OUT/data HOWTUI_CONFIG=$OUT/none.toml"
+HOWTUI_LANG=en HOWTUI_MOCK_SCENARIO=echo HOWTUI_DATA_DIR=$OUT/data HOWTUI_CONFIG=$OUT/none.toml HOWTUI_NO_UPDATE_CHECK=1"
 if [ -n "${PTY_DOCKER_IMAGE:-}" ]; then
   # 결과 디렉터리는 같은 경로로 연결, 바이너리는 읽기 전용
   # 이름 지정: tmux 세션 종료(SIGHUP) 후에도 남는 쉘(pwsh) 컨테이너를 종료 시 삭제

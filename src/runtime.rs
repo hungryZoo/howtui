@@ -62,6 +62,8 @@ pub struct TuiConfig {
     pub keep_paste: bool,
     /// 클릭 입력 (설정 `ui.mouse`, CR-005)
     pub mouse: bool,
+    /// 새 버전 알림 (지난 실행 캐시, CR-009)
+    pub update: Option<crate::app::UpdateInfo>,
     /// 현재 폴더 목록 전송 초기값과 변경 저장 (CR-007)
     pub send_folder: bool,
     pub save_folder: Option<Arc<dyn Fn(bool) + Send + Sync>>,
@@ -71,6 +73,7 @@ pub struct TuiConfig {
 pub enum TuiOutcome {
     Accepted(String),
     Cancelled,
+    Update(crate::app::UpdateInfo),
     Signal(i32),
 }
 
@@ -103,6 +106,7 @@ pub fn run_tui(
     let mut state = State::new(cfg.lang, cfg.env.clone(), cfg.logged_in);
     state.provider = provider.label();
     state.send_folder = cfg.send_folder;
+    state.update = cfg.update.clone();
     state.status = cfg.startup_notice.clone();
     if let Some((buffer, lbuffer)) = &cfg.initial_command {
         state.command.set_text(buffer);
@@ -150,6 +154,17 @@ pub fn run_tui(
             match effect {
                 Effect::Exit(ExitOutcome::Accepted(cmd)) => break 'main TuiOutcome::Accepted(cmd),
                 Effect::Exit(ExitOutcome::Cancelled) => break 'main TuiOutcome::Cancelled,
+                Effect::Exit(ExitOutcome::Update(info)) => break 'main TuiOutcome::Update(info),
+                Effect::CheckUpdate => {
+                    let tx = tx.clone();
+                    rt.spawn(async move {
+                        let env = crate::platform::paths::process_env;
+                        let outcome = crate::update::check_now(&env).await;
+                        let method = crate::update::detect_install_method(&env);
+                        let view = crate::update::view_for(&outcome, &method);
+                        let _ = tx.send(Msg::Action(Action::UpdateChecked(view)));
+                    });
+                }
                 Effect::StartRequest(mut req) => {
                     // 폴더 목록은 요청 직전에 읽음 (이름, 종류, 크기만)
                     if req.include_folder {

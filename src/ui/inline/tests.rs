@@ -283,7 +283,11 @@ fn settings_view_lists_models_and_click_targets() {
         lines[3].contains("Send current folder listing (Ctrl+F): off"),
         "{lines:?}"
     );
-    assert!(lines[4].contains("Sign out"), "{lines:?}");
+    assert!(
+        lines[4].contains("Check for updates (/update)"),
+        "{lines:?}"
+    );
+    assert!(lines[5].contains("Sign out"), "{lines:?}");
     assert!(lines[9].contains("Enter choose"));
     let items: Vec<_> = hits
         .iter()
@@ -292,6 +296,66 @@ fn settings_view_lists_models_and_click_targets() {
             _ => None,
         })
         .collect();
-    assert_eq!(items, vec![(1, 0), (2, 1), (3, 2), (4, 3)]);
+    assert_eq!(items, vec![(1, 0), (2, 1), (3, 2), (4, 3), (5, 4)]);
     assert!(hits.iter().any(|(_, h)| *h == Hit::CloseSettings));
+}
+
+/// CR-009: 상태줄 알림 버튼(맨 앞, 클릭 영역), 업데이트 화면 내용.
+#[test]
+fn update_notice_and_view() {
+    use crate::app::{Hit, UpdateInfo, UpdateMethod, UpdateView};
+    let mut s = state(Lang::En);
+    s.update = Some(UpdateInfo {
+        current: "0.1.1".into(),
+        latest: "0.2.0".into(),
+        method: UpdateMethod::Script {
+            dir: "/home/u/.local/bin".into(),
+        },
+    });
+    let (lines, hits) = screen_hits(&s, 100, 10);
+    assert!(
+        lines[9].contains("[v0.2.0 available]  [folder: off]  [model-a]"),
+        "{lines:?}"
+    );
+    let (r, _) = hits
+        .iter()
+        .find(|(_, h)| *h == Hit::OpenUpdate)
+        .expect("notice button");
+    assert!(
+        lines[9]
+            .chars()
+            .skip(r.x as usize)
+            .collect::<String>()
+            .starts_with("[v0.2.0 available]")
+    );
+    // 좁은 화면에서도 알림 유지
+    assert!(screen(&s, 50, 10)[9].contains("[v0.2.0 available]"));
+    s.update_view = Some(UpdateView::Ready(s.update.clone().unwrap()));
+    let (lines, hits) = screen_hits(&s, 100, 10);
+    assert!(
+        lines[0].starts_with("Update  howtui 0.1.1 -> 0.2.0"),
+        "{lines:?}"
+    );
+    assert!(
+        lines[1].contains("Installed with: install script (/home/u/.local/bin)"),
+        "{lines:?}"
+    );
+    assert!(
+        lines[2].contains("[Enter] Download, verify SHA-256"),
+        "{lines:?}"
+    );
+    assert!(lines[9].contains("Enter update"));
+    assert!(
+        hits.iter()
+            .any(|(r, h)| *h == Hit::ConfirmUpdate && r.y == 2)
+    );
+    s.update_view = Some(UpdateView::Ready(UpdateInfo {
+        method: UpdateMethod::Cargo,
+        ..s.update.clone().unwrap()
+    }));
+    let lines = screen(&s, 120, 10);
+    assert!(
+        lines[2].contains("cargo install --git https://github.com/hungryZoo/howtui --locked"),
+        "{lines:?}"
+    );
 }

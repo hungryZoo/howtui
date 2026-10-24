@@ -65,6 +65,21 @@ pub struct Config {
     pub ui: UiConfig,
     pub provider: ProviderConfig,
     pub context: ContextConfig,
+    pub update: UpdateConfig,
+}
+
+/// 새 버전 확인 (CR-009). `HOWTUI_NO_UPDATE_CHECK=1`도 같은 효과
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+#[serde(default)]
+pub struct UpdateConfig {
+    /// 하루 1회 백그라운드 확인과 상태줄 알림
+    pub check: bool,
+}
+
+impl Default for UpdateConfig {
+    fn default() -> Self {
+        Self { check: true }
+    }
 }
 
 /// 요청에 덧붙이는 정보 (CR-007). 기본값은 보내지 않음
@@ -103,6 +118,8 @@ const KNOWN_KEYS: &[&str] = &[
     "provider.chatgpt.model",
     "context",
     "context.folder",
+    "update",
+    "update.check",
 ];
 
 pub fn load(path: Option<&Path>) -> Result<Loaded, ConfigError> {

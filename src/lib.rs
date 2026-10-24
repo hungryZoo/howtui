@@ -14,3 +14,4 @@ pub mod runtime;
 pub mod safety;
 pub mod shell;
 pub mod ui;
+pub mod update;

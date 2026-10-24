@@ -648,7 +648,7 @@ fn settings_clicks_and_sign_out() {
     update(&mut s, Action::Scroll(-1));
     assert_eq!(s.settings.as_ref().unwrap().cursor, 0);
     assert_eq!(
-        update(&mut s, Action::Click(Hit::SettingsItem(3))),
+        update(&mut s, Action::Click(Hit::SettingsItem(4))),
         vec![Effect::SignOut]
     );
     update(&mut s, Action::SignedOut);
@@ -714,4 +714,68 @@ fn folder_toggle_sets_request_flag_and_saves() {
         vec![Effect::SaveFolder(true)]
     );
     assert!(s.settings.is_some(), "토글은 설정 화면 유지");
+}
+
+fn update_info() -> UpdateInfo {
+    UpdateInfo {
+        current: "0.1.1".into(),
+        latest: "0.2.0".into(),
+        method: UpdateMethod::Script {
+            dir: "/home/u/.local/bin".into(),
+        },
+    }
+}
+
+/// CR-009: 알림 클릭으로 업데이트 화면, Enter로 종료 후 적용, Esc 닫기.
+#[test]
+fn update_notice_click_and_confirm() {
+    let mut s = ready();
+    s.update = Some(update_info());
+    assert!(update(&mut s, Action::Click(Hit::OpenUpdate)).is_empty());
+    assert_eq!(s.update_view, Some(UpdateView::Ready(update_info())));
+    key(&mut s, KeyAction::Cancel);
+    assert!(s.update_view.is_none(), "Esc는 닫기");
+    assert_eq!(s.phase, Phase::Ready);
+    update(&mut s, Action::Click(Hit::OpenUpdate));
+    assert_eq!(
+        key(&mut s, KeyAction::Submit),
+        vec![Effect::Exit(ExitOutcome::Update(update_info()))]
+    );
+}
+
+/// 알림이 없을 때 `/update`와 설정 화면 항목은 즉시 확인, 결과 반영과 알림 갱신.
+#[test]
+fn update_check_from_slash_command_and_settings() {
+    let mut s = ready();
+    type_text(&mut s, "/update");
+    assert_eq!(key(&mut s, KeyAction::Submit), vec![Effect::CheckUpdate]);
+    assert_eq!(s.update_view, Some(UpdateView::Checking));
+    assert!(s.is_busy());
+    assert!(
+        key(&mut s, KeyAction::Submit).is_empty(),
+        "확인 중 Enter 무시"
+    );
+    update(
+        &mut s,
+        Action::UpdateChecked(UpdateView::UpToDate {
+            current: "0.1.1".into(),
+            latest: "0.1.1".into(),
+        }),
+    );
+    assert!(matches!(s.update_view, Some(UpdateView::UpToDate { .. })));
+    assert!(key(&mut s, KeyAction::Submit).is_empty());
+    assert!(s.update_view.is_none(), "최신이면 Enter로 닫기");
+    // 설정 화면 항목 (모델 2개, 폴더 다음)
+    key(&mut s, KeyAction::Settings);
+    update(&mut s, Action::SettingsLoaded(Ok(settings_data())));
+    assert_eq!(
+        update(&mut s, Action::Click(Hit::SettingsItem(3))),
+        vec![Effect::CheckUpdate]
+    );
+    assert!(s.settings.is_none());
+    update(
+        &mut s,
+        Action::UpdateChecked(UpdateView::Ready(update_info())),
+    );
+    assert_eq!(s.update, Some(update_info()), "상태줄 알림 갱신");
 }

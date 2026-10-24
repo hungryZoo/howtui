@@ -50,6 +50,15 @@ pub fn update(state: &mut State, action: Action) -> Vec<Effect> {
         }
         Action::SettingsLoaded(result) => on_settings_loaded(state, result),
         Action::ModelSelected(result) => on_model_selected(state, result),
+        Action::UpdateChecked(view) => {
+            if let UpdateView::Ready(info) = &view {
+                state.update = Some(info.clone());
+            }
+            if state.update_view.is_some() {
+                state.update_view = Some(view);
+            }
+            Vec::new()
+        }
         Action::SignedOut => {
             state.settings = None;
             state.phase = Phase::LoginRequired;
@@ -57,6 +66,47 @@ pub fn update(state: &mut State, action: Action) -> Vec<Effect> {
             state.status = Some(Status::info(Msg::StatusSignedOut));
             Vec::new()
         }
+    }
+}
+
+// 업데이트 화면 (CR-009): 알림이 있으면 바로 표시, 없으면 즉시 확인
+
+fn open_update(state: &mut State) -> Vec<Effect> {
+    state.settings = None;
+    state.status = None;
+    match &state.update {
+        Some(info) => {
+            state.update_view = Some(UpdateView::Ready(info.clone()));
+            Vec::new()
+        }
+        None => {
+            state.update_view = Some(UpdateView::Checking);
+            vec![Effect::CheckUpdate]
+        }
+    }
+}
+
+fn confirm_update(state: &mut State) -> Vec<Effect> {
+    match state.update_view.take() {
+        Some(UpdateView::Ready(info)) => vec![Effect::Exit(ExitOutcome::Update(info))],
+        // 확인 중이면 화면 유지
+        Some(UpdateView::Checking) => {
+            state.update_view = Some(UpdateView::Checking);
+            Vec::new()
+        }
+        _ => Vec::new(),
+    }
+}
+
+fn on_update_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
+    match key {
+        KeyAction::Quit => vec![Effect::Exit(ExitOutcome::Cancelled)],
+        KeyAction::Submit => confirm_update(state),
+        KeyAction::Cancel | KeyAction::Settings => {
+            state.update_view = None;
+            Vec::new()
+        }
+        _ => Vec::new(),
     }
 }
 
@@ -133,6 +183,7 @@ fn choose_setting(state: &mut State) -> Vec<Effect> {
             vec![Effect::SelectModel(id)]
         }
         Some(SettingsEntry::Folder) => toggle_folder(state),
+        Some(SettingsEntry::Update) => open_update(state),
         Some(SettingsEntry::SignOut) => {
             view.applying = true;
             view.error = None;
@@ -195,6 +246,16 @@ fn on_click(state: &mut State, hit: Hit) -> Vec<Effect> {
     if state.too_small {
         return Vec::new();
     }
+    if state.update_view.is_some() {
+        return match hit {
+            Hit::ConfirmUpdate => confirm_update(state),
+            Hit::CloseUpdate => {
+                state.update_view = None;
+                Vec::new()
+            }
+            _ => Vec::new(),
+        };
+    }
     if state.settings.is_some() {
         return match hit {
             Hit::SettingsItem(i) => {
@@ -215,6 +276,7 @@ fn on_click(state: &mut State, hit: Hit) -> Vec<Effect> {
     }
     match (state.phase, hit) {
         (Phase::Ready, Hit::OpenSettings) => open_settings(state),
+        (Phase::Ready, Hit::OpenUpdate) => open_update(state),
         (Phase::Ready | Phase::Requesting, Hit::ToggleFolder) => toggle_folder(state),
         (Phase::Ready | Phase::Requesting, Hit::Question) => {
             state.focus = Focus::Question;
@@ -293,6 +355,7 @@ fn on_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
                 Vec::new()
             }
         },
+        Phase::Ready if state.update_view.is_some() => on_update_key(state, key),
         Phase::Ready if state.settings.is_some() => on_settings_key(state, key),
         Phase::Ready => on_ready_key(state, key),
     }
@@ -462,6 +525,10 @@ fn submit_question(state: &mut State) -> Vec<Effect> {
     if matches!(question.as_str(), "/model" | "/models" | "/settings") {
         state.question.clear();
         return open_settings(state);
+    }
+    if question == "/update" {
+        state.question.clear();
+        return open_update(state);
     }
     let op = if state.has_command() {
         Operation::Revise

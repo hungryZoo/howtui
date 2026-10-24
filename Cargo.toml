@@ -19,6 +19,7 @@ mock-provider = []
 base64 = "0.23"
 clap = { version = "4.6", features = ["derive", "string"] }
 crossterm = { version = "0.29", features = ["bracketed-paste"] }
+flate2 = { version = "1.1.10", default-features = false, features = ["rust_backend"] }
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 getrandom = "0.4"
 httparse = "1"
@@ -31,6 +32,7 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.11"
+tar = { version = "0.4.46", default-features = false }
 thiserror = "2"
 tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "time", "sync", "io-util", "signal"] }
 tokio-util = "0.7"
@@ -40,6 +42,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 unicode-segmentation = "1"
 unicode-width = "0.2"
 url = "2"
+zip = { version = "9.0.5", default-features = false, features = ["deflate-flate2"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

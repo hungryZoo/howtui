@@ -28,7 +28,9 @@ pass() { echo "PASS $1" | tee -a "$OUT/summary.txt"; }
 fail() { echo "FAIL $1: $2" | tee -a "$OUT/summary.txt"; FAILED=1; }
 wait_file() { for _ in $(seq 1 100); do [ -f "$1" ] && return 0; sleep 0.1; done; return 1; }
 
-ENV="HOWTUI_LANG=en HOWTUI_DATA_DIR=$OUT/data HOWTUI_CONFIG=$OUT/none.toml"
+# 시험 중 GitHub 업데이트 확인 없음 (업데이트 알림은 (19)에서 캐시로 시험)
+BASE_ENV="HOWTUI_LANG=en HOWTUI_DATA_DIR=$OUT/data HOWTUI_CONFIG=$OUT/none.toml"
+ENV="$BASE_ENV HOWTUI_NO_UPDATE_CHECK=1"
 
 # 명령 실행: 종료 코드와 stty 상태를 기록하고 완료 파일 생성
 start() {
@@ -245,6 +247,25 @@ if finish folder; then
     pass folder
   else
     fail folder "folder toggle"
+  fi
+fi
+
+# (19) 새 버전 알림: 지난 실행이 남긴 캐시(오늘 확인, 네트워크 없음)로 상태줄 알림, 클릭으로 업데이트 화면 (TC-UPD-005)
+if [ "$(uname -s)" = Darwin ]; then cache_dir="$OUT/Library/Caches/howtui"; else cache_dir="$OUT/.cache/howtui"; fi
+mkdir -p "$cache_dir"
+printf 'checked_at=%s\nlatest=9.9.9\n' "$(date +%s)" > "$cache_dir/update-check"
+start update "$BASE_ENV $MOCK $BIN > /dev/null"
+sleep 0.3; snap update_notice
+pos=$(tmux capture-pane -p -t "$P" | cat | grep -n '\[v9.9.9 available\]' | tail -1)
+urow=${pos%%:*}; uline=${pos#*:}; uprefix=${uline%%\[v9.9.9 available\]*}
+click "$(( ${#uprefix} + 2 ))" "$urow"; sleep 0.4; snap update_view
+send Escape; sleep 0.3; send Escape
+if finish update; then
+  if grep -q '\[v9.9.9 available\]' "$OUT/update_notice.screen" && grep -q 'Update  howtui .* -> 9.9.9' "$OUT/update_view.screen" \
+    && grep -q 'Installed with:' "$OUT/update_view.screen" && [ "$(cat "$cache_dir/update-check" | grep -c 'latest=9.9.9')" = 1 ]; then
+    pass update
+  else
+    fail update "update notice or view"
   fi
 fi
 

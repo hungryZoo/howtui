@@ -192,8 +192,38 @@ cargo build --release          # Rust 1.89 or newer; rust-toolchain.toml pins th
 
 ### Update
 
-Run the same install command again. Pass the same `--bin-dir` or `HOWTUI_INSTALL_DIR` if you changed it. Your sign-in,
-model choice, settings and shell integration stay as they are (an existing integration block is reported, not duplicated).
+When a new release exists, the status line shows `[v0.2.0 available]` (from 0.1.2 on). Click it, type `/update`, or pick
+**Check for updates** in Settings (Ctrl+O), then press Enter. howtui quits, downloads the release for your platform,
+verifies it against `SHA256SUMS`, replaces itself and tells you to run it again. From a script or a terminal:
+
+| Command | Does | Exit code |
+| --- | --- | --- |
+| `howtui --check-update` | Check now and print the result | 0 up to date, 10 update available, 11 GitHub unreachable |
+| `howtui --update` | Check now and update if there is a new release | 0 updated or up to date, 1 failed, 11 GitHub unreachable |
+
+How it checks: at most once a day, in the background, a single request to
+`https://github.com/hungryZoo/howtui/releases/latest` (nothing about you or your use is sent). Start-up never waits for
+it; the result shows on the next start. Turn it off with `HOWTUI_NO_UPDATE_CHECK=1` or `update.check = false`.
+The last result is kept here (set `checked_at=0` in the file to check again on the next start):
+
+| OS | Cache file |
+| --- | --- |
+| Linux | `${XDG_CACHE_HOME:-~/.cache}/howtui/update-check` |
+| macOS | `~/Library/Caches/howtui/update-check` |
+| Windows | `%LOCALAPPDATA%\howtui\cache\update-check` |
+
+How it updates depends on how howtui was installed:
+
+| Installed with | Detected by | Update |
+| --- | --- | --- |
+| `install.sh`, `install.ps1`, or a release archive copied to your home | path under your home or `%LOCALAPPDATA%` | built in: download, SHA-256 check, replace in place (same folder, uninstall script too) |
+| `cargo install` | `~/.cargo/bin` (or `$CARGO_HOME/bin`) | prints `cargo install --git https://github.com/hungryZoo/howtui --locked` |
+| Homebrew | `/Cellar/`, `/homebrew/` or `/linuxbrew/` in the path | prints `brew upgrade howtui` |
+| anything else | | prints the release page URL |
+
+Running the install command again also updates in place; pass the same `--bin-dir` or `HOWTUI_INSTALL_DIR` if you
+changed it. Your sign-in, model choice, settings and shell integration stay as they are. Versions 0.1.0 and 0.1.1 have
+no update check, so update them once with the install command.
 
 ### Uninstall
 
@@ -264,6 +294,7 @@ Sign-in starts by itself the first time (or run `howtui login`):
 | `howtui auth status` | Show the signed-in account (masked email), plan usage and token expiry |
 | `howtui doctor [--json]` | Check terminal, locale, config, sign-in and model access; output contains no tokens or home paths |
 | `howtui init bash\|zsh\|powershell` | Print the shell integration script (options: `--key ctrl+x`, `--no-bind`, `--no-wrap`) |
+| `howtui --check-update`, `howtui --update` | Check for a new release, or update now ([Update](#update)) |
 
 Common options: `--shell bash|zsh|powershell`, `--height N` (3-40).
 
@@ -400,6 +431,9 @@ inline_height = 10     # 3-40
 language = "auto"      # "auto", "en" or "ko"
 mouse = true           # false: no clicks, terminal keeps its own text selection and scrolling
 
+[update]
+check = true           # false: no daily check and no "available" note (same as HOWTUI_NO_UPDATE_CHECK=1)
+
 [context]
 folder = false         # true: send the ls -al style folder listing unless turned off with Ctrl+F
 
@@ -423,6 +457,7 @@ Sign-in state and the file-based token store live in the data directory: `$XDG_D
 | `HOWTUI_NO_BROWSER=1` | Never open a browser during sign-in (also implied in SSH sessions) |
 | `HOWTUI_CREDENTIAL_STORE` | `keyring` or `file`, overrides the automatic choice |
 | `HOWTUI_LOG`, `HOWTUI_LOG_FILE` | Write a diagnostic log (metadata only, no questions, commands or tokens) |
+| `HOWTUI_NO_UPDATE_CHECK=1` | No daily update check and no update note |
 
 <p align="right"><a href="#table-of-contents">↑ back to top</a></p>
 
@@ -466,6 +501,8 @@ Zero W (ARMv6) are not supported, and no Raspberry Pi hardware has been tested y
   permissions, sizes, modification times). Never sent: environment variables, file contents, owner names, shell history,
   the folder path.
 - **Received at sign-in:** your account email and name. howtui keeps the email to show it masked.
+- **Update check:** at most once a day, one request to the GitHub release page to read the newest version number
+  ([Update](#update)). Off with `HOWTUI_NO_UPDATE_CHECK=1`.
 - **Stored on your machine:** OAuth tokens in the OS credential store (Keychain, Credential Manager, Secret Service) or, when
   none is available, in a `0600` file in the data directory.
 - **Danger warnings** are simple rules over the command text. They miss things and are not a security boundary.
