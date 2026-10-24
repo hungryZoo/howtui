@@ -157,7 +157,7 @@
 | PRD-INS-007 | P2 | 필수 | MRD-SCN-009 | SRS-INS-012 | TC-INS-008 | `README.md`, `scripts/` | 통과 1 |
 | PRD-INS-008 | P2 | 필수 | MRD-SCN-009 | SRS-INS-013 | TC-INS-009, TC-INS-012, TC-INS-013, TC-REL-008 | `scripts/uninstall.sh`, `scripts/uninstall.ps1`, `scripts/install.sh`, `scripts/install.ps1`, `README.md` | 미실행 1, 통과 3 |
 | PRD-INS-009 | P1 | 필수 | MRD-SCN-009 | SRS-INS-004, SRS-SEC-006 | TC-INS-003, TC-INS-010 | `scripts/`<br>`scripts/install.sh`, `scripts/install.ps1` | 통과 2 |
-| PRD-REL-001 | P1 | 필수 | MRD-SCP-007 | SRS-MOD-004, SRS-BLD-005, SRS-BLD-007, SRS-BLD-008, SRS-SEC-005, SRS-PERF-003, SRS-TEST-005 | TC-REL-001, TC-REL-007, TC-NFR-004, TC-NFR-008, TC-NFR-010, TC-NFR-012 | CI<br>`.github/workflows/`<br>`.github/workflows/ci.yml`<br>`.github/workflows/release.yml`<br>`Cargo.toml`<br>`scripts/trace_check.py` | 미실행 1, 통과 5 |
+| PRD-REL-001 | P1 | 필수 | MRD-SCP-007 | SRS-MOD-004, SRS-BLD-005, SRS-BLD-007, SRS-BLD-008, SRS-SEC-005, SRS-PERF-003, SRS-TEST-005 | TC-REL-001, TC-REL-007, TC-NFR-004, TC-NFR-008, TC-NFR-010, TC-NFR-012 | CI<br>`.github/workflows/`<br>`.github/workflows/ci.yml`<br>`.github/workflows/release.yml`<br>`Cargo.toml`<br>`scripts/trace_check.py` | 통과 6 |
 | PRD-REL-002 | P1 | 필수 | MRD-SCP-007 | SRS-BLD-006 | TC-REL-002 | `.github/workflows/release.yml` | 통과 1 |
 | PRD-REL-003 | P4 | 필수 | MRD-SCP-103, MRD-DIF-008 | SRS-BLD-001, SRS-BLD-009 | TC-REL-003 | `.github/workflows/release.yml` | 통과 1 |
 | PRD-REL-004 | P1 | 필수 | MRD-SCP-007 | SRS-BLD-001, SRS-BLD-002, SRS-CMP-001 | TC-REL-004 | CI<br>`.github/workflows/`<br>`.github/workflows/release.yml` | 통과 1 |

@@ -313,7 +313,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-NFR-005 | Raspberry Pi 첫 화면 | SRS-PERF-004, PRD-PLAT-003 | Pi 2 | 첫 화면 시간 측정 | 기록 | 실기기 | RPi | 미실행 | - |
 | TC-NFR-006 | TLS 검증 고정 | SRS-SEC-001, PRD-AUTH-001, SRS-MOD-005 | 자체 서명 인증서 Mock 서버 | 요청 | 연결 거부 | 통합 | 전체 | 통과 | - |
 | TC-NFR-007 | 프록시 | SRS-SEC-002, PRD-LLM-001 | 로컬 프록시, `HTTP_PROXY` (평문 API 주소). `HTTPS_PROXY` CONNECT 경로는 미실행 | 모델 목록 요청 | 프록시 경유 | 통합 | Linux | 통과 | - |
-| TC-NFR-008 | 의존성 취약점 | SRS-SEC-005, PRD-REL-001 | CI | `cargo deny check` 또는 `cargo audit` | 오류 0건 | 통합 | Linux | 미실행 | - |
+| TC-NFR-008 | 의존성 취약점 | SRS-SEC-005, PRD-REL-001 | CI | `cargo deny check` 또는 `cargo audit` | 오류 0건 | 통합 | Linux | 통과 | - |
 | TC-NFR-009 | 외부 인증 테스트 격리 | SRS-TEST-001, SRS-TEST-002, PRD-LLM-012 | CI 기본 실행 | `cargo test` | 실연동 테스트 미실행(ignored), 네트워크 외부 접속 0건 | 통합 | 전체 | 통과 | - |
 | TC-NFR-010 | 추적성 검사 | SRS-TEST-005, PRD-REL-001 | 문서 | `uv run scripts/trace_check.py` | 오류 0건 | 통합 | Linux | 통과 | - |
 | TC-NFR-012 | 의존성 목록 일치 | SRS-MOD-004, PRD-REL-001 | `Cargo.lock` | `cargo tree --depth 1`과 SRS 3.3절 표 비교 | 표 외 직접 의존성 없음 | 수동 | 전체 | 통과 | - |
@@ -548,4 +548,6 @@ CI 도입 중 발견과 수정: (1) Bash 5.2의 `bind -x` 안 `$(<file)` 치환 
 | `TC-FS-003` | 통과 | 단위 `cargo test` | long_history_scrolls_with_page_keys_and_wheel (이력 10개, 설명 30줄, PageUp, PageDown, 휠, 최대 위치 제한, 새 응답 시 최신 위치 복귀), layout_history_on_top_main_at_bottom |
 | `TC-FS-004` | 통과 | 단위 `cargo test`, PTY `tests/pty/run.sh` | mode_priority_cli_over_config, fs_mode (설정 fullscreen + `--mode inline`은 `?1049h` 없음, 설정만 지정 시 `?1049h`) |
 | `TC-FS-005` | 통과 | PTY `tests/pty/run.sh` | fullscreen (100x30에서 60x20 리사이즈 후 대화 기록 영역 재구성), fs_panic (종료 코드 101, `?1049l`, 터미널 모드 복구, 이전 출력 유지) |
+| `TC-NFR-008` | 통과 | CI `audit` 작업 (`cargo audit --deny warnings`) | run 40073443763 (커밋 1c6ccf1): 취약점 0건. 첫 실행(run 40072506488)의 ctutils 취약점은 0.4.5 갱신으로 해소, zbus 계열 unmaintained 경고 3건은 `.cargo/audit.toml` 예외 |
 
+CI 실행 기록 (run 40073443763, 커밋 1c6ccf1, 15개 작업 전체 통과): lint, audit, 5개 러너 테스트, armv7 교차 빌드, pty 2개 러너(Fullscreen PTY 시험 포함), 설치 스크립트 4개 작업.
