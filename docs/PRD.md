@@ -137,7 +137,6 @@
 | Backspace, Delete | 문자 삭제 | 문자 삭제 | 무시 |
 | Ctrl+W, Ctrl+U, Ctrl+K | 단어 삭제, 줄 앞 삭제, 줄 뒤 삭제 | 동일 | 무시 |
 | 붙여넣기 (bracketed paste) | 한 줄로 결합 입력 | 원문 그대로 삽입 (여러 줄 유지, 확정 미발생) | 무시 |
-| PageUp, PageDown, 마우스 휠 | 대화 기록 스크롤 (Fullscreen, PRD-FS-003) | 동일 | 동일 |
 
 ---
 

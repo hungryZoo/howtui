@@ -112,10 +112,7 @@ messages! {
     StatusExplanationStale,
     StatusConfirmDanger,
     StatusTooSmall,
-    HistoryTitle,
-    HistoryEmpty,
-    HistoryScrolled,
-    HistoryExplainRequest,
+    StatusFullscreenUnavailable,
     UsingChatGptPlan,
     PlanNotice,
     // 로그인

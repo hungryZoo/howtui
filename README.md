@@ -60,7 +60,6 @@ Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit             g
    - [Settings: agent and model](#settings-agent-and-model)
    - [Folder listing](#folder-listing)
    - [Shell integration](#shell-integration)
-   - [Fullscreen mode](#fullscreen-mode)
    - [Non-interactive mode](#non-interactive-mode)
    - [Exit codes](#exit-codes)
 5. [Configuration](#5-configuration)
@@ -297,7 +296,7 @@ Sign-in starts by itself the first time (or run `howtui login`):
 | `howtui init bash\|zsh\|powershell` | Print the shell integration script (options: `--key ctrl+x`, `--no-bind`, `--no-wrap`) |
 | `howtui --check-update`, `howtui --update` | Check for a new release, or update now ([Update](#update)) |
 
-Common options: `--shell bash|zsh|powershell`, `--height N` (3-40), `--mode inline|fullscreen`.
+Common options: `--shell bash|zsh|powershell`, `--height N` (3-40).
 
 ### Keys
 
@@ -317,7 +316,6 @@ Common options: `--shell bash|zsh|powershell`, `--height N` (3-40), `--mode inli
 | ← →, Home, End, Ctrl+A | Move | Move |
 | Ctrl+← →, Alt+B, Alt+F | Word left, right | Word left, right |
 | Backspace, Delete, Ctrl+W, Ctrl+U, Ctrl+K | Delete char, word, to start, to end | Same |
-| PageUp, PageDown, mouse wheel | Scroll the history (fullscreen mode) | Same |
 
 Pasting multi-line text into the editor keeps the lines and never triggers Accept. After each answer the cursor stays on
 the ask line, so you can type the next change right away or press Enter to accept.
@@ -389,18 +387,6 @@ Nothing is executed for you in any case. Options: `--key alt+h` (or another `ctr
 part only and prints a one-line notice instead of binding the key. If writing the result back to the shell fails, howtui
 prints the command so you can copy it.
 
-### Fullscreen mode
-
-```bash
-howtui --mode fullscreen
-```
-
-Fullscreen mode uses the whole terminal (alternate screen). The upper area keeps the session history: every question,
-command, explanation and model note, newest at the bottom. Scroll it with PageUp, PageDown or the mouse wheel. The lower
-area is the same ask line, command editor and status line as the inline UI, with the same keys. On exit the terminal
-returns to the screen you had before, and the accepted command goes to stdout as usual. Set `mode = "fullscreen"` in the
-config file to make it the default; `--mode` overrides the config for one run.
-
 ### Non-interactive mode
 
 ```bash
@@ -440,7 +426,7 @@ The file is optional and never created automatically.
 
 ```toml
 [ui]
-mode = "inline"        # "inline" or "fullscreen" (--mode overrides)
+mode = "inline"        # "fullscreen" is planned
 inline_height = 10     # 3-40
 language = "auto"      # "auto", "en" or "ko"
 mouse = true           # false: no clicks, terminal keeps its own text selection and scrolling
@@ -555,7 +541,7 @@ Releases are built by `.github/workflows/release.yml` from `v*` tags as drafts a
 
 - [x] Phase 1: inline UI, Sign in with ChatGPT, stdout output, installers
 - [x] Phase 2: optional shell integration that puts the command into the Bash, Zsh or PowerShell prompt; settings view for the model
-- [x] Phase 3: fullscreen mode with a scrollable session history
+- [ ] Phase 3: fullscreen mode
 - [ ] Phase 4: Raspberry Pi and Windows ARM64 hardware checks, update checks in `doctor`
 - [ ] Phase 5: API key providers (OpenAI, Gemini, Anthropic, OpenAI-compatible)
 - [ ] Phase 6: local models through Ollama and llama.cpp `llama-server`

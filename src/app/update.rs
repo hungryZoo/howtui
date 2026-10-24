@@ -45,15 +45,7 @@ pub fn update(state: &mut State, action: Action) -> Vec<Effect> {
         Action::Scroll(delta) => {
             if let Some(view) = &mut state.settings {
                 move_cursor(view, delta as i32);
-            } else {
-                scroll_history(state, -(delta as i32) * WHEEL_ROWS);
             }
-            Vec::new()
-        }
-        Action::HistoryLayout { max, page } => {
-            state.history_max = max;
-            state.history_page = page.max(1);
-            state.history_scroll = state.history_scroll.min(max);
             Vec::new()
         }
         Action::SettingsLoaded(result) => on_settings_loaded(state, result),
@@ -298,30 +290,9 @@ fn on_click(state: &mut State, hit: Hit) -> Vec<Effect> {
     }
 }
 
-/// 마우스 휠 한 칸당 대화 기록 이동 행 수
-const WHEEL_ROWS: i32 = 3;
-
-/// 대화 기록 스크롤 (양수: 위로). 범위는 마지막 렌더링 결과 기준.
-fn scroll_history(state: &mut State, rows: i32) {
-    let next = (state.history_scroll as i32 + rows).clamp(0, state.history_max as i32);
-    state.history_scroll = next as u16;
-}
-
 fn on_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
     // 크기 부족 상태: Esc와 Ctrl+C만 처리 (PRD-UI-009)
     if state.too_small && !matches!(key, KeyAction::Cancel | KeyAction::Quit) {
-        return Vec::new();
-    }
-    if let KeyAction::HistoryUp | KeyAction::HistoryDown = key {
-        let page = state.history_page as i32;
-        scroll_history(
-            state,
-            if key == KeyAction::HistoryUp {
-                page
-            } else {
-                -page
-            },
-        );
         return Vec::new();
     }
     match state.phase {
@@ -467,7 +438,7 @@ fn on_ready_key(state: &mut State, key: KeyAction) -> Vec<Effect> {
             }
             Vec::new()
         }
-        KeyAction::Other | KeyAction::HistoryUp | KeyAction::HistoryDown => Vec::new(),
+        KeyAction::Other => Vec::new(),
     }
 }
 
@@ -655,7 +626,6 @@ fn on_llm_done(
             state.notes = response.notes.clone();
             state.findings = safety::analyze(&state.command.text(), state.env.shell);
             state.status = None;
-            state.history_scroll = 0;
             state.conversation.push(Turn {
                 op: pending.op,
                 question: pending.question,

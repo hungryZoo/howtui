@@ -69,10 +69,9 @@ pub fn text(msg: Msg) -> &'static str {
             "High-risk command. Press Enter again to accept, any other key to keep editing."
         }
         Msg::StatusTooSmall => "Terminal too small (minimum {w}x{h})",
-        Msg::HistoryTitle => "History",
-        Msg::HistoryEmpty => "Your questions and answers appear here",
-        Msg::HistoryScrolled => "{n} rows up (PgUp, PgDn, wheel)",
-        Msg::HistoryExplainRequest => "(explain the command)",
+        Msg::StatusFullscreenUnavailable => {
+            "Fullscreen mode is not available yet. Using inline mode."
+        }
         Msg::UsingChatGptPlan => "Using ChatGPT plan",
         Msg::PlanNotice => {
             "You're using your ChatGPT plan. Manage usage: https://chatgpt.com/settings/usage"

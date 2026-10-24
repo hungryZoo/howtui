@@ -30,7 +30,7 @@
 | PRD-CLI-006 | P1 | 권장 | MRD-SCP-001 | SRS-CLI-003, SRS-CLI-006 | TC-CLI-005 | `src/cli/mod.rs` | 통과 1 |
 | PRD-CLI-007 | P1 | 필수 | MRD-SCN-001 | SRS-SH-007 | TC-CLI-006 | `src/shell/mod.rs` | 통과 1 |
 | PRD-CLI-008 | P2 | 필수 | MRD-SCP-101 | SRS-SH-001 | TC-CLI-007 | `src/shell/init.rs`, `src/shell/scripts/`, `src/cli/mod.rs` | 통과 1 |
-| PRD-CLI-009 | P3 | 필수 | MRD-SCP-102 | SRS-CLI-007 | TC-CLI-008 | `src/cli/mod.rs` | 통과 1 |
+| PRD-CLI-009 | P3 | 필수 | MRD-SCP-102 | SRS-CLI-007 | TC-CLI-008 | `src/cli/mod.rs` | 미실행 1 |
 | PRD-CLI-010 | P1 | 필수 | MRD-SCP-005 | SRS-CLI-003, SRS-ERR-001 | TC-CLI-009, TC-CLI-010 | `src/cli/mod.rs`<br>`src/llm/types.rs`, `src/cli/` | 통과 2 |
 | PRD-CLI-011 | P1 | 필수 | MRD-SCN-001 | SRS-CLI-004 | TC-CLI-003 | `src/cli/mod.rs` | 통과 1 |
 | PRD-UI-001 | P1 | 필수 | MRD-SCP-001, MRD-DIF-006 | SRS-ASYNC-006, SRS-PERF-001, SRS-CMP-003 | TC-UI-001, TC-UI-015, TC-UI-014, TC-UI-016, TC-NFR-002 | `src/runtime.rs`<br>`src/ui/terminal.rs`<br>측정 스크립트 | 통과 5 |
@@ -127,15 +127,15 @@
 | PRD-SH-012 | P2 | 필수 | MRD-EXC-003 | SRS-SH-012, SRS-CMP-006, SRS-TEST-004 | TC-SH-011 | `README.md`<br>`README.md` 6절<br>`docs/TC.md` | 통과 1 |
 | PRD-SH-013 | P2 | 필수 | MRD-SCN-005 | SRS-SH-013, SRS-SH-014 | TC-SH-016, TC-SH-017 | `src/cli/widget.rs`, `src/shell/scripts/`<br>`src/shell/scripts/` | 통과 2 |
 | PRD-SH-014 | P2 | 필수 | MRD-SCN-009, MRD-EXC-004 | SRS-SH-015, SRS-INS-014, SRS-INS-015 | TC-SH-020, TC-SH-021, TC-INS-011 | `scripts/install.ps1`, `src/shell/rc.rs`<br>`scripts/install.sh`<br>`src/shell/rc.rs`, `src/cli/mod.rs`, `scripts/ci/check_rules.sh` | 통과 3 |
-| PRD-FS-001 | P3 | 필수 | MRD-SCP-102 | SRS-ARC-003, SRS-TUI-007 | TC-FS-001 | `src/ui/`<br>`src/ui/fullscreen.rs` | 통과 1 |
-| PRD-FS-002 | P3 | 필수 | MRD-SCP-102 | SRS-ARC-001, SRS-ARC-002, SRS-ARC-003, SRS-MOD-001, SRS-MOD-002, SRS-TUI-007 | TC-FS-002, TC-NFR-001 | `src/`<br>`src/app/`<br>`src/app/`, `src/runtime.rs`<br>`src/ui/`<br>`src/ui/fullscreen.rs` | 통과 2 |
-| PRD-FS-003 | P3 | 필수 | MRD-SCN-010 | SRS-TUI-007 | TC-FS-003 | `src/ui/fullscreen.rs` | 통과 1 |
-| PRD-FS-004 | P3 | 필수 | MRD-KPI-003 | SRS-TUI-007 | TC-FS-001, TC-FS-005 | `src/ui/fullscreen.rs` | 통과 2 |
-| PRD-FS-005 | P3 | 필수 | MRD-SCP-102 | SRS-TUI-007 | TC-CLI-008, TC-FS-004 | `src/ui/fullscreen.rs` | 통과 2 |
+| PRD-FS-001 | P3 | 필수 | MRD-SCP-102 | SRS-ARC-003, SRS-TUI-007 | TC-FS-001 | `src/ui/`<br>`src/ui/fullscreen.rs` | 미실행 1 |
+| PRD-FS-002 | P3 | 필수 | MRD-SCP-102 | SRS-ARC-001, SRS-ARC-002, SRS-ARC-003, SRS-MOD-001, SRS-MOD-002, SRS-TUI-007 | TC-FS-002, TC-NFR-001 | `src/`<br>`src/app/`<br>`src/app/`, `src/runtime.rs`<br>`src/ui/`<br>`src/ui/fullscreen.rs` | 미실행 1, 통과 1 |
+| PRD-FS-003 | P3 | 필수 | MRD-SCN-010 | SRS-TUI-007 | TC-FS-003 | `src/ui/fullscreen.rs` | 미실행 1 |
+| PRD-FS-004 | P3 | 필수 | MRD-KPI-003 | SRS-TUI-007 | TC-FS-001, TC-FS-005 | `src/ui/fullscreen.rs` | 미실행 2 |
+| PRD-FS-005 | P3 | 필수 | MRD-SCP-102 | SRS-TUI-007 | TC-CLI-008, TC-FS-004 | `src/ui/fullscreen.rs` | 미실행 2 |
 | PRD-CFG-001 | P1 | 필수 | MRD-SCP-001 | SRS-CFG-001 | TC-CFG-001 | `src/config/paths.rs` | 통과 1 |
 | PRD-CFG-002 | P1 | 필수 | MRD-SCP-001 | SRS-CFG-003 | TC-CFG-002 | `src/config/mod.rs` | 통과 1 |
 | PRD-CFG-003 | P1 | 필수 | MRD-SCP-001 | SRS-CFG-002 | TC-CFG-003 | `src/config/mod.rs` | 통과 1 |
-| PRD-CFG-004 | P3 | 필수 | MRD-SCP-102 | SRS-CFG-007 | TC-FS-004 | `src/config/mod.rs` | 통과 1 |
+| PRD-CFG-004 | P3 | 필수 | MRD-SCP-102 | SRS-CFG-007 | TC-FS-004 | `src/config/mod.rs` | 미실행 1 |
 | PRD-CFG-005 | P1 | 필수 | MRD-SCN-008 | SRS-CFG-004 | TC-CFG-004 | `src/config/mod.rs` | 통과 1 |
 | PRD-CFG-006 | P1 | 필수 | MRD-SCN-008 | SRS-CFG-005 | TC-CFG-005 | `src/config/mod.rs` | 통과 1 |
 | PRD-CFG-007 | P1 | 필수 | MRD-SCP-104 | SRS-CFG-006 | TC-CFG-006 | `src/config/mod.rs` | 통과 1 |
