@@ -159,6 +159,20 @@ if finish tiny; then
 fi
 tmux resize-window -t "$P" -x 100 -y 30 2>&1 | cat; sleep 0.3
 
+# (10b) 터미널 높이 6: 기본 높이 10 대신 6줄로 축소, 질문과 상태줄 표시 (TC-UI-002)
+tmux resize-window -t "$P" -x 100 -y 6 2>&1 | cat; sleep 0.3
+start shortterm "$ENV $MOCK $BIN > /dev/null"
+sleep 0.3; snap shortterm; send Escape
+if finish shortterm; then
+  lines=$(wc -l < "$OUT/shortterm.screen" | tr -d ' ')
+  if [ "$lines" -le 6 ] && grep -q 'Ask' "$OUT/shortterm.screen" && grep -q 'Enter submit' "$OUT/shortterm.screen"; then
+    pass shortterm
+  else
+    fail shortterm "viewport on a 6-row terminal ($lines rows)"
+  fi
+fi
+tmux resize-window -t "$P" -x 100 -y 30 2>&1 | cat; sleep 0.3
+
 # (11) 줄 중간 시작과 커서 원위치 (TC-UI-011)
 start midline "printf 'prefix'; $ENV $MOCK $BIN > /dev/null; echo END"
 send Escape

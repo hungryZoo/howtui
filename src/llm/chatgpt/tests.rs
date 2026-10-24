@@ -496,3 +496,71 @@ async fn settings_list_models_and_selection_persists() {
         Some("gpt-6.1-sol")
     );
 }
+
+/// 모델 목록은 응답하고 추론은 헤더만 보낸 뒤 멈추는 서버.
+async fn stalling_server() -> String {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        loop {
+            let Ok((mut sock, _)) = listener.accept().await else {
+                break;
+            };
+            tokio::spawn(async move {
+                let mut buf = vec![0u8; 65536];
+                let n = sock.read(&mut buf).await.unwrap_or(0);
+                let req = String::from_utf8_lossy(&buf[..n]).to_string();
+                if req.starts_with("GET /v1/models") {
+                    let body = r#"{"models":[{"slug":"m","visibility":"list"}]}"#;
+                    let resp = format!(
+                        "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\n\r\n{body}",
+                        body.len()
+                    );
+                    let _ = sock.write_all(resp.as_bytes()).await;
+                } else {
+                    let _ = sock
+                        .write_all(b"HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ntransfer-encoding: chunked\r\n\r\n")
+                        .await;
+                    tokio::time::sleep(Duration::from_secs(30)).await;
+                }
+            });
+        }
+    });
+    format!("http://{addr}")
+}
+
+/// TC-LLM-011: 첫 이벤트 제한 시간과 전체 제한 시간은 Timeout으로 분류 (TUI는 오류 상태줄 후 입력 유지).
+#[tokio::test]
+async fn first_event_and_total_timeouts() {
+    let base = stalling_server().await;
+    let dir = tempfile::tempdir().unwrap();
+    let mut auth = AuthManager::new(dir.path().to_path_buf(), crate::llm::http::client());
+    auth.endpoints = Endpoints {
+        issuer: "https://auth.openai.com".into(),
+        authorize: format!("{base}/authorize"),
+        token: format!("{base}/token"),
+        revoke: format!("{base}/revoke"),
+        jwks: format!("{base}/jwks"),
+        api_base: format!("{base}/v1"),
+    };
+    auth.seed_for_tests("oaiapp_1", &tokens(PLAN_SCOPE));
+    let auth = Arc::new(auth);
+    let p = ChatGptProvider::new(crate::llm::http::client(), auth.clone(), None)
+        .with_timeouts(Duration::from_millis(300), Duration::from_secs(10));
+    let start = std::time::Instant::now();
+    assert_eq!(
+        p.complete(request(Operation::Generate), CancelToken::new())
+            .await,
+        Err(LlmError::Timeout)
+    );
+    assert!(start.elapsed() < Duration::from_secs(5));
+    let p = ChatGptProvider::new(crate::llm::http::client(), auth, None)
+        .with_timeouts(Duration::from_secs(10), Duration::from_millis(500));
+    assert_eq!(
+        p.complete(request(Operation::Generate), CancelToken::new())
+            .await,
+        Err(LlmError::Timeout)
+    );
+    assert_eq!(LlmError::Timeout.exit_code(), 6);
+}

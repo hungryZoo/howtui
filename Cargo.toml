@@ -59,6 +59,9 @@ assert_cmd = "2.2"
 insta = "1.49"
 tempfile = "3.27"
 wiremock = "0.6"
+portable-pty = "0.9"
+rcgen = { version = "0.14.10", default-features = false, features = ["pem", "ring"] }
+tokio-rustls = { version = "0.26.6", default-features = false, features = ["ring"] }
 
 [profile.release]
 lto = "fat"
@@ -67,5 +70,3 @@ strip = true
 opt-level = 3
 panic = "unwind"
 
-[target.'cfg(windows)'.dev-dependencies]
-portable-pty = "0.9"

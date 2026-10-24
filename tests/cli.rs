@@ -504,6 +504,58 @@ mod chatgpt_e2e {
         assert!(v["instructions"].as_str().unwrap().contains("shell=Zsh"));
     }
 
+    /// 시스템 프록시 환경변수 경유 (TC-NFR-007): 존재하지 않는 API 호스트 요청이 프록시로 전달.
+    #[tokio::test(flavor = "multi_thread")]
+    async fn requests_go_through_http_proxy() {
+        let proxy = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/v1/models"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(json!({"models": [{"slug": "model-a", "visibility": "list"}]})),
+            )
+            .mount(&proxy)
+            .await;
+        Mock::given(method("POST"))
+            .and(path("/v1/responses"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_string(sse(r#"{"command":"uptime","explanation":"x","notes":[]}"#)),
+            )
+            .mount(&proxy)
+            .await;
+        let dir = tempfile::tempdir().unwrap();
+        seed(&dir.path().join("data"), "openid chatgpt.tokens.use.direct");
+        let (d, uri) = (dir.path().to_path_buf(), proxy.uri());
+        let out = tokio::task::spawn_blocking(move || {
+            bin(&d)
+                .env(
+                    "HOWTUI_TEST_API_BASE",
+                    "http://api.howtui-proxy-test.invalid/v1",
+                )
+                .env("HTTP_PROXY", &uri)
+                .env("http_proxy", &uri)
+                .args(["--no-tui", "uptime"])
+                .output()
+                .unwrap()
+        })
+        .await
+        .unwrap();
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert_eq!(out.stdout, b"uptime\n");
+        let reqs = proxy.received_requests().await.unwrap();
+        assert!(
+            reqs.iter()
+                .any(|r| r.url.host_str() == Some("api.howtui-proxy-test.invalid")),
+            "{:?}",
+            reqs.iter().map(|r| r.url.to_string()).collect::<Vec<_>>()
+        );
+    }
+
     /// 현재 폴더 목록은 켠 경우에만 ls -al 형식(숨김 항목 포함)으로 전송, 파일 내용과 절대 경로 제외 (TC-CTX-001).
     #[tokio::test(flavor = "multi_thread")]
     async fn folder_listing_is_sent_only_when_enabled() {

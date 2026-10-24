@@ -26,6 +26,8 @@ pub struct ChatGptProvider {
     auth: Arc<AuthManager>,
     model_pref: Option<String>,
     model: Mutex<Option<String>>,
+    /// (첫 SSE 이벤트, 전체) 제한 시간 (SRS-LLM-007)
+    timeouts: (Duration, Duration),
 }
 
 impl ChatGptProvider {
@@ -35,7 +37,15 @@ impl ChatGptProvider {
             auth,
             model_pref,
             model: Mutex::new(None),
+            timeouts: (FIRST_EVENT_TIMEOUT, TOTAL_TIMEOUT),
         }
+    }
+
+    /// 시험용 제한 시간 (TC-LLM-011)
+    #[cfg(test)]
+    pub fn with_timeouts(mut self, first_event: Duration, total: Duration) -> Self {
+        self.timeouts = (first_event, total);
+        self
     }
 
     fn api(&self, path: &str) -> String {
@@ -199,7 +209,7 @@ impl ChatGptProvider {
         let mut first = true;
         loop {
             let next = if first {
-                tokio::time::timeout(FIRST_EVENT_TIMEOUT, stream.next())
+                tokio::time::timeout(self.timeouts.0, stream.next())
                     .await
                     .map_err(|_| LlmError::Timeout)?
             } else {
@@ -299,7 +309,7 @@ impl Provider for ChatGptProvider {
     fn complete(&self, req: LlmRequest, cancel: CancelToken) -> LlmFuture<'_> {
         Box::pin(async move {
             tokio::select! {
-                r = tokio::time::timeout(TOTAL_TIMEOUT, self.complete_inner(req)) => r.unwrap_or(Err(LlmError::Timeout)),
+                r = tokio::time::timeout(self.timeouts.1, self.complete_inner(req)) => r.unwrap_or(Err(LlmError::Timeout)),
                 _ = cancel.cancelled() => Err(LlmError::Cancelled),
             }
         })

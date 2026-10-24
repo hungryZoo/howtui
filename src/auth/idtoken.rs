@@ -149,7 +149,7 @@ pub fn verify(token: &str, keys: &[Jwk], expected: &Expected) -> Result<IdClaims
     Ok(claims)
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "mock-provider"))]
 pub mod test_support {
     //! 테스트용 RSA 키(PKCS#8 DER)로 ID 토큰 서명.
     use super::*;
