@@ -163,6 +163,7 @@ impl Provider for MockProvider {
                 models,
                 current,
                 can_sign_out: false,
+                ..Default::default()
             })
         })
     }

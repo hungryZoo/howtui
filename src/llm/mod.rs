@@ -1,12 +1,15 @@
 //! LLM Provider 계층 (SRS 5절).
 
+pub mod api;
 pub mod chatgpt;
 pub mod http;
+pub mod keys;
 #[cfg(feature = "mock-provider")]
 pub mod mock;
 pub mod parse;
 pub mod prompt;
 pub mod sse;
+pub mod switch;
 pub mod types;
 
 use types::{CancelToken, LlmError, LlmRequest, LlmResponse, Provider};

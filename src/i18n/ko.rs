@@ -136,10 +136,44 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::ErrRegionOrPolicy => "정책 또는 지역 제한으로 요청 차단: {detail}",
         Msg::ErrPermissionConfig => "로그인 권한 구성 불일치 ({code}). 다시 로그인",
         Msg::ErrUnsupported => "모델 또는 요청 기능 미지원 ({param}). 모델 설정 확인",
-        Msg::ErrModelNotFound => "모델 없음. `provider.chatgpt.model` 설정 확인 또는 삭제",
+        Msg::ErrModelNotFound => {
+            "모델 없음. Ctrl+O로 다른 모델 선택 또는 설정 `provider.<에이전트>.model` 확인"
+        }
         Msg::ErrTransient => "서비스 일시 장애. 잠시 후 다시 시도",
         Msg::ErrNetwork => "네트워크 오류: {detail}. 연결 확인 후 다시 시도",
         Msg::ErrTimeout => "요청 시간 초과. 다시 시도",
+        Msg::ErrNoApiKey => "{provider} API 키 없음. `howtui auth set-key {provider}` 실행",
+        Msg::ErrNoApiKeyEnv => {
+            "{provider} API 키 없음. `howtui auth set-key {provider}` 실행 또는 {env} 설정"
+        }
+        Msg::ErrKeyRejected => {
+            "{provider} API 키 거부. `howtui auth set-key {provider}`로 다시 저장"
+        }
+        Msg::ErrQuota => "Provider 계정 사용량 또는 결제 한도 도달. Provider 결제 화면 확인",
+        Msg::ErrRefused => "모델이 요청 거절. 질문 수정 또는 다른 모델 선택",
+        Msg::AgentSignedIn => "로그인됨",
+        Msg::AgentNeedsLogin => "로그인 필요",
+        Msg::AgentKeyEnv => "키: {env}",
+        Msg::AgentKeyStore => "키: set-key로 저장",
+        Msg::AgentNoKey => "키 없음: howtui auth set-key {id}",
+        Msg::AgentNoUrl => "provider.openai_compatible.base_url 설정 필요",
+        Msg::StatusAgentChanged => "에이전트: {agent} (다음 실행에도 유지)",
+        Msg::KeyPrompt => "{provider} API 키 붙여넣기 후 Enter (입력 내용 표시 없음):",
+        Msg::KeySaved => "{provider} API 키 저장 ({store})",
+        Msg::KeyRemoved => "{provider} API 키 삭제",
+        Msg::KeyNotFound => "저장된 {provider} API 키 없음",
+        Msg::KeyEmpty => "입력된 키 없음. 저장하지 않음",
+        Msg::KeyEnvShadow => "참고: {env} 설정됨. 저장된 키보다 우선 사용",
+        Msg::AuthStatusProvider => "에이전트: {agent}",
+        Msg::AuthStatusKeys => "API 키:",
+        Msg::KeySourceEnv => "환경변수 {env}",
+        Msg::KeySourceStore => "howtui auth set-key로 저장",
+        Msg::KeySourceNone => "없음",
+        Msg::HelpProvider => {
+            "이번 실행 에이전트 (chatgpt, openai, anthropic, gemini, openai_compatible)"
+        }
+        Msg::HelpSetKey => "OS 보안 저장소에 API 키 저장",
+        Msg::HelpRemoveKey => "저장된 API 키 삭제",
         Msg::ErrInvalidResponse => "모델 응답 형식 해석 실패. 다시 시도",
         Msg::ErrNoTerminal => {
             "사용 가능한 터미널(TTY) 없음. 비대화형 실행: howtui --no-tui \"<질문>\""

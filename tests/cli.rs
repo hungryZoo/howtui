@@ -992,3 +992,219 @@ mod self_update {
         );
     }
 }
+
+/// API Key Provider 경로 (TC-LLM-018, TC-LLM-019, TC-LLM-023, TC-LLM-024).
+mod api_agents {
+    use super::*;
+    use std::io::Write;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    const ANSWER: &str = r#"{"command":"ls -al","explanation":"Lists files.","notes":[]}"#;
+
+    async fn openai_server() -> MockServer {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/v1/models"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(json!({"data":[{"id":"gpt-6-astra"}]})),
+            )
+            .mount(&server)
+            .await;
+        Mock::given(method("POST"))
+            .and(path("/v1/responses"))
+            .and(header("authorization", "Bearer sk-from-store"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":ANSWER}]}]})))
+            .mount(&server)
+            .await;
+        server
+    }
+
+    fn set_key(d: &Path, provider: &str, key: &str) -> Output {
+        let mut child = std::process::Command::new(assert_cmd::cargo::cargo_bin("howtui"))
+            .envs(
+                bin(d)
+                    .get_envs()
+                    .filter_map(|(k, v)| Some((k.to_owned(), v?.to_owned()))),
+            )
+            .env("HOWTUI_CREDENTIAL_STORE", "file")
+            .args(["auth", "set-key", provider])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(format!("{key}\n").as_bytes())
+            .unwrap();
+        child.wait_with_output().unwrap()
+    }
+
+    #[test]
+    fn set_key_status_and_remove_key_hide_the_value() {
+        let dir = tempfile::tempdir().unwrap();
+        let d = dir.path();
+        let out = set_key(d, "openai", "sk-hidden-value");
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let status = run(bin(d)
+            .env("HOWTUI_CREDENTIAL_STORE", "file")
+            .args(["auth", "status"]));
+        let text = String::from_utf8_lossy(&status.stdout).to_string();
+        assert!(
+            text.contains("openai: saved with howtui auth set-key"),
+            "{text}"
+        );
+        assert!(text.contains("anthropic: not set"), "{text}");
+        for o in [&out, &status] {
+            let all = format!(
+                "{}{}",
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr)
+            );
+            assert!(!all.contains("sk-hidden-value"), "key printed: {all}");
+        }
+        let removed = run(bin(d).env("HOWTUI_CREDENTIAL_STORE", "file").args([
+            "auth",
+            "remove-key",
+            "openai",
+        ]));
+        assert!(String::from_utf8_lossy(&removed.stdout).contains("openai API key removed"));
+        let status = run(bin(d)
+            .env("HOWTUI_CREDENTIAL_STORE", "file")
+            .args(["auth", "status"]));
+        assert!(String::from_utf8_lossy(&status.stdout).contains("openai: not set"));
+        // chatgpt는 키 대상 아님, 빈 입력은 저장 없음
+        assert_eq!(
+            run(bin(d).args(["auth", "set-key", "chatgpt"]))
+                .status
+                .code(),
+            Some(2)
+        );
+        assert_eq!(set_key(d, "gemini", "  ").status.code(), Some(2));
+    }
+
+    #[test]
+    fn missing_key_exits_4_with_hint_and_config_secret_is_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        let d = dir.path();
+        let out = run(bin(d).args(["--provider", "anthropic", "--no-tui", "list files"]));
+        assert_eq!(out.status.code(), Some(4));
+        let err = String::from_utf8_lossy(&out.stderr);
+        assert!(
+            err.contains("howtui auth set-key anthropic") && err.contains("ANTHROPIC_API_KEY"),
+            "{err}"
+        );
+        assert!(out.stdout.is_empty());
+
+        std::fs::write(
+            d.join("config.toml"),
+            "[provider.openai]\napi_key = \"sk-in-config\"\n",
+        )
+        .unwrap();
+        let out = run(bin(d).args(["--no-tui", "q"]));
+        assert_eq!(out.status.code(), Some(8));
+        let err = String::from_utf8_lossy(&out.stderr);
+        assert!(
+            err.contains("provider.openai.api_key") && !err.contains("sk-in-config"),
+            "{err}"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn provider_option_and_config_select_the_agent() {
+        let server = openai_server().await;
+        let dir = tempfile::tempdir().unwrap();
+        let d = dir.path().to_path_buf();
+        assert!(set_key(&d, "openai", "sk-from-store").status.success());
+        let uri = server.uri();
+        let run_with = |args: Vec<&'static str>, config: Option<&'static str>| {
+            let d = d.clone();
+            let uri = uri.clone();
+            async move {
+                if let Some(c) = config {
+                    std::fs::write(d.join("config.toml"), c).unwrap();
+                }
+                tokio::task::spawn_blocking(move || {
+                    bin(&d)
+                        .env("HOWTUI_CREDENTIAL_STORE", "file")
+                        .env("HOWTUI_TEST_OPENAI_BASE", format!("{uri}/v1"))
+                        .args(args)
+                        .output()
+                        .unwrap()
+                })
+                .await
+                .unwrap()
+            }
+        };
+        // CLI 옵션
+        let out = run_with(vec!["--provider", "openai", "--no-tui", "list files"], None).await;
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert_eq!(out.stdout, b"ls -al\n");
+        // 설정 파일 기본값
+        let out = run_with(
+            vec!["--no-tui", "list files"],
+            Some("[provider]\ndefault = \"openai\"\n"),
+        )
+        .await;
+        assert_eq!(out.stdout, b"ls -al\n");
+        // CLI 옵션이 설정보다 우선: chatgpt 미로그인은 종료 코드 4
+        let out = run_with(
+            vec!["--provider", "chatgpt", "--no-tui", "list files"],
+            None,
+        )
+        .await;
+        assert_eq!(out.status.code(), Some(4));
+        let posts = server
+            .received_requests()
+            .await
+            .unwrap()
+            .into_iter()
+            .filter(|r| r.url.path() == "/v1/responses")
+            .count();
+        assert_eq!(posts, 2);
+        // trace 수준 로그에도 키 값 없음 (민감 헤더)
+        let log = d.join("trace.log");
+        let (d2, uri2, log2) = (d.clone(), uri.clone(), log.clone());
+        let out = tokio::task::spawn_blocking(move || {
+            bin(&d2)
+                .env("HOWTUI_CREDENTIAL_STORE", "file")
+                .env("HOWTUI_TEST_OPENAI_BASE", format!("{uri2}/v1"))
+                .env("HOWTUI_LOG", "trace")
+                .env("HOWTUI_LOG_FILE", &log2)
+                .args(["--provider", "openai", "--no-tui", "list files"])
+                .output()
+                .unwrap()
+        })
+        .await
+        .unwrap();
+        assert!(out.status.success());
+        let text = std::fs::read_to_string(&log).unwrap();
+        assert!(
+            !text.is_empty() && !text.contains("sk-from-store"),
+            "key in trace log"
+        );
+        // doctor: 선택 에이전트 기준 점검, 키 값 미출력
+        let out = run_with(vec!["doctor", "--json"], None).await;
+        let v: Value = serde_json::from_slice(&out.stdout).unwrap();
+        let agent = v["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["id"] == "agent")
+            .unwrap();
+        assert_eq!(agent["details"]["agent"], "openai");
+        assert_eq!(agent["details"]["key_source"], "set-key");
+        assert!(!String::from_utf8_lossy(&out.stdout).contains("sk-from-store"));
+    }
+}

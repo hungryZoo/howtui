@@ -1,5 +1,6 @@
 //! CLI 정의와 진입점 (SRS 3.4절). 도움말 문자열은 선택 언어로 주입 (SRS-I18N-004).
 
+mod keys;
 mod no_tui;
 mod provider;
 mod widget;
@@ -49,6 +50,9 @@ pub struct Cli {
     pub height: Option<u16>,
     #[arg(long, value_enum)]
     pub mode: Option<ModeArg>,
+    /// 이번 실행 에이전트 (P5, SRS-LLM-017)
+    #[arg(long, value_enum, value_name = "AGENT")]
+    pub provider: Option<config::ProviderKind>,
     /// 쉘 통합 스크립트 전용 (SRS 9.2절)
     #[arg(long, hide = true)]
     pub widget: bool,
@@ -98,6 +102,15 @@ pub enum Command {
 #[derive(Debug, Subcommand)]
 pub enum AuthCommand {
     Status,
+    /// API 키 저장 (P5, CR-011)
+    SetKey {
+        #[arg(value_parser = keys::api_agent_parser())]
+        provider: config::ProviderKind,
+    },
+    RemoveKey {
+        #[arg(value_parser = keys::api_agent_parser())]
+        provider: config::ProviderKind,
+    },
 }
 
 fn help_arg() -> clap::Arg {
@@ -129,6 +142,7 @@ fn localized_command() -> clap::Command {
         .mut_arg("shell", |a| a.help(tr(Msg::HelpShell)))
         .mut_arg("height", |a| a.help(tr(Msg::HelpHeight)))
         .mut_arg("mode", |a| a.help(tr(Msg::HelpMode)))
+        .mut_arg("provider", |a| a.help(tr(Msg::HelpProvider)))
         .mut_subcommand("login", |s| {
             s.about(tr(Msg::HelpLogin))
                 .disable_help_flag(true)
@@ -148,6 +162,16 @@ fn localized_command() -> clap::Command {
                 .arg(help_arg())
                 .mut_subcommand("status", |s| {
                     s.about(tr(Msg::HelpAuthStatus))
+                        .disable_help_flag(true)
+                        .arg(help_arg())
+                })
+                .mut_subcommand("set-key", |s| {
+                    s.about(tr(Msg::HelpSetKey))
+                        .disable_help_flag(true)
+                        .arg(help_arg())
+                })
+                .mut_subcommand("remove-key", |s| {
+                    s.about(tr(Msg::HelpRemoveKey))
                         .disable_help_flag(true)
                         .arg(help_arg())
                 })
@@ -254,6 +278,12 @@ pub fn run() -> ExitCode {
         Some(Command::Auth {
             command: AuthCommand::Status,
         }) => provider::status_command(&loaded, &rt),
+        Some(Command::Auth {
+            command: AuthCommand::SetKey { provider },
+        }) => keys::set_key_command(&loaded, provider),
+        Some(Command::Auth {
+            command: AuthCommand::RemoveKey { provider },
+        }) => keys::remove_key_command(provider),
         Some(Command::Doctor { json }) => crate::doctor::run(&loaded, &rt, json),
         Some(Command::Init { .. }) => unreachable!("handled before configuration loading"),
     }
@@ -371,6 +401,18 @@ fn init_command(args: InitArgs) -> ExitCode {
 }
 
 /// doctor용 인증 관리자 (Mock 시나리오 사용 시 None).
+/// 현재 에이전트 (CLI 옵션 제외: 상태 파일 선택 > 설정 파일 > chatgpt)
+pub fn current_agent(
+    loaded: &config::Loaded,
+    auth: &crate::auth::AuthManager,
+) -> config::ProviderKind {
+    provider::choose_agent(
+        None,
+        auth.load_state().selected_provider.as_deref(),
+        loaded.config.provider.default,
+    )
+}
+
 pub fn provider_auth(
     loaded: &config::Loaded,
 ) -> Result<Option<Arc<crate::auth::AuthManager>>, String> {
@@ -392,7 +434,7 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
         None
     };
 
-    let built = match provider::build(&loaded) {
+    let built = match provider::build_with(&loaded, cli.provider) {
         Ok(b) => b,
         Err(message) => {
             eprintln!("{}", trf(Msg::ErrConfig, &[("detail", &message)]));

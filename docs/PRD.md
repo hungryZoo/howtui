@@ -224,7 +224,9 @@
 | PRD-LLM-014 | Gemini API Key Provider | P5 | 필수 | MRD-SCP-104 |
 | PRD-LLM-015 | Anthropic API Key Provider | P5 | 필수 | MRD-SCP-104 |
 | PRD-LLM-016 | OpenAI 호환 엔드포인트 Provider (URL, 선택적 키) | P5 | 필수 | MRD-SCP-104 |
-| PRD-LLM-017 | Provider 설정과 전환 (설정 파일, CLI 옵션) | P5 | 필수 | MRD-SCP-104 |
+| PRD-LLM-017 | Provider 설정과 전환: CLI `--provider` > 설정 화면 선택(저장값) > 설정 파일 `provider.default` > `chatgpt` (CR-011) | P5 | 필수 | MRD-SCP-104 |
+| PRD-LLM-021 | 설정 화면 에이전트 목록: ChatGPT, OpenAI, Anthropic, Gemini, OpenAI 호환. 항목별 사용 가능 상태(로그인, 키 유무, 주소 설정) 표시, 클릭 또는 Enter로 전환, 다음 실행에도 유지. 전환 시 대화 이력 유지, 전송 대상 표시 (CR-011) | P5 | 필수 | MRD-SCP-104 |
+| PRD-LLM-022 | API 키 관리: `howtui auth set-key <provider>`(입력 화면 표시 없음, 붙여넣기 허용, 파이프 입력 허용), `howtui auth remove-key <provider>`, `auth status`에 키 출처(환경변수, 보안 저장소, 없음) 표시. 키 값은 출력, 로그, 설정 파일에 미기록 (CR-011) | P5 | 필수 | MRD-SCP-104 |
 | PRD-LLM-018 | Ollama HTTP API 연동 (실행 중 서버 연결) | P6 | 필수 | MRD-SCP-105 |
 | PRD-LLM-019 | llama.cpp llama-server HTTP API 연동 (실행 중 서버 연결) | P6 | 필수 | MRD-SCP-105 |
 | PRD-LLM-020 | 로컬 모델 선택 설정, CPU-only 동작 확인, Gemma 4 E2B와 E4B 평가 결과 문서화 | P6 | 필수 | MRD-SCP-105 |
@@ -419,6 +421,7 @@
 | CR-008 | 2026-10-24 | 사용자 제안 "ls -al을 함께 넣는 것" | 폴더 목록을 `ls -al` 형식으로 확장(숨김 항목, 권한, 수정 시각). 소유자와 그룹(계정 이름), 링크 대상(절대 경로), 폴더 경로는 계속 제외. 외부 명령 실행 대신 자체 생성(Windows 동일 동작, 프로세스 실행 0곳 규칙 유지) | PRD-CTX-001, PRD-PRIV-002 |
 | CR-009 | 2026-10-24 | 사용자 요청 "업데이트 기능, agent-skill 지침 참고" | self-update-check 스킬 구조 적용: 하루 1회 백그라운드 확인, 다음 실행 상태줄 알림, 설치 방식 감지, `--check-update`, `--update`. howtui 규칙(외부 명령 실행 0곳)에 따라 버전 조회는 내장 HTTP 클라이언트, 설치 스크립트 설치본은 `curl \| sh` 대신 내려받기와 SHA-256 검증 후 직접 교체 | PRD-UPD-001-003 신규, PRD-INS-007, PRD-DOC-007 |
 | CR-010 | 2026-10-25 | 사용자 위임 "권장대로 진행" | PRD-AUTH-007 자격증명 이전 보류. 사유: (1) 토큰 파일 이동은 유출 경로 추가 (2) 발급 시 원본 host ID로 인가된 토큰을 다른 장치에서 쓰는 동작은 서버 측 정책 미확인 (3) 원격 장치는 붙여넣기 로그인(PRD-AUTH-006)과 SSH 포트 포워딩(PRD-AUTH-005)으로 장치별 로그인 가능. 재개 조건: 공식 원격 장치 절차 문서 확인 | PRD-AUTH-007, SRS-AUTH-015, TC-AUTH-010 |
+| CR-011 | 2026-10-25 | 사용자 지시 "메인에서 그 다음 진행", 기존 요청 "에이전트 옵션을 TUI(클릭 등)로 언제든 변경" (2026-10-23) | Phase 5 범위 구체화: (1) 설정 화면 에이전트 목록과 전환(선택 저장) (2) API 키 저장과 삭제 명령 `howtui auth set-key`, `howtui auth remove-key` (OS 보안 저장소) (3) `--provider` CLI 옵션 (4) Provider trait에 기본 구현 메서드 추가(에이전트 목록, 전환). 기존 구현체 변경 없음 | PRD-LLM-017, PRD-LLM-021, PRD-LLM-022 신규, SRS-LLM-011, SRS-LLM-014-018, SRS-CFG-009, SRS-CLI-008 |
 
 ## 7. 단계별 기능 우선순위 요약
 
@@ -428,6 +431,6 @@
 | P2 | CLI-008, EDIT-008, OUT-009, SH(001-009, 011, 012), DOC-006 | |
 | P3 | CLI-009, FS 전체, CFG-004 | |
 | P4 | AUTH-007, DOC-007, INS(007, 008), REL(003, 006), PLAT(002, 003) | |
-| P5 | LLM(013-017) | |
+| P5 | LLM(013-017, 021, 022) | |
 | P6 | LLM(018-020), DOC-008 | 1.x 마지막 단계 |
 | 2.0 이후 | 내장 llama.cpp, 모델 다운로드와 관리, 자동 로컬 모델 선택, 하드웨어별 추론 최적화 | 1.x 범위 외 |

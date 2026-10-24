@@ -50,6 +50,7 @@ pub fn update(state: &mut State, action: Action) -> Vec<Effect> {
         }
         Action::SettingsLoaded(result) => on_settings_loaded(state, result),
         Action::ModelSelected(result) => on_model_selected(state, result),
+        Action::AgentSelected(result) => on_agent_selected(state, result),
         Action::UpdateChecked(view) => {
             if let UpdateView::Ready(info) = &view {
                 state.update = Some(info.clone());
@@ -172,6 +173,26 @@ fn choose_setting(state: &mut State) -> Vec<Effect> {
         return Vec::new();
     };
     match entries.get(view.cursor) {
+        Some(SettingsEntry::Agent(i)) => {
+            let agent = &data.agents[*i];
+            if data.current_agent.as_deref() == Some(agent.id.as_str()) {
+                // 현재 에이전트가 로그인 필요 상태면 로그인 화면으로
+                let needs_login = matches!(
+                    data.problem,
+                    Some(LlmError::AuthRequired | LlmError::AuthFailed { .. })
+                );
+                state.settings = None;
+                if needs_login {
+                    state.phase = Phase::LoginRequired;
+                    state.status = Some(error_status(&LlmError::AuthRequired));
+                }
+                return Vec::new();
+            }
+            view.applying = true;
+            view.error = None;
+            view.pending_agent = Some(agent.name.clone());
+            vec![Effect::SelectAgent(agent.id.clone())]
+        }
         Some(SettingsEntry::Model(i)) => {
             let id = data.models[*i].id.clone();
             if data.current.as_deref() == Some(id.as_str()) {
@@ -202,11 +223,20 @@ fn on_settings_loaded(
     };
     match result {
         Ok(data) => {
+            // 초기 위치: 현재 모델, 없으면 현재 에이전트
+            let agents = data.agents.len();
             view.cursor = data
                 .current
                 .as_ref()
                 .and_then(|c| data.models.iter().position(|m| &m.id == c))
+                .map(|i| agents + i)
+                .or_else(|| {
+                    data.current_agent
+                        .as_ref()
+                        .and_then(|c| data.agents.iter().position(|a| &a.id == c))
+                })
                 .unwrap_or(0);
+            view.error = data.problem.as_ref().map(error_status);
             view.data = Some(data);
         }
         Err(e @ (LlmError::AuthRequired | LlmError::AuthFailed { .. })) => {
@@ -240,6 +270,37 @@ fn on_model_selected(state: &mut State, result: Result<ProviderLabel, LlmError>)
         },
     }
     Vec::new()
+}
+
+fn on_agent_selected(state: &mut State, result: Result<ProviderLabel, LlmError>) -> Vec<Effect> {
+    match result {
+        Ok(label) => {
+            let agent = state
+                .settings
+                .as_mut()
+                .and_then(|v| v.pending_agent.take())
+                .unwrap_or_default();
+            state.provider = label;
+            state.settings = None;
+            state.status = Some(Status {
+                kind: StatusKind::Info,
+                msg: Msg::StatusAgentChanged,
+                args: vec![("agent", agent)],
+            });
+            vec![Effect::Prepare]
+        }
+        Err(e) => {
+            match state.settings.as_mut() {
+                Some(view) => {
+                    view.applying = false;
+                    view.pending_agent = None;
+                    view.error = Some(error_status(&e));
+                }
+                None => state.status = Some(error_status(&e)),
+            }
+            Vec::new()
+        }
+    }
 }
 
 fn on_click(state: &mut State, hit: Hit) -> Vec<Effect> {
@@ -728,6 +789,18 @@ pub fn error_message(err: &LlmError) -> (Msg, Vec<(&'static str, String)>) {
         LlmError::InvalidResponse { .. } => (Msg::ErrInvalidResponse, vec![]),
         LlmError::Timeout => (Msg::ErrTimeout, vec![]),
         LlmError::Cancelled => (Msg::StatusCancelled, vec![]),
+        LlmError::NoApiKey { provider, env } => match env {
+            Some(env) => (
+                Msg::ErrNoApiKeyEnv,
+                vec![("provider", provider.clone()), ("env", env.clone())],
+            ),
+            None => (Msg::ErrNoApiKey, vec![("provider", provider.clone())]),
+        },
+        LlmError::KeyRejected { provider } => {
+            (Msg::ErrKeyRejected, vec![("provider", provider.clone())])
+        }
+        LlmError::QuotaExceeded => (Msg::ErrQuota, vec![]),
+        LlmError::Refused => (Msg::ErrRefused, vec![]),
     }
 }
 

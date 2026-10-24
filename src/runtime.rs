@@ -238,6 +238,15 @@ pub fn run_tui(
                         let _ = tx.send(Msg::Action(Action::ModelSelected(result)));
                     });
                 }
+                Effect::SelectAgent(id) => {
+                    let provider = provider.clone();
+                    let tx = tx.clone();
+                    rt.spawn(async move {
+                        let result = provider.select_agent(id).await;
+                        let _ = tx.send(Msg::Action(Action::AgentSelected(result)));
+                    });
+                }
+                Effect::Prepare => spawn_prepare(rt, provider.clone(), tx.clone()),
                 Effect::SignOut => {
                     let login = login.clone();
                     let tx = tx.clone();

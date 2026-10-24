@@ -75,6 +75,15 @@ pub struct StateFile {
     /// 현재 폴더 목록 전송 켜기와 끄기 (CR-007). 없으면 설정 파일 `context.folder`
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub send_folder: Option<bool>,
+    /// 설정 화면에서 고른 에이전트 (CR-011). 설정 파일 `provider.default`보다 우선
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_provider: Option<String>,
+    /// 보안 저장소에 키를 저장한 Provider 이름 (시작 시 불필요한 저장소 조회 생략, 키 값 아님)
+    #[serde(default, skip_serializing_if = "std::collections::BTreeSet::is_empty")]
+    pub saved_api_keys: std::collections::BTreeSet<String>,
+    /// API Key Provider별 설정 화면 선택 모델 (CR-011)
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub models_by_provider: std::collections::BTreeMap<String, String>,
     #[serde(default)]
     pub structured_output: Option<bool>,
     #[serde(default)]

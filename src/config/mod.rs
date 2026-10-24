@@ -18,11 +18,52 @@ pub enum UiMode {
     Fullscreen,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "snake_case")]
+#[value(rename_all = "snake_case")]
 pub enum ProviderKind {
     #[default]
     Chatgpt,
+    Openai,
+    Anthropic,
+    Gemini,
+    OpenaiCompatible,
+}
+
+impl ProviderKind {
+    pub const ALL: [ProviderKind; 5] = [
+        ProviderKind::Chatgpt,
+        ProviderKind::Openai,
+        ProviderKind::Anthropic,
+        ProviderKind::Gemini,
+        ProviderKind::OpenaiCompatible,
+    ];
+
+    /// 설정 파일과 상태 파일에 쓰는 이름
+    pub fn id(self) -> &'static str {
+        match self {
+            ProviderKind::Chatgpt => "chatgpt",
+            ProviderKind::Openai => "openai",
+            ProviderKind::Anthropic => "anthropic",
+            ProviderKind::Gemini => "gemini",
+            ProviderKind::OpenaiCompatible => "openai_compatible",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<ProviderKind> {
+        Self::ALL.into_iter().find(|k| k.id() == s)
+    }
+
+    /// 화면 표시 이름
+    pub fn display(self) -> &'static str {
+        match self {
+            ProviderKind::Chatgpt => "ChatGPT",
+            ProviderKind::Openai => "OpenAI",
+            ProviderKind::Anthropic => "Anthropic",
+            ProviderKind::Gemini => "Gemini",
+            ProviderKind::OpenaiCompatible => "OpenAI compatible",
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
@@ -52,11 +93,39 @@ pub struct ChatgptConfig {
     pub model: Option<String>,
 }
 
+/// API Key Provider 설정 (P5, SRS-CFG-009). 키 값 필드 없음: 환경변수 이름만 지정
+#[derive(Clone, Debug, PartialEq, Eq, Default, Deserialize)]
+#[serde(default)]
+pub struct ApiProviderConfig {
+    pub model: Option<String>,
+    /// 키를 읽을 환경변수 이름. 미지정 시 Provider 기본 이름
+    pub api_key_env: Option<String>,
+    /// OpenAI 호환 전용 (필수). 그 외 Provider는 무시
+    pub base_url: Option<String>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Default, Deserialize)]
 #[serde(default)]
 pub struct ProviderConfig {
-    pub default: ProviderKind,
+    /// 미지정 시 설정 화면 선택(상태 파일), 그다음 chatgpt
+    pub default: Option<ProviderKind>,
     pub chatgpt: ChatgptConfig,
+    pub openai: ApiProviderConfig,
+    pub anthropic: ApiProviderConfig,
+    pub gemini: ApiProviderConfig,
+    pub openai_compatible: ApiProviderConfig,
+}
+
+impl ProviderConfig {
+    pub fn api(&self, kind: ProviderKind) -> Option<&ApiProviderConfig> {
+        match kind {
+            ProviderKind::Chatgpt => None,
+            ProviderKind::Openai => Some(&self.openai),
+            ProviderKind::Anthropic => Some(&self.anthropic),
+            ProviderKind::Gemini => Some(&self.gemini),
+            ProviderKind::OpenaiCompatible => Some(&self.openai_compatible),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, Deserialize)]
@@ -116,6 +185,19 @@ const KNOWN_KEYS: &[&str] = &[
     "provider.default",
     "provider.chatgpt",
     "provider.chatgpt.model",
+    "provider.openai",
+    "provider.openai.model",
+    "provider.openai.api_key_env",
+    "provider.anthropic",
+    "provider.anthropic.model",
+    "provider.anthropic.api_key_env",
+    "provider.gemini",
+    "provider.gemini.model",
+    "provider.gemini.api_key_env",
+    "provider.openai_compatible",
+    "provider.openai_compatible.model",
+    "provider.openai_compatible.api_key_env",
+    "provider.openai_compatible.base_url",
     "context",
     "context.folder",
     "update",
@@ -150,6 +232,7 @@ pub fn load(path: Option<&Path>) -> Result<Loaded, ConfigError> {
 
 pub fn parse(text: &str) -> Result<Loaded, String> {
     let table: toml::Table = toml::from_str(text).map_err(|e| describe_toml_error(text, &e))?;
+    reject_secrets(&table)?;
     let mut unknown_keys = Vec::new();
     collect_unknown("", &table, &mut unknown_keys);
     let config: Config = toml::from_str(text).map_err(|e| describe_toml_error(text, &e))?;
@@ -173,6 +256,50 @@ fn validate(config: &Config) -> Result<(), String> {
         && model.trim().is_empty()
     {
         return Err("provider.chatgpt.model: empty value".into());
+    }
+    for kind in ProviderKind::ALL {
+        let Some(api) = config.provider.api(kind) else {
+            continue;
+        };
+        let name = kind.id();
+        if api.model.as_deref().is_some_and(|m| m.trim().is_empty()) {
+            return Err(format!("provider.{name}.model: empty value"));
+        }
+        if let Some(env) = &api.api_key_env
+            && (env.is_empty() || !env.chars().all(|c| c.is_ascii_alphanumeric() || c == '_'))
+        {
+            return Err(format!(
+                "provider.{name}.api_key_env = {env:?}: use an environment variable name (letters, digits, _)"
+            ));
+        }
+    }
+    if let Some(url) = &config.provider.openai_compatible.base_url {
+        let ok = url::Url::parse(url)
+            .is_ok_and(|u| matches!(u.scheme(), "http" | "https") && u.host().is_some());
+        if !ok {
+            return Err(format!(
+                "provider.openai_compatible.base_url = {url:?}: use an http:// or https:// address"
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// 설정 파일의 비밀값 필드 거부 (PRD-CFG-007). 값은 메시지에 포함하지 않음
+fn reject_secrets(table: &toml::Table) -> Result<(), String> {
+    let Some(toml::Value::Table(provider)) = table.get("provider") else {
+        return Ok(());
+    };
+    for (name, value) in provider {
+        if let toml::Value::Table(inner) = value {
+            for key in ["api_key", "key", "token", "secret", "password"] {
+                if inner.contains_key(key) {
+                    return Err(format!(
+                        "provider.{name}.{key}: secrets are not read from the config file. Use `howtui auth set-key {name}` or `api_key_env`"
+                    ));
+                }
+            }
+        }
     }
     Ok(())
 }
@@ -275,10 +402,38 @@ mod tests {
 
     #[test]
     fn schema_has_no_secret_fields() {
-        for key in KNOWN_KEYS {
+        // `*_env`는 환경변수 이름만 담는 필드 (SRS-CFG-006)
+        for key in KNOWN_KEYS.iter().filter(|k| !k.ends_with("_env")) {
             for word in ["token", "key", "secret", "password"] {
                 assert!(!key.contains(word), "{key}");
             }
+        }
+    }
+
+    #[test]
+    fn api_provider_schema_and_secret_rejection() {
+        let loaded = parse(
+            "[provider]\ndefault = \"openai_compatible\"\n[provider.openai]\nmodel = \"gpt-x\"\napi_key_env = \"WORK_OPENAI\"\n[provider.openai_compatible]\nbase_url = \"http://localhost:8080/v1\"\n",
+        )
+        .unwrap();
+        let p = &loaded.config.provider;
+        assert_eq!(p.default, Some(ProviderKind::OpenaiCompatible));
+        assert_eq!(p.openai.model.as_deref(), Some("gpt-x"));
+        assert_eq!(p.openai.api_key_env.as_deref(), Some("WORK_OPENAI"));
+        assert!(loaded.unknown_keys.is_empty(), "{:?}", loaded.unknown_keys);
+        assert_eq!(parse("").unwrap().config.provider.default, None);
+
+        // 키 값 필드는 실행 중단, 오류 메시지에 값 미포함
+        let err = parse("[provider.openai]\napi_key = \"sk-secret-123\"\n").unwrap_err();
+        assert!(
+            err.contains("provider.openai.api_key") && !err.contains("sk-secret-123"),
+            "{err}"
+        );
+        assert!(parse("[provider.anthropic]\napi_key_env = \"BAD NAME\"\n").is_err());
+        assert!(parse("[provider.openai_compatible]\nbase_url = \"ftp://x\"\n").is_err());
+        assert!(parse("[provider.gemini]\nmodel = \" \"\n").is_err());
+        for kind in ProviderKind::ALL {
+            assert_eq!(ProviderKind::parse(kind.id()), Some(kind));
         }
     }
 

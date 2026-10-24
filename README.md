@@ -58,6 +58,7 @@ Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit             g
    - [Commands](#commands)
    - [Keys](#keys)
    - [Settings: agent and model](#settings-agent-and-model)
+   - [Agents and API keys](#agents-and-api-keys)
    - [Folder listing](#folder-listing)
    - [Shell integration](#shell-integration)
    - [Non-interactive mode](#non-interactive-mode)
@@ -81,7 +82,7 @@ Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit             g
 - **Edit, then ask.** Edit the command in place (multi-line, undo and redo, Unicode aware), then ask a follow-up; the model sees your edits.
 - **Explain on demand.** After editing by hand, press Ctrl+E to explain the current command.
 - **Folder-aware on request.** Turn on the folder listing (Ctrl+F or the `[folder: off]` button) and *"extract the archive"* picks the archive that is actually in the current folder. It sends an `ls -al` style listing (no file contents, owners or paths); it is off until you turn it on.
-- **Pick the model.** Ctrl+O, `/model` or a click on the model name in the status line opens the settings view: your agent and account, the models your ChatGPT plan offers, and sign-out. The choice is kept for next time. Default: GPT-6-Luna when your account lists it.
+- **Pick the agent and model.** Use your ChatGPT plan, or your own API key for OpenAI, Anthropic or Gemini, or any OpenAI-compatible server. Ctrl+O, `/model` or a click on the model name in the status line opens the settings view to switch agents and models; the choice is kept for next time.
 - **Clean stdout.** The UI draws on the controlling terminal, so `cmd=$(howtui)` and `howtui | pbcopy` receive only the command.
 - **Shell integration (optional).** Ctrl+G opens howtui on the current command line in Bash, Zsh or PowerShell, and typing `howtui` puts the result into the next prompt. The installer asks before adding it to your rc file; nothing is changed without a yes.
 - **Never executes.** howtui prints or hands over the command; it has no code path that runs generated commands.
@@ -291,12 +292,13 @@ Sign-in starts by itself the first time (or run `howtui login`):
 | `howtui --no-tui QUESTION...` | Generate once without the UI |
 | `howtui login [--no-browser] [--port N]` | Sign in with ChatGPT |
 | `howtui logout [--forget]` | Revoke the session and delete local tokens (`--forget` also drops the account registration) |
-| `howtui auth status` | Show the signed-in account (masked email), plan usage and token expiry |
+| `howtui auth status` | Show the agent in use, where each API key comes from, and the ChatGPT account (masked email), plan usage and token expiry |
+| `howtui auth set-key AGENT`, `howtui auth remove-key AGENT` | Save or delete an API key for `openai`, `anthropic`, `gemini` or `openai_compatible` ([Agents and API keys](#agents-and-api-keys)) |
 | `howtui doctor [--json]` | Check terminal, locale, config, sign-in and model access; output contains no tokens or home paths |
 | `howtui init bash\|zsh\|powershell` | Print the shell integration script (options: `--key ctrl+x`, `--no-bind`, `--no-wrap`) |
 | `howtui --check-update`, `howtui --update` | Check for a new release, or update now ([Update](#update)) |
 
-Common options: `--shell bash|zsh|powershell`, `--height N` (3-40).
+Common options: `--shell bash|zsh|powershell`, `--height N` (3-40), `--provider AGENT`.
 
 ### Keys
 
@@ -326,19 +328,47 @@ Press **Ctrl+O**, type `/model` in the ask line, or click the `[model]` name in 
 
 ```text
 Settings  Agent: ChatGPT (h***@gmail.com)                                          [Close]
+Agent  (*) ChatGPT  signed in
+       ( ) OpenAI  key from OPENAI_API_KEY
+       ( ) Anthropic  key saved with set-key
+       ( ) Gemini  no key: howtui auth set-key gemini
+       ( ) OpenAI compatible  set provider.openai_compatible.base_url
 Model  ( ) GPT-6.1-Sol  gpt-6.1-sol
        (*) GPT-6-Luna  gpt-6-luna
-       ( ) GPT-6-Sol  gpt-6-sol
        Send current folder listing (Ctrl+F): off
        Sign out (switch account)
 Up/Down move  Enter choose  Esc close  (click works too)
 ```
 
-Choose with the arrow keys and Enter, or click a line. The model is saved for next time and used before
-`provider.chatgpt.model` from the config file. **Sign out** revokes the session; press Enter afterwards to sign in with
-another account. The agent line shows the provider in use. API key providers (Phase 5) and local models (Phase 6) will be
-added there; the Codex CLI was evaluated as an agent and not adopted, see
-[ADR-0017](docs/adr/0017-no-codex-cli-delegation.md).
+Choose with the arrow keys and Enter, or click a line. Agent and model are saved for next time and used before
+`provider.default` and `provider.<agent>.model` from the config file; `--provider` overrides both for one run. Switching
+keeps the conversation, so a follow-up goes to the new agent with the earlier turns. An agent without a key or address
+stays greyed out and tells you what is missing. **Sign out** (ChatGPT only) revokes the session; press Enter afterwards to
+sign in with another account. Local models (Phase 6) will be added to the agent list; the Codex CLI was evaluated as an
+agent and not adopted, see [ADR-0017](docs/adr/0017-no-codex-cli-delegation.md).
+
+### Agents and API keys
+
+| Agent | `--provider` | Default model | Key | Endpoint |
+| --- | --- | --- | --- | --- |
+| ChatGPT | `chatgpt` | GPT-6-Luna when listed | Sign in with ChatGPT (`howtui login`) | OpenAI, ChatGPT plan usage |
+| OpenAI | `openai` | `gpt-6-astra` | `OPENAI_API_KEY` or `howtui auth set-key openai` | `api.openai.com` (Responses API, `store: false`) |
+| Anthropic | `anthropic` | `claude-opus-5-5` | `ANTHROPIC_API_KEY` or `howtui auth set-key anthropic` | `api.anthropic.com` (Messages API) |
+| Gemini | `gemini` | `gemini-3.8-flash` | `GEMINI_API_KEY` or `howtui auth set-key gemini` | `generativelanguage.googleapis.com` |
+| OpenAI compatible | `openai_compatible` | first listed model | optional, `howtui auth set-key openai_compatible` or `api_key_env` | `provider.openai_compatible.base_url` (`/chat/completions`) |
+
+```bash
+howtui auth set-key openai        # paste the key; nothing is shown while you type or paste
+printf '%s\n' "$KEY" | howtui auth set-key gemini   # or pipe it in
+howtui auth status                # where each key comes from (never the key itself)
+howtui auth remove-key openai
+howtui --provider anthropic "find large files"
+```
+
+An environment variable wins over a saved key. `set-key` stores the key in the OS credential store (or, when none is
+available, in a `0600` file in the data directory). Keys are never read from the config file: a `provider.<agent>.api_key`
+entry stops howtui with a configuration error. For Anthropic models that support it, howtui asks for low reasoning
+effort and turns on Anthropic's server-side fallback model for declined requests.
 
 ### Folder listing
 
@@ -438,10 +468,19 @@ check = true           # false: no daily check and no "available" note (same as 
 folder = false         # true: send the ls -al style folder listing unless turned off with Ctrl+F
 
 [provider]
-default = "chatgpt"
+# default = "chatgpt"      # chatgpt, openai, anthropic, gemini, openai_compatible (Settings choice and --provider win)
 
 [provider.chatgpt]
 # model = "<model slug>"   # used when nothing was chosen in Settings; default gpt-6-luna, else the first listed
+
+[provider.openai]          # same keys for [provider.anthropic] and [provider.gemini]
+# model = "gpt-6-astra"
+# api_key_env = "OPENAI_API_KEY"   # name of the variable to read; never the key itself
+
+[provider.openai_compatible]
+# base_url = "http://localhost:8080/v1"
+# model = "<model id>"
+# api_key_env = "MY_SERVER_KEY"
 ```
 
 Sign-in state and the file-based token store live in the data directory: `$XDG_DATA_HOME/howtui`
@@ -495,7 +534,8 @@ Zero W (ARMv6) are not supported, and no Raspberry Pi hardware has been tested y
 
 ## 7. Privacy and safety
 
-- **Sent to OpenAI when you submit a request:** your question, the current command (including your edits), your OS, CPU
+- **Sent to the agent you chose when you submit a request** (OpenAI for ChatGPT and OpenAI, Anthropic, Google for
+  Gemini, or the server at your `base_url`): your question, the current command (including your edits), your OS, CPU
   architecture and shell name, and earlier turns of the same session. Only when you turn on the
   [folder listing](#folder-listing): an `ls -al` style listing of the current folder (names including hidden ones,
   permissions, sizes, modification times). Never sent: environment variables, file contents, owner names, shell history,
@@ -503,8 +543,9 @@ Zero W (ARMv6) are not supported, and no Raspberry Pi hardware has been tested y
 - **Received at sign-in:** your account email and name. howtui keeps the email to show it masked.
 - **Update check:** at most once a day, one request to the GitHub release page to read the newest version number
   ([Update](#update)). Off with `HOWTUI_NO_UPDATE_CHECK=1`.
-- **Stored on your machine:** OAuth tokens in the OS credential store (Keychain, Credential Manager, Secret Service) or, when
-  none is available, in a `0600` file in the data directory.
+- **Stored on your machine:** OAuth tokens and API keys saved with `howtui auth set-key` in the OS credential store
+  (Keychain, Credential Manager, Secret Service) or, when none is available, in a `0600` file in the data directory. Keys
+  are never printed, logged or sent anywhere except in the request header to their own provider.
 - **Danger warnings** are simple rules over the command text. They miss things and are not a security boundary.
 - **howtui never runs the commands it suggests.** Review them before you press Enter in your shell.
 
@@ -518,7 +559,7 @@ Zero W (ARMv6) are not supported, and no Raspberry Pi hardware has been tested y
 | --- | --- |
 | `src/app` | Pure state machine and editor (no terminal or network access) |
 | `src/ui` | Inline renderer, key map, terminal session |
-| `src/llm` | Provider interface, prompts, response parsing, ChatGPT provider |
+| `src/llm` | Provider interface, prompts, response parsing, ChatGPT provider, API key providers, agent switching |
 | `src/auth` | Sign in with ChatGPT, token storage and refresh |
 | `docs/` | Specs (MRD, PRD, SRS, TC), traceability, ADRs, research (Korean) |
 | `tests/` | CLI integration tests, PTY end-to-end tests, installer tests |
@@ -542,8 +583,8 @@ Releases are built by `.github/workflows/release.yml` from `v*` tags as drafts a
 - [x] Phase 1: inline UI, Sign in with ChatGPT, stdout output, installers
 - [x] Phase 2: optional shell integration that puts the command into the Bash, Zsh or PowerShell prompt; settings view for the model
 - [ ] Phase 3: fullscreen mode
-- [ ] Phase 4: Raspberry Pi and Windows ARM64 hardware checks, update checks in `doctor`
-- [ ] Phase 5: API key providers (OpenAI, Gemini, Anthropic, OpenAI-compatible)
+- [x] Phase 4: update checks in `doctor`, release provenance, uninstall; Raspberry Pi and Windows ARM64 hardware not checked yet
+- [x] Phase 5: API key providers (OpenAI, Gemini, Anthropic, OpenAI-compatible) and agent switching in Settings
 - [ ] Phase 6: local models through Ollama and llama.cpp `llama-server`
 
 <p align="right"><a href="#table-of-contents">↑ back to top</a></p>

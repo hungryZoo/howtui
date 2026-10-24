@@ -248,8 +248,115 @@ impl CredentialStore {
     }
 }
 
+/// API 키 등 단일 비밀값 저장 (P5, SRS-LLM-015). 보안 저장소 계정 `api-key:<이름>`,
+/// 파일 저장소는 `api-keys.json` (0600).
+impl CredentialStore {
+    fn secrets_file(&self) -> PathBuf {
+        self.file.with_file_name("api-keys.json")
+    }
+
+    fn secret_account(name: &str) -> String {
+        format!("api-key:{name}")
+    }
+
+    fn secret_map(&self) -> Result<std::collections::BTreeMap<String, Secret>, StoreError> {
+        match std::fs::read_to_string(self.secrets_file()) {
+            Ok(t) => serde_json::from_str(&t).map_err(|e| StoreError(e.to_string())),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Default::default()),
+            Err(e) => Err(StoreError(e.to_string())),
+        }
+    }
+
+    fn write_secret_map(
+        &self,
+        map: &std::collections::BTreeMap<String, Secret>,
+    ) -> Result<(), StoreError> {
+        if map.is_empty() {
+            let _ = std::fs::remove_file(self.secrets_file());
+            return Ok(());
+        }
+        let bytes = serde_json::to_vec_pretty(map).map_err(|e| StoreError(e.to_string()))?;
+        write_private_atomic(&self.secrets_file(), &bytes).map_err(|e| StoreError(e.to_string()))
+    }
+
+    pub fn get_secret(&self, name: &str) -> Result<Option<Secret>, StoreError> {
+        match self.kind {
+            StoreKind::File => Ok(self.secret_map()?.remove(name)),
+            StoreKind::Keyring => {
+                let entry = keyring::Entry::new(SERVICE, &Self::secret_account(name))
+                    .map_err(|e| StoreError(e.to_string()))?;
+                match entry.get_password() {
+                    Ok(v) => Ok(Some(Secret::new(v))),
+                    Err(keyring::Error::NoEntry) => Ok(None),
+                    Err(e) => Err(StoreError(e.to_string())),
+                }
+            }
+        }
+    }
+
+    pub fn set_secret(&self, name: &str, value: &Secret) -> Result<(), StoreError> {
+        match self.kind {
+            StoreKind::File => {
+                let mut map = self.secret_map()?;
+                map.insert(name.to_string(), value.clone());
+                self.write_secret_map(&map)
+            }
+            StoreKind::Keyring => keyring::Entry::new(SERVICE, &Self::secret_account(name))
+                .and_then(|e| e.set_password(value.expose()))
+                .map_err(|e| StoreError(e.to_string())),
+        }
+    }
+
+    /// 삭제 여부 반환 (없으면 false).
+    pub fn delete_secret(&self, name: &str) -> Result<bool, StoreError> {
+        match self.kind {
+            StoreKind::File => {
+                let mut map = self.secret_map()?;
+                let had = map.remove(name).is_some();
+                self.write_secret_map(&map)?;
+                Ok(had)
+            }
+            StoreKind::Keyring => {
+                let entry = keyring::Entry::new(SERVICE, &Self::secret_account(name))
+                    .map_err(|e| StoreError(e.to_string()))?;
+                match entry.delete_credential() {
+                    Ok(()) => Ok(true),
+                    Err(keyring::Error::NoEntry) => Ok(false),
+                    Err(e) => Err(StoreError(e.to_string())),
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn file_secrets_round_trip_and_cleanup() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = CredentialStore::new(StoreKind::File, dir.path());
+        assert_eq!(store.get_secret("openai").unwrap(), None);
+        store.set_secret("openai", &Secret::new("sk-1")).unwrap();
+        store.set_secret("gemini", &Secret::new("g-1")).unwrap();
+        assert_eq!(
+            store.get_secret("openai").unwrap().unwrap().expose(),
+            "sk-1"
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = std::fs::metadata(dir.path().join("api-keys.json"))
+                .unwrap()
+                .permissions()
+                .mode();
+            assert_eq!(mode & 0o777, 0o600);
+        }
+        assert!(store.delete_secret("openai").unwrap());
+        assert!(!store.delete_secret("openai").unwrap());
+        assert!(store.delete_secret("gemini").unwrap());
+        assert!(!dir.path().join("api-keys.json").exists(), "빈 파일 삭제");
+    }
+
     use super::*;
 
     fn tokens(expires_at: u64) -> TokenSet {

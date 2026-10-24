@@ -143,10 +143,46 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::ErrUnsupported => {
             "The model or request feature is not supported ({param}). Check the model setting."
         }
-        Msg::ErrModelNotFound => "Model not found. Check `provider.chatgpt.model` or remove it.",
+        Msg::ErrModelNotFound => {
+            "Model not found. Choose another model with Ctrl+O, or check `provider.<agent>.model` in the config."
+        }
         Msg::ErrTransient => "Service temporarily unavailable. Try again shortly.",
         Msg::ErrNetwork => "Network error: {detail}. Check the connection and try again.",
         Msg::ErrTimeout => "The request timed out. Try again.",
+        Msg::ErrNoApiKey => "No API key for {provider}. Run `howtui auth set-key {provider}`.",
+        Msg::ErrNoApiKeyEnv => {
+            "No API key for {provider}. Run `howtui auth set-key {provider}` or set {env}."
+        }
+        Msg::ErrKeyRejected => {
+            "The {provider} API key was rejected. Replace it with `howtui auth set-key {provider}`."
+        }
+        Msg::ErrQuota => {
+            "Account quota or billing limit reached at the provider. Check the provider's billing page."
+        }
+        Msg::ErrRefused => "The model declined this request. Rephrase it or choose another model.",
+        Msg::AgentSignedIn => "signed in",
+        Msg::AgentNeedsLogin => "sign-in needed",
+        Msg::AgentKeyEnv => "key from {env}",
+        Msg::AgentKeyStore => "key saved with set-key",
+        Msg::AgentNoKey => "no key: howtui auth set-key {id}",
+        Msg::AgentNoUrl => "set provider.openai_compatible.base_url",
+        Msg::StatusAgentChanged => "Agent: {agent} (saved for next time)",
+        Msg::KeyPrompt => "Paste the {provider} API key and press Enter (input is hidden):",
+        Msg::KeySaved => "{provider} API key saved ({store}).",
+        Msg::KeyRemoved => "{provider} API key removed.",
+        Msg::KeyNotFound => "No saved {provider} API key.",
+        Msg::KeyEmpty => "No key entered. Nothing was saved.",
+        Msg::KeyEnvShadow => "Note: {env} is set and is used before the saved key.",
+        Msg::AuthStatusProvider => "Agent: {agent}",
+        Msg::AuthStatusKeys => "API keys:",
+        Msg::KeySourceEnv => "environment variable {env}",
+        Msg::KeySourceStore => "saved with howtui auth set-key",
+        Msg::KeySourceNone => "not set",
+        Msg::HelpProvider => {
+            "Agent for this run (chatgpt, openai, anthropic, gemini, openai_compatible)"
+        }
+        Msg::HelpSetKey => "Save an API key in the OS credential store",
+        Msg::HelpRemoveKey => "Delete a saved API key",
         Msg::ErrInvalidResponse => "Could not read the model response. Try again.",
         Msg::ErrNoTerminal => {
             "No usable terminal (TTY). For non-interactive use run: howtui --no-tui \"<question>\""

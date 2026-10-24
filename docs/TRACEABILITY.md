@@ -8,9 +8,9 @@
 | 항목 | 값 |
 | --- | --- |
 | MRD 항목 | 77 |
-| PRD 요구사항 | 169 |
-| SRS 설계 요구사항 | 191 |
-| TC | 214 |
+| PRD 요구사항 | 171 |
+| SRS 설계 요구사항 | 198 |
+| TC | 218 |
 | 오류 (누락, 불일치) | 0 |
 | 경고 (TC 미연결 SRS) | 0 |
 
@@ -73,14 +73,16 @@
 | PRD-LLM-007 | P1 | 필수 | MRD-SCN-003 | SRS-DATA-005 | TC-LLM-002 | `src/app/state.rs`, `src/llm/prompt.rs` | 통과 1 |
 | PRD-LLM-008 | P1 | 권장 | MRD-SCN-001 | SRS-LLM-002 | TC-LLM-007 | `src/llm/prompt.rs` | 통과 1 |
 | PRD-LLM-009 | P1 | 필수 | MRD-SCP-004 | SRS-LLM-005, SRS-LLM-006, SRS-LLM-013 | TC-LLM-008, TC-LLM-014, TC-LLM-017, TC-LLM-022 | `src/llm/chatgpt.rs`<br>`src/llm/chatgpt.rs`, `src/auth/state.rs`<br>`src/llm/types.rs`, `src/llm/chatgpt.rs`, `src/runtime.rs` | 미실행 1, 통과 3 |
-| PRD-LLM-010 | P1 | 필수 | MRD-RSK-003 | SRS-LLM-003, SRS-LLM-008 | TC-LLM-009, TC-LLM-010, TC-LLM-016 | `src/llm/chatgpt.rs`<br>`src/llm/parse.rs`, `src/runtime.rs` | 통과 3 |
+| PRD-LLM-010 | P1 | 필수 | MRD-RSK-003 | SRS-LLM-003, SRS-LLM-008, SRS-LLM-016 | TC-LLM-009, TC-LLM-010, TC-LLM-016 | `src/llm/api.rs`<br>`src/llm/chatgpt.rs`<br>`src/llm/parse.rs`, `src/runtime.rs` | 통과 3 |
 | PRD-LLM-011 | P1 | 필수 | MRD-SCP-003 | SRS-LLM-007 | TC-LLM-011 | `src/llm/chatgpt.rs` | 통과 1 |
 | PRD-LLM-012 | P1 | 필수 | MRD-KPI-002 | SRS-MOD-003, SRS-LLM-009, SRS-TEST-001, SRS-TEST-002 | TC-LLM-012, TC-NFR-009 | `src/llm/mock.rs`<br>`src/llm/mock.rs`, `src/auth/oauth.rs`, `src/runtime.rs`<br>`tests/` | 통과 2 |
-| PRD-LLM-013 | P5 | 필수 | MRD-SCP-104 | SRS-LLM-011 | TC-LLM-018 | `src/llm/` | 미실행 1 |
-| PRD-LLM-014 | P5 | 필수 | MRD-SCP-104 | SRS-LLM-011 | TC-LLM-018 | `src/llm/` | 미실행 1 |
-| PRD-LLM-015 | P5 | 필수 | MRD-SCP-104 | SRS-LLM-011 | TC-LLM-018 | `src/llm/` | 미실행 1 |
-| PRD-LLM-016 | P5 | 필수 | MRD-SCP-104 | SRS-LLM-011 | TC-LLM-018 | `src/llm/` | 미실행 1 |
-| PRD-LLM-017 | P5 | 필수 | MRD-SCP-104 | SRS-LLM-011 | TC-LLM-019 | `src/llm/` | 미실행 1 |
+| PRD-LLM-013 | P5 | 필수 | MRD-SCP-104 | SRS-LLM-011, SRS-LLM-014, SRS-LLM-016 | TC-LLM-018, TC-LLM-026 | `src/llm/`<br>`src/llm/api.rs` | 미실행 1, 통과 1 |
+| PRD-LLM-014 | P5 | 필수 | MRD-SCP-104 | SRS-LLM-011, SRS-LLM-014, SRS-LLM-016 | TC-LLM-018, TC-LLM-026 | `src/llm/`<br>`src/llm/api.rs` | 미실행 1, 통과 1 |
+| PRD-LLM-015 | P5 | 필수 | MRD-SCP-104 | SRS-LLM-011, SRS-LLM-014, SRS-LLM-016 | TC-LLM-018, TC-LLM-026 | `src/llm/`<br>`src/llm/api.rs` | 미실행 1, 통과 1 |
+| PRD-LLM-016 | P5 | 필수 | MRD-SCP-104 | SRS-LLM-011, SRS-LLM-014, SRS-LLM-016 | TC-LLM-018 | `src/llm/`<br>`src/llm/api.rs` | 통과 1 |
+| PRD-LLM-017 | P5 | 필수 | MRD-SCP-104 | SRS-CLI-008, SRS-LLM-011, SRS-LLM-017, SRS-CFG-009 | TC-LLM-019 | `src/cli/mod.rs`, `src/cli/keys.rs`<br>`src/cli/provider.rs`<br>`src/config/mod.rs`<br>`src/llm/` | 통과 1 |
+| PRD-LLM-021 | P5 | 필수 | MRD-SCP-104 | SRS-LLM-018 | TC-LLM-025 | `src/llm/switch.rs`, `src/app/update.rs`, `src/ui/inline.rs` | 통과 1 |
+| PRD-LLM-022 | P5 | 필수 | MRD-SCP-104 | SRS-CLI-008, SRS-LLM-015 | TC-LLM-023, TC-LLM-024 | `src/cli/mod.rs`, `src/cli/keys.rs`<br>`src/llm/keys.rs` | 통과 2 |
 | PRD-LLM-018 | P6 | 필수 | MRD-SCP-105 | SRS-LLM-012 | TC-LLM-020 | `src/llm/local.rs` | 미실행 1 |
 | PRD-LLM-019 | P6 | 필수 | MRD-SCP-105 | SRS-LLM-012 | TC-LLM-020 | `src/llm/local.rs` | 미실행 1 |
 | PRD-LLM-020 | P6 | 필수 | MRD-SCP-105 | SRS-LLM-012 | TC-LLM-021 | `src/llm/local.rs` | 미실행 1 |
@@ -138,7 +140,7 @@
 | PRD-CFG-004 | P3 | 필수 | MRD-SCP-102 | SRS-CFG-007 | TC-FS-004 | `src/config/mod.rs` | 미실행 1 |
 | PRD-CFG-005 | P1 | 필수 | MRD-SCN-008 | SRS-CFG-004 | TC-CFG-004 | `src/config/mod.rs` | 통과 1 |
 | PRD-CFG-006 | P1 | 필수 | MRD-SCN-008 | SRS-CFG-005 | TC-CFG-005 | `src/config/mod.rs` | 통과 1 |
-| PRD-CFG-007 | P1 | 필수 | MRD-SCP-104 | SRS-CFG-006 | TC-CFG-006 | `src/config/mod.rs` | 통과 1 |
+| PRD-CFG-007 | P1 | 필수 | MRD-SCP-104 | SRS-LLM-015, SRS-CFG-006, SRS-CFG-009 | TC-LLM-023, TC-CFG-006 | `src/config/mod.rs`<br>`src/llm/keys.rs` | 통과 2 |
 | PRD-DOC-001 | P1 | 필수 | MRD-SCP-006 | SRS-DOC-001 | TC-DOC-001 | `src/doctor/` | 통과 1 |
 | PRD-DOC-002 | P1 | 필수 | MRD-SCP-006 | SRS-DOC-001 | TC-DOC-002 | `src/doctor/` | 통과 1 |
 | PRD-DOC-003 | P1 | 필수 | MRD-SCP-006 | SRS-DOC-001, SRS-DOC-006 | TC-DOC-003 | `src/doctor/` | 통과 1 |

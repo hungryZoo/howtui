@@ -354,6 +354,7 @@ impl Provider for ChatGptProvider {
                     .collect(),
                 current: Some(current),
                 can_sign_out: true,
+                ..Default::default()
             })
         })
     }

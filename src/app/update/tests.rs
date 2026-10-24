@@ -577,6 +577,7 @@ fn settings_data() -> crate::llm::types::ProviderSettings {
         ],
         current: Some("b".into()),
         can_sign_out: true,
+        ..Default::default()
     }
 }
 
@@ -778,4 +779,100 @@ fn update_check_from_slash_command_and_settings() {
         Action::UpdateChecked(UpdateView::Ready(update_info())),
     );
     assert_eq!(s.update, Some(update_info()), "상태줄 알림 갱신");
+}
+
+fn agent_settings(problem: Option<LlmError>) -> crate::llm::types::ProviderSettings {
+    use crate::llm::types::AgentChoice;
+    let agent = |id: &str, name: &str, ready: bool| AgentChoice {
+        id: id.into(),
+        name: name.into(),
+        ready,
+        detail: String::new(),
+    };
+    crate::llm::types::ProviderSettings {
+        agents: vec![
+            agent("chatgpt", "ChatGPT", true),
+            agent("openai", "OpenAI", true),
+            agent("gemini", "Gemini", false),
+        ],
+        current_agent: Some("chatgpt".into()),
+        problem,
+        ..settings_data()
+    }
+}
+
+/// CR-011 (TC-LLM-025): 에이전트 목록이 모델 목록 앞, 전환 성공 시 닫힘과 준비 재실행, 대화 이력 유지,
+/// 사용 불가 항목은 오류 줄 안내.
+#[test]
+fn settings_agent_switch_flow() {
+    let mut s = ready();
+    generate(&mut s, "list", "ls");
+    let history = s.conversation.len();
+    key(&mut s, KeyAction::Settings);
+    update(&mut s, Action::SettingsLoaded(Ok(agent_settings(None))));
+    let view = s.settings.as_ref().unwrap();
+    assert_eq!(view.entries()[0], SettingsEntry::Agent(0));
+    assert_eq!(view.entries()[3], SettingsEntry::Model(0));
+    assert_eq!(view.cursor, 4, "현재 모델 b 위치 (에이전트 3개 다음)");
+
+    // 사용 불가 Gemini 선택: 전환 요청 후 오류 수신 시 화면 유지
+    assert_eq!(
+        update(&mut s, Action::Click(Hit::SettingsItem(2))),
+        vec![Effect::SelectAgent("gemini".into())]
+    );
+    assert!(s.settings.as_ref().unwrap().applying);
+    update(
+        &mut s,
+        Action::AgentSelected(Err(LlmError::NoApiKey {
+            provider: "gemini".into(),
+            env: Some("GEMINI_API_KEY".into()),
+        })),
+    );
+    let view = s.settings.as_ref().unwrap();
+    assert!(!view.applying);
+    assert_eq!(
+        view.error.as_ref().map(|e| e.msg),
+        Some(Msg::ErrNoApiKeyEnv)
+    );
+
+    // OpenAI 선택: 닫힘, 상태줄 안내, 준비 재실행
+    s.settings.as_mut().unwrap().cursor = 1;
+    assert_eq!(
+        key(&mut s, KeyAction::Submit),
+        vec![Effect::SelectAgent("openai".into())]
+    );
+    let eff = update(
+        &mut s,
+        Action::AgentSelected(Ok(ProviderLabel {
+            model: Some("gpt-6-astra".into()),
+            chatgpt_plan: false,
+        })),
+    );
+    assert_eq!(eff, vec![Effect::Prepare]);
+    assert!(s.settings.is_none());
+    assert_eq!(s.provider.model.as_deref(), Some("gpt-6-astra"));
+    let st = s.status.as_ref().unwrap();
+    assert_eq!(st.msg, Msg::StatusAgentChanged);
+    assert_eq!(st.args, vec![("agent", "OpenAI".to_string())]);
+    assert_eq!(s.conversation.len(), history, "전환 후 대화 이력 유지");
+}
+
+/// 현재 에이전트 조회 실패도 목록 표시, 로그인 필요한 현재 ChatGPT 다시 선택 시 로그인 화면.
+#[test]
+fn settings_agent_problem_and_login() {
+    let mut s = ready();
+    key(&mut s, KeyAction::Settings);
+    let mut data = agent_settings(Some(LlmError::AuthRequired));
+    data.models.clear();
+    data.current = None;
+    update(&mut s, Action::SettingsLoaded(Ok(data)));
+    let view = s.settings.as_ref().unwrap();
+    assert_eq!(view.cursor, 0, "모델 없으면 현재 에이전트 위치");
+    assert_eq!(
+        view.error.as_ref().map(|e| e.msg),
+        Some(Msg::ErrAuthRequired)
+    );
+    assert!(key(&mut s, KeyAction::Submit).is_empty());
+    assert!(s.settings.is_none());
+    assert_eq!(s.phase, Phase::LoginRequired);
 }

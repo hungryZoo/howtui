@@ -173,11 +173,14 @@ howtui [OPTIONS] [QUESTION]...          기본: Inline TUI (QUESTION 지정 시 
   --shell <bash|zsh|powershell>         대상 쉘 지정
   --height <N>                          Inline 높이 (3-40)
   --mode <inline|fullscreen>            화면 모드 (P3)
+  --provider <chatgpt|openai|anthropic|gemini|openai_compatible>   이번 실행 Provider (P5)
   --widget                              쉘 어댑터 전용 위젯 모드 (P2, 도움말 숨김)
   -V, --version / -h, --help
 howtui login [--no-browser] [--port <PORT>]
 howtui logout [--forget]
 howtui auth status
+howtui auth set-key <openai|anthropic|gemini|openai_compatible>     (P5)
+howtui auth remove-key <openai|anthropic|gemini|openai_compatible>  (P5)
 howtui doctor [--json]
 howtui init <bash|zsh|powershell> [--key <KEY>] [--no-bind]   (P2)
 ```
@@ -191,6 +194,7 @@ howtui init <bash|zsh|powershell> [--key <KEY>] [--no-bind]   (P2)
 | SRS-CLI-005 | `--version` 출력 `howtui <CARGO_PKG_VERSION>` | PRD-CLI-002 | `src/cli/mod.rs` |
 | SRS-CLI-006 | `--height` 우선순위: CLI > 설정 > 기본값 10 | PRD-CLI-006 | `src/cli/mod.rs` |
 | SRS-CLI-007 | `--mode` 우선순위: CLI > 설정 > `inline` (P3) | PRD-CLI-009 | `src/cli/mod.rs` |
+| SRS-CLI-008 | `--provider` 옵션, `auth set-key`(터미널은 화면 표시 없는 입력, 그 외는 표준 입력 첫 줄), `auth remove-key` (CR-011) | PRD-LLM-017, PRD-LLM-022 | `src/cli/mod.rs`, `src/cli/keys.rs` |
 
 ## 4. 데이터 모델
 
@@ -354,6 +358,37 @@ pub trait Provider: Send + Sync {
 | SRS-LLM-011 | P5 Provider 추가 시 trait 변경 없이 구현체 추가 (OpenAI, Gemini, Anthropic, OpenAI 호환) | PRD-LLM-013-017 | `src/llm/` |
 | SRS-LLM-012 | P6 로컬 서버: OpenAI 호환 채팅 API 공통 구현 + 서버 종류별 탐지(Ollama `/api/version`, llama-server `/health`), 기본 주소 설정 가능 | PRD-LLM-018-020 | `src/llm/local.rs` |
 | SRS-LLM-013 | Provider 설정 인터페이스 (CR-005): `settings()`는 에이전트 이름, 마스킹 계정, 모델 목록, 현재 모델, 로그아웃 가능 여부 반환. `select_model(id)`은 목록 확인 후 저장. 로그아웃은 `LoginService::logout`(세션 폐기 시도와 로컬 토큰 삭제, 등록 정보 유지) | PRD-UI-015, PRD-LLM-009 | `src/llm/types.rs`, `src/llm/chatgpt.rs`, `src/runtime.rs` |
+
+### 5.5 API Key Provider (P5, CR-011)
+
+| 항목 | OpenAI | Anthropic | Gemini | OpenAI 호환 |
+| --- | --- | --- | --- | --- |
+| 설정 이름 | `openai` | `anthropic` | `gemini` | `openai_compatible` |
+| 기본 주소 | `https://api.openai.com/v1` | `https://api.anthropic.com/v1` | `https://generativelanguage.googleapis.com/v1beta` | 필수 설정 `base_url` |
+| 추론 | `POST /responses` (`store: false`, `stream: false`) | `POST /messages` | `POST /models/{model}:generateContent` | `POST /chat/completions` (`stream: false`) |
+| 인증 헤더 | `Authorization: Bearer` | `x-api-key`, `anthropic-version: 2026-10-21` | `x-goog-api-key` | 키 있을 때만 `Authorization: Bearer` |
+| 지시문 위치 | `instructions` | `system` | `systemInstruction` | `messages[0]` (`role: system`) |
+| 구조화 출력 | `text.format` json_schema (strict) | `output_config.format` json_schema | `generationConfig.responseMimeType = application/json` | 미사용 (지시문 방식) |
+| 기본 모델 | `gpt-6-astra` | `claude-opus-5-5` | `gemini-3.8-flash` | 모델 목록 첫 항목 |
+| 추가 필드 | 없음 | `max_tokens: 4096`, `output_config.effort: low`, 거절 시 대체 모델(`fallbacks: "default"`, 베타 `server-side-fallback-2026-07-01`) | 없음 | 없음 |
+| 모델 목록 | `GET /models` `data[].id` (텍스트 생성 외 모델 제외) | `GET /models?limit=100` `data[].id`, `display_name` | `GET /models` `models[]` 중 `supportedGenerationMethods`에 `generateContent` 포함 | `GET /models` `data[].id` |
+| 응답 텍스트 | `output[].content[]` 중 `output_text` | `content[]` 중 `text` | `candidates[0].content.parts[].text` | `choices[0].message.content` |
+| 거절과 차단 | `refusal` 항목 | `stop_reason: refusal` | `promptFeedback.blockReason`, `finishReason: SAFETY` | `finish_reason: content_filter` |
+
+- 키 조회 순서: 설정 `api_key_env`가 가리키는 환경변수(기본 `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, 호환은 기본 없음) > OS 보안 저장소 항목(서비스 `howtui`, 계정 `api-key:<설정 이름>`). 둘 다 없으면 `LlmError::NoApiKey`(종료 코드 4, 안내 `howtui auth set-key <provider>`). OpenAI 호환은 키 없이 요청 허용.
+- 구조화 출력 거부(400 응답이 `text`, `output_config`, `response_format`, `schema` 관련 항목 지목) 시 같은 요청을 지시문 방식으로 1회 재요청하고 실행 중 기억.
+- 오류 매핑: 401 `AuthFailed`(키 거부), 403 `RegionOrPolicy`, 404 `ModelNotFound`, 429 `Transient`(OpenAI `insufficient_quota`와 Anthropic `billing_error`, 402는 `UsageLimit`), 400 `Unsupported`, 5xx와 529 `Transient`, 거절과 차단 `Refused`(종료 코드 7).
+- 제한 시간: 연결 10초, 전체 120초 (스트림 미사용, 첫 이벤트 제한 없음).
+- 모델 선택 순서: 설정 화면 선택(상태 파일 `models_by_provider.<이름>`) > 설정 파일 `provider.<이름>.model` > 기본 모델 > 모델 목록 첫 항목. 목록 조회 실패 시 설정값 또는 기본 모델로 요청.
+- 에이전트 전환: `SwitchProvider`가 Provider 목록과 현재 Provider를 보유하고 trait 호출을 현재 Provider로 위임. 전환 결과는 상태 파일 `selected_provider`에 저장. 사용 불가 항목(키 없음, 주소 없음) 선택 시 전환하지 않고 안내 표시. ChatGPT 미로그인 상태 선택 시 전환 후 로그인 화면.
+
+| ID | 설계 요구사항 | 관련 PRD | 구현 위치 |
+| --- | --- | --- | --- |
+| SRS-LLM-014 | 5.5절 Provider 4종 요청 규칙과 응답 추출 | PRD-LLM-013-016 | `src/llm/api.rs` |
+| SRS-LLM-015 | 5.5절 키 조회 순서, 키 값 비노출(Debug 출력 마스킹, 로그 미기록) | PRD-LLM-022, PRD-CFG-007 | `src/llm/keys.rs` |
+| SRS-LLM-016 | 5.5절 오류 매핑과 구조화 출력 거부 시 1회 재요청 | PRD-LLM-013-016, PRD-LLM-010 | `src/llm/api.rs` |
+| SRS-LLM-017 | Provider 선택 순서 CLI `--provider` > 상태 파일 `selected_provider` > 설정 `provider.default` > `chatgpt` | PRD-LLM-017 | `src/cli/provider.rs` |
+| SRS-LLM-018 | `SwitchProvider` 위임과 전환 저장, 설정 화면 에이전트 목록(`ProviderSettings.agents`)과 `select_agent` | PRD-LLM-021 | `src/llm/switch.rs`, `src/app/update.rs`, `src/ui/inline.rs` |
 
 ## 6. 터미널 세션과 Output Layer
 
@@ -736,10 +771,19 @@ inline_height = 10       # 3-40
 language = "auto"        # "auto", "en", "ko"
 
 [provider]
-default = "chatgpt"      # P1: "chatgpt"만 허용
+# default = "chatgpt"    # P5: chatgpt, openai, anthropic, gemini, openai_compatible (SRS-CFG-009)
 
 [provider.chatgpt]
 # model = "<모델 slug>"  # 선택. 미지정 시 계정 모델 목록 첫 항목
+
+[provider.openai]        # anthropic, gemini 동일 (P5)
+# model = "<모델 ID>"
+# api_key_env = "OPENAI_API_KEY"   # 환경변수 이름만. 키 값 필드(api_key 등)는 설정 오류(종료 코드 8)
+
+[provider.openai_compatible]
+# base_url = "http://localhost:8080/v1"
+# model = "<모델 ID>"
+# api_key_env = "<환경변수 이름>"
 ```
 
 | ID | 설계 요구사항 | 관련 PRD | 구현 위치 |
@@ -752,6 +796,7 @@ default = "chatgpt"      # P1: "chatgpt"만 허용
 | SRS-CFG-006 | 설정 스키마에 비밀값 필드 부재. P5 API 키는 OS 보안 저장소 또는 환경변수 이름 참조(`api_key_env = "OPENAI_API_KEY"`) | PRD-CFG-007 | `src/config/mod.rs` |
 | SRS-CFG-007 | `ui.mode = "fullscreen"` 허용 (P3) | PRD-CFG-004 | `src/config/mod.rs` |
 | SRS-CFG-008 | 데이터 디렉터리 생성 시 0700, 파일 0600 (Unix) | PRD-PRIV-006 | `src/platform/fs.rs` |
+| SRS-CFG-009 | P5 Provider 설정: `provider.default` 허용 값 `chatgpt`, `openai`, `anthropic`, `gemini`, `openai_compatible`. `provider.<이름>.model`, `provider.<이름>.api_key_env`, `provider.openai_compatible.base_url`(http 또는 https 주소 검증). 키 값 필드 없음 (CR-011) | PRD-LLM-017, PRD-CFG-007 | `src/config/mod.rs` |
 
 ## 13. 플랫폼별 빌드와 릴리스
 

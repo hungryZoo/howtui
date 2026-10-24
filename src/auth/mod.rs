@@ -169,6 +169,31 @@ impl AuthManager {
         store
     }
 
+    /// 기록된 저장소 (없으면 None, 새로 선택하지 않음)
+    pub fn store_if_recorded(&self) -> Option<CredentialStore> {
+        self.store(&self.load_state())
+    }
+
+    /// API 키 저장소 (SRS-LLM-015). 기록된 종류 우선, 없으면 `write` 시 새로 선택 후 기록,
+    /// 조회만 할 때는 선택 결과를 기록하지 않음.
+    pub fn secret_store(&self, write: bool) -> CredentialStore {
+        let mut s = self.load_state();
+        if let Some(store) = self.store(&s) {
+            return store;
+        }
+        if write {
+            let store = self.choose_store(&mut s);
+            self.save_state(&s);
+            return store;
+        }
+        let kind = if store::keyring_available() {
+            StoreKind::Keyring
+        } else {
+            StoreKind::File
+        };
+        CredentialStore::new(kind, &self.data_dir)
+    }
+
     pub fn registration(&self) -> Option<Registration> {
         self.load_state().registration
     }

@@ -118,11 +118,15 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-LLM-015 | ChatGPT 오류 매핑 | PRD-AUTH-017, SRS-LLM-008, SRS-ERR-002 | Mock HTTP 서버 응답 13종 (research 8.6절) | 요청 | 각 `LlmError` 분류 일치 | 통합 | 전체 | 통과 | - |
 | TC-LLM-016 | 구조화 출력 폴백 | SRS-LLM-005, PRD-LLM-010 | Mock: `unsupported_capability` param=text.format | 요청 | 지시문 방식 재요청, 상태 파일에 미지원 기록 | 통합 | 전체 | 통과 | - |
 | TC-LLM-017 | 실계정 추론 | PRD-LLM-001, PRD-LLM-009, SRS-LLM-005 | ChatGPT Plus 이상 계정 로그인 | 모델 목록 조회, Generate, Revise, Explain | 3작업 성공, `response.completed` 수신 | 실연동 | 전체 | 미실행 | - |
-| TC-LLM-018 | API Key Provider 4종 | PRD-LLM-013, PRD-LLM-014, PRD-LLM-015, PRD-LLM-016, SRS-LLM-011 | P5, Mock HTTP 서버 | Provider별 요청과 오류 | 요청 형식과 오류 매핑 일치 | 통합 | 전체 | 미실행 | - |
-| TC-LLM-019 | Provider 전환 | PRD-LLM-017, SRS-LLM-011 | P5 | 설정과 CLI 옵션으로 전환 | 선택 Provider로 요청 | 통합 | 전체 | 미실행 | - |
+| TC-LLM-018 | API Key Provider 4종 | PRD-LLM-013, PRD-LLM-014, PRD-LLM-015, PRD-LLM-016, SRS-LLM-011, SRS-LLM-014, SRS-LLM-016 | P5, Mock HTTP 서버 | Provider별 요청과 오류 | 요청 형식과 오류 매핑 일치 | 통합 | 전체 | 통과 | - |
+| TC-LLM-019 | Provider 전환 | PRD-LLM-017, SRS-LLM-011, SRS-LLM-017, SRS-CLI-008 | P5 | 설정과 CLI 옵션으로 전환 | 선택 Provider로 요청 | 통합 | 전체 | 통과 | - |
 | TC-LLM-020 | 로컬 서버 연동 | PRD-LLM-018, PRD-LLM-019, SRS-LLM-012 | P6, Ollama와 llama-server 실행 | 생성, 수정, 취소 | 두 서버 모두 성공, 취소 시 연결 종료 | 실연동 | Linux | 미실행 | - |
 | TC-LLM-021 | 로컬 모델 평가 | PRD-LLM-020, SRS-LLM-012 | P6, Gemma 4 E2B와 E4B | research/local-llm.md 평가 계획 실행 | 지표별 측정값 기록 (평가 전 성능 단정 없음) | 수동 | Linux, RPi | 미실행 | - |
 | TC-LLM-022 | 모델 선택 순서와 저장 | PRD-LLM-009, SRS-LLM-006, SRS-LLM-013 | Mock HTTP 서버, 숨김 모델 포함 목록 | 설정 조회, 숨김 모델 선택, 표시 모델 선택, 새 Provider로 준비 | 기본 `gpt-6-luna`, 숨김 모델 거부, 선택 저장과 다음 실행 유지, 설정 파일 값보다 우선 | 단위 | 전체 | 통과 | - |
+| TC-LLM-023 | API 키 조회와 비노출 | PRD-LLM-022, PRD-CFG-007, SRS-LLM-015, SRS-CFG-009 | 환경변수, 보안 저장소(파일 대체 저장소), 키 없음 | 조회, `auth status`, Debug 출력, 로그 | 조회 순서 일치, 키 없음 `NoApiKey`(종료 코드 4), 출력과 로그에 키 값 0건, 설정 파일 키 필드 거부 | 단위, 통합 | 전체 | 통과 | - |
+| TC-LLM-024 | 키 저장과 삭제 명령 | PRD-LLM-022, SRS-CLI-008 | 시험 데이터 디렉터리 | `auth set-key openai`(파이프 입력), `auth status`, `auth remove-key openai` | 저장 후 출처 `keyring` 표시, 삭제 후 `not set`, 출력에 키 값 없음 | 통합 | 전체 | 통과 | - |
+| TC-LLM-025 | 설정 화면 에이전트 전환 | PRD-LLM-021, SRS-LLM-018 | Mock Provider 2종 | 에이전트 목록 조회, 사용 불가 항목 선택, 사용 가능 항목 선택 | 사용 불가 항목은 안내만, 전환 후 다음 요청은 새 Provider, 선택 저장, 대화 이력 유지 | 단위, PTY | 전체 | 통과 | - |
+| TC-LLM-026 | 실계정 API Key 추론 | PRD-LLM-013-015 | 사용자 API 키 | Generate, Revise, Explain | 3작업 성공 | 실연동 | 전체 | 미실행 | - |
 
 ## 6. 인증
 
@@ -556,4 +560,18 @@ CI 실행 기록 (run 40073443763, 커밋 1c6ccf1, 15개 작업 전체 통과): 
 | `TC-INS-009` | 통과 | `tests/install/run_unix.sh`, CI installers | README 제거 절차: 제거 스크립트(로그아웃과 토큰 삭제, 쉘 통합 블록, 바이너리, 데이터 폴더, `--purge` 설정), 수동 절차의 하위 명령(`logout --forget`, `init --uninstall`)은 TC-AUTH-014, TC-SH-020 근거 |
 | `TC-AUTH-010` | 보류 | - | CR-010 |
 | `TC-NFR-005` | 미확인 | - | 실기기 없음 (E-08) |
+
+## 22. 실행 기록 (Phase 5 API Key Provider, CR-011, 2026-10-25)
+
+- 실행 환경: 로컬 Ubuntu 20.04 x86_64 (rustc 1.99.1), Mock HTTP 서버(wiremock). 실제 Provider 계정 요청은 미실행 (사용자 API 키 없음, TC-LLM-026)
+- 요청 형식 근거: OpenAI Structured Outputs 문서(Responses API `text.format`), Gemini `generateContent` API 문서, Anthropic Messages API 참고 자료(`anthropic-version: 2026-10-21`, `output_config`), 2026-10-25 확인
+
+| TC | 결과 | 실행 수단 | 근거 |
+| --- | --- | --- | --- |
+| `TC-LLM-018` | 통과 | 단위 `cargo test`, PTY `tests/pty_e2e.rs` | request_bodies_per_provider, extract_text_and_refusals, error_mapping (13건), openai_request_headers_and_answer, anthropic_headers_pagination_and_structured_fallback, gemini_path_and_model_names, compatible_without_key_and_missing_key_errors, timeout_and_cancel, api_agent_generate_and_switch_in_settings |
+| `TC-LLM-019` | 통과 | 통합 `tests/cli.rs`, 단위 | provider_option_and_config_select_the_agent (`--provider`, `provider.default`, CLI 우선), agent_choice_order |
+| `TC-LLM-023` | 통과 | 단위, 통합 `tests/cli.rs` | env_then_store_then_missing (Debug 출력 키 없음), missing_key_exits_4_with_hint_and_config_secret_is_rejected, api_provider_schema_and_secret_rejection, trace 수준 로그 키 값 0건(provider_option_and_config_select_the_agent), file_secrets_round_trip_and_cleanup (0600) |
+| `TC-LLM-024` | 통과 | 통합 `tests/cli.rs`, 로컬 tmux PTY | set_key_status_and_remove_key_hide_the_value (파이프 입력, 출력에 키 없음, chatgpt 대상 거부, 빈 입력 거부). tmux: 입력과 bracketed paste 내용 화면 미표시, Backspace 반영, 저장 성공 |
+| `TC-LLM-025` | 통과 | 단위 `cargo test`, PTY `tests/pty_e2e.rs` | settings_agent_switch_flow, settings_agent_problem_and_login, settings_view_lists_agents_before_models, switch_delegates_saves_and_blocks_unready, api_agent_generate_and_switch_in_settings (Ctrl+O, 키 없는 Anthropic 거부 안내, OpenAI 호환 전환 후 후속 요청에 이력 포함, `selected_provider` 저장) |
+| `TC-LLM-026` | 미실행 | - | 사용자 API 키 필요 |
 

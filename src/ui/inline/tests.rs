@@ -269,6 +269,7 @@ fn settings_view_lists_models_and_click_targets() {
         ],
         current: Some("model-a".into()),
         can_sign_out: true,
+        ..Default::default()
     };
     update(&mut s, Action::SettingsLoaded(Ok(data)));
     let (lines, hits) = screen_hits(&s, 80, 10);
@@ -358,4 +359,55 @@ fn update_notice_and_view() {
         lines[2].contains("cargo install --git https://github.com/hungryZoo/howtui --locked"),
         "{lines:?}"
     );
+}
+
+/// CR-011: 에이전트 구역(사용 가능 상태와 출처), 모델 구역, 현재 에이전트 조회 실패 안내.
+#[test]
+fn settings_view_lists_agents_before_models() {
+    use crate::llm::types::{AgentChoice, LlmError, ModelChoice, ProviderSettings};
+    let mut s = state(Lang::En);
+    update(&mut s, Action::Key(KeyAction::Settings));
+    let agent = |id: &str, name: &str, ready: bool, detail: &str| AgentChoice {
+        id: id.into(),
+        name: name.into(),
+        ready,
+        detail: detail.into(),
+    };
+    let data = ProviderSettings {
+        agent: "OpenAI".into(),
+        models: vec![ModelChoice {
+            id: "gpt-6-astra".into(),
+            name: "gpt-6-astra".into(),
+        }],
+        current: Some("gpt-6-astra".into()),
+        agents: vec![
+            agent("chatgpt", "ChatGPT", true, "sign-in needed"),
+            agent("openai", "OpenAI", true, "key from OPENAI_API_KEY"),
+            agent(
+                "gemini",
+                "Gemini",
+                false,
+                "no key: howtui auth set-key gemini",
+            ),
+        ],
+        current_agent: Some("openai".into()),
+        problem: Some(LlmError::Transient { status: Some(503) }),
+        ..Default::default()
+    };
+    update(&mut s, Action::SettingsLoaded(Ok(data)));
+    let lines = screen(&s, 80, 10);
+    assert!(
+        lines[1].starts_with("Agent  ( ) ChatGPT  sign-in needed"),
+        "{lines:?}"
+    );
+    assert!(
+        lines[2].starts_with("       (*) OpenAI  key from OPENAI_API_KEY"),
+        "{lines:?}"
+    );
+    assert!(
+        lines[3].contains("( ) Gemini  no key: howtui auth set-key gemini"),
+        "{lines:?}"
+    );
+    assert!(lines[4].starts_with("Model  (*) gpt-6-astra"), "{lines:?}");
+    assert!(lines[9].contains("temporarily unavailable"), "{lines:?}");
 }

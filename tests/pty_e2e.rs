@@ -330,3 +330,99 @@ fn now() -> u64 {
         .unwrap()
         .as_secs()
 }
+
+/// API Key Provider TUI 경로와 설정 화면 에이전트 전환 (TC-LLM-018, TC-LLM-025): OpenAI로 생성, Ctrl+O 목록,
+/// 키 없는 Anthropic 전환 거부 안내, 키 있는 OpenAI 호환 전환 후 다음 요청은 새 주소, 선택 저장.
+#[tokio::test(flavor = "multi_thread")]
+async fn api_agent_generate_and_switch_in_settings() {
+    let openai = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v1/models"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(json!({"data":[{"id":"gpt-6-astra"}]})),
+        )
+        .mount(&openai)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/v1/responses"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"{\"command\":\"ls -al\",\"explanation\":\"Lists files from OpenAI.\",\"notes\":[]}"}]}]})))
+        .mount(&openai)
+        .await;
+    let local = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v1/models"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(json!({"data":[{"id":"local-model"}]})),
+        )
+        .mount(&local)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/v1/chat/completions"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"choices":[{"finish_reason":"stop","message":{"content":"{\"command\":\"ls -al | sort\",\"explanation\":\"Sorted by the local server.\",\"notes\":[]}"}}]})))
+        .mount(&local)
+        .await;
+    let dir = tempfile::tempdir().unwrap();
+    let data = dir.path().join("data");
+    let config = dir.path().join("config.toml");
+    std::fs::write(
+        &config,
+        format!("[provider]\ndefault = \"openai\"\n[provider.openai_compatible]\nbase_url = \"{}/v1\"\n", local.uri()),
+    )
+    .unwrap();
+    let envs = vec![
+        ("HOWTUI_DATA_DIR", data.display().to_string()),
+        ("HOWTUI_CONFIG", config.display().to_string()),
+        ("HOWTUI_TEST_OPENAI_BASE", format!("{}/v1", openai.uri())),
+        ("OPENAI_API_KEY", "sk-pty".to_string()),
+        ("HOME", dir.path().display().to_string()),
+    ];
+    let mut s = tokio::task::spawn_blocking(move || Session::start(&[], &envs))
+        .await
+        .unwrap();
+    let wait = |s: &Session, needle: &str| {
+        assert!(
+            s.wait_for(needle, Duration::from_secs(10)),
+            "{needle}: {}",
+            s.text()
+        );
+    };
+    wait(&s, "[gpt-6-astra]");
+    s.send(b"list files\r");
+    wait(&s, "Lists files from OpenAI.");
+
+    // 설정 화면: 에이전트 구역 (ChatGPT, OpenAI, Anthropic, Gemini, OpenAI compatible)
+    s.send(b"\x0f");
+    wait(&s, "(*) OpenAI");
+    wait(&s, "no key: howtui auth set-key anthropic");
+    // 커서는 현재 모델(목록 6번째 항목)에서 시작. Home으로 처음, ↓2로 Anthropic
+    s.send(b"\x1b[H");
+    s.send(b"\x1b[B\x1b[B\r");
+    wait(&s, "No API key for anthropic");
+    // ↓2로 OpenAI compatible 선택
+    s.send(b"\x1b[B\x1b[B\r");
+    wait(&s, "Agent: OpenAI compatible (saved for next time)");
+    s.send(b"sort it\r");
+    wait(&s, "ls -al | sort");
+    s.send(b"\x1b");
+    s.send(b"\x1b");
+    assert_eq!(s.wait_exit(Duration::from_secs(5)), Some(130));
+    let state: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(data.join("state.json")).unwrap()).unwrap();
+    assert_eq!(state["selected_provider"], "openai_compatible");
+    // 후속 요청은 이전 대화 이력 포함 (전환 후 이력 유지)
+    let reqs = local.received_requests().await.unwrap();
+    let body = reqs
+        .iter()
+        .find(|r| r.url.path() == "/v1/chat/completions")
+        .unwrap();
+    let raw = String::from_utf8_lossy(&body.body);
+    assert!(
+        raw.contains("list files") && raw.contains("Lists files from OpenAI."),
+        "{raw}"
+    );
+    assert!(!raw.contains("sk-pty"));
+    assert!(
+        reqs.iter()
+            .all(|r| !r.headers.contains_key("authorization"))
+    );
+}

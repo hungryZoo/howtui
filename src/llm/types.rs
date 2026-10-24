@@ -131,15 +131,34 @@ pub enum LlmError {
     Timeout,
     #[error("cancelled")]
     Cancelled,
+    /// API Key Provider 키 없음 (P5, SRS 5.5절)
+    #[error("no API key for {provider}")]
+    NoApiKey {
+        provider: String,
+        env: Option<String>,
+    },
+    /// API 키 거부 (401, 잘못된 키)
+    #[error("API key rejected by {provider}")]
+    KeyRejected { provider: String },
+    /// 계정 사용량, 결제 한도 (API Key Provider)
+    #[error("quota or billing limit reached")]
+    QuotaExceeded,
+    /// 모델 또는 안전 정책의 응답 거절
+    #[error("request declined by the model")]
+    Refused,
 }
 
 impl LlmError {
     /// 비대화형 모드 종료 코드 (SRS 8.2절).
     pub fn exit_code(&self) -> u8 {
         match self {
-            LlmError::AuthRequired | LlmError::AuthFailed { .. } => 4,
+            LlmError::AuthRequired
+            | LlmError::AuthFailed { .. }
+            | LlmError::NoApiKey { .. }
+            | LlmError::KeyRejected { .. } => 4,
             LlmError::NotEligible
             | LlmError::UsageLimit
+            | LlmError::QuotaExceeded
             | LlmError::ClientNotEnabled
             | LlmError::PlanNotGranted => 5,
             LlmError::Transient { .. } | LlmError::Network { .. } | LlmError::Timeout => 6,
@@ -163,8 +182,20 @@ pub struct ModelChoice {
     pub name: String,
 }
 
-/// 설정 화면 내용: 현재 에이전트(Provider)와 선택 가능한 모델.
+/// 설정 화면 에이전트 항목 (P5, CR-011).
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AgentChoice {
+    /// 설정 이름 (`chatgpt`, `openai`, ...)
+    pub id: String,
+    pub name: String,
+    /// 사용 가능 여부 (로그인 또는 키, 주소 설정). ChatGPT는 미로그인도 선택 가능
+    pub ready: bool,
+    /// 상태 설명 (키 출처, 로그인 필요 등)
+    pub detail: String,
+}
+
+/// 설정 화면 내용: 현재 에이전트(Provider)와 선택 가능한 모델.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ProviderSettings {
     pub agent: String,
     /// 마스킹된 계정 표시
@@ -172,6 +203,11 @@ pub struct ProviderSettings {
     pub models: Vec<ModelChoice>,
     pub current: Option<String>,
     pub can_sign_out: bool,
+    /// 전환 가능한 에이전트 목록과 현재 에이전트 설정 이름 (CR-011)
+    pub agents: Vec<AgentChoice>,
+    pub current_agent: Option<String>,
+    /// 현재 에이전트 조회 실패 (목록은 표시하고 오류 줄에 안내)
+    pub problem: Option<LlmError>,
 }
 
 pub type LlmFuture<'a> = Pin<Box<dyn Future<Output = Result<LlmResponse, LlmError>> + Send + 'a>>;
@@ -193,4 +229,8 @@ pub trait Provider: Send + Sync {
     fn settings(&self) -> SettingsFuture<'_>;
     /// 모델 변경 후 저장 (다음 실행에도 유지).
     fn select_model(&self, id: String) -> PrepareFuture<'_>;
+    /// 에이전트 전환 후 저장 (CR-011). 단일 Provider는 미지원
+    fn select_agent(&self, id: String) -> PrepareFuture<'_> {
+        Box::pin(async move { Err(LlmError::Unsupported { param: Some(id) }) })
+    }
 }

@@ -202,7 +202,18 @@ pub fn collect(
                 json!({}),
             ));
         }
+        Some(auth)
+            if crate::cli::current_agent(loaded, auth) != crate::config::ProviderKind::Chatgpt =>
+        {
+            api_checks(loaded, rt, auth, &mut checks);
+        }
         Some(auth) => {
+            checks.push(check(
+                "agent",
+                CheckStatus::Info,
+                "ChatGPT",
+                json!({"agent": "chatgpt"}),
+            ));
             let st = auth.status();
             let store = st.store.map(|s| s.name());
             if !st.signed_in {
@@ -400,6 +411,91 @@ fn os_release() -> Option<String> {
     #[cfg(not(target_os = "linux"))]
     {
         None
+    }
+}
+
+/// ChatGPT 외 에이전트: 키 출처와 모델 목록 조회 (P5). 키 값은 출력하지 않음
+fn api_checks(
+    loaded: &Loaded,
+    rt: &tokio::runtime::Runtime,
+    auth: &std::sync::Arc<AuthManager>,
+    checks: &mut Vec<Check>,
+) {
+    use crate::config::ProviderKind;
+    use crate::llm::keys::{self, KeySource};
+    let kind = crate::cli::current_agent(loaded, auth);
+    let cfg = loaded
+        .config
+        .provider
+        .api(kind)
+        .cloned()
+        .unwrap_or_default();
+    let resolved = keys::resolve(kind, &cfg, &process_env, Some(auth));
+    let source = match &resolved.source {
+        KeySource::Env(env) => format!("env {env}"),
+        KeySource::Store => "set-key".into(),
+        KeySource::Missing => "none".into(),
+    };
+    let needs_key = kind != ProviderKind::OpenaiCompatible;
+    let missing = needs_key && resolved.key.is_none();
+    checks.push(check(
+        "agent",
+        if missing {
+            CheckStatus::Fail
+        } else {
+            CheckStatus::Pass
+        },
+        format!("{}; API key: {source}", kind.display()),
+        json!({"agent": kind.id(), "key_source": source, "base_url": cfg.base_url}),
+    ));
+    if missing || (kind == ProviderKind::OpenaiCompatible && cfg.base_url.is_none()) {
+        checks.push(check(
+            "provider",
+            CheckStatus::Skip,
+            "agent not configured",
+            json!({}),
+        ));
+        return;
+    }
+    let provider = crate::llm::api::ApiProvider::new(
+        kind,
+        crate::llm::http::client(),
+        &cfg,
+        resolved.key,
+        Some(auth.clone()),
+    );
+    match rt.block_on(provider.list_models()) {
+        Ok(models) => {
+            let chosen = crate::llm::api::choose_model(
+                &models,
+                auth.load_state()
+                    .models_by_provider
+                    .get(kind.id())
+                    .map(String::as_str),
+                cfg.model.as_deref(),
+                crate::llm::api::default_model(kind),
+            );
+            checks.push(check(
+                "provider",
+                if chosen.is_some() {
+                    CheckStatus::Pass
+                } else {
+                    CheckStatus::Fail
+                },
+                format!(
+                    "{} model(s), using {}",
+                    models.len(),
+                    chosen.as_deref().unwrap_or("-")
+                ),
+                json!({"models": models.len(), "selected": chosen}),
+            ));
+        }
+        Err(e) => checks.push(check(
+            "provider",
+            CheckStatus::Fail,
+            e.to_string(),
+            json!({}),
+        )),
     }
 }
 

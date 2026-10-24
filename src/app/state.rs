@@ -149,9 +149,11 @@ pub enum Hit {
     CloseSettings,
 }
 
-/// 설정 화면 항목: 모델 목록 다음에 로그아웃.
+/// 설정 화면 항목: 에이전트 목록, 모델 목록, 폴더, 업데이트, 로그아웃 순서.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SettingsEntry {
+    /// 에이전트 전환 (CR-011)
+    Agent(usize),
     Model(usize),
     Folder,
     Update,
@@ -166,6 +168,8 @@ pub struct SettingsView {
     /// 모델 변경 또는 로그아웃 진행 중
     pub applying: bool,
     pub error: Option<Status>,
+    /// 전환 요청 중인 에이전트 표시 이름 (CR-011)
+    pub pending_agent: Option<String>,
 }
 
 impl SettingsView {
@@ -173,7 +177,8 @@ impl SettingsView {
         let Some(d) = &self.data else {
             return Vec::new();
         };
-        let mut v: Vec<SettingsEntry> = (0..d.models.len()).map(SettingsEntry::Model).collect();
+        let mut v: Vec<SettingsEntry> = (0..d.agents.len()).map(SettingsEntry::Agent).collect();
+        v.extend((0..d.models.len()).map(SettingsEntry::Model));
         v.push(SettingsEntry::Folder);
         v.push(SettingsEntry::Update);
         if d.can_sign_out {
@@ -226,6 +231,8 @@ pub enum Action {
     Scroll(i8),
     SettingsLoaded(Result<ProviderSettings, LlmError>),
     ModelSelected(Result<ProviderLabel, LlmError>),
+    /// 에이전트 전환 결과 (CR-011)
+    AgentSelected(Result<ProviderLabel, LlmError>),
     SignedOut,
     UpdateChecked(UpdateView),
 }
@@ -247,6 +254,10 @@ pub enum Effect {
     SubmitRedirect(String),
     LoadSettings,
     SelectModel(String),
+    /// 에이전트 전환 (CR-011)
+    SelectAgent(String),
+    /// Provider 준비 작업 재실행 (전환 후 모델 확인, 로그인 상태 판정)
+    Prepare,
     /// 폴더 목록 전송 설정 저장
     SaveFolder(bool),
     /// 즉시 업데이트 확인 (업데이트 화면)

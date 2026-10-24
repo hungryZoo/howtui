@@ -225,7 +225,9 @@ fn render_settings(
     }
 
     let model_label = tr_in(lang, Msg::SettingsModel);
-    let lw = display_width(model_label) + 2;
+    let agent_label = tr_in(lang, Msg::SettingsAgent);
+    let lw = display_width(model_label).max(display_width(agent_label)) + 2;
+    let pad = |label: &str| format!("{label}{}", " ".repeat(lw - display_width(label)));
     let list_rows = (area.height.saturating_sub(2) as usize).max(1);
     let entries = view.entries();
     let start = (view.cursor + 1).saturating_sub(list_rows);
@@ -237,12 +239,23 @@ fn render_settings(
             .take(list_rows)
             .enumerate()
         {
-            let prefix = if i == 0 {
-                format!("{model_label}  ")
-            } else {
-                " ".repeat(lw)
+            // 구역 첫 항목에 구역 이름 (에이전트, 모델)
+            let prefix = match entry {
+                SettingsEntry::Agent(0) => pad(agent_label),
+                SettingsEntry::Model(0) => pad(model_label),
+                _ => " ".repeat(lw),
             };
             let (text, base) = match entry {
+                SettingsEntry::Agent(a) => {
+                    let agent = &d.agents[*a];
+                    let mark = if d.current_agent.as_deref() == Some(agent.id.as_str()) {
+                        "(*)"
+                    } else {
+                        "( )"
+                    };
+                    let style = if agent.ready { Style::default() } else { dim() };
+                    (format!("{mark} {}  {}", agent.name, agent.detail), style)
+                }
                 SettingsEntry::Model(m) => {
                     let model = &d.models[*m];
                     let mark = if d.current.as_deref() == Some(model.id.as_str()) {

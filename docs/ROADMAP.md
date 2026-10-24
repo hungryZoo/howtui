@@ -14,7 +14,7 @@
 | 2 | 선택적 쉘 통합 | 3개 쉘에서 자동 실행 없이 입력란 안전 전달. P2 필수 TC 통과 | 완료 (2026-10-23, Windows 사용자 확인) |
 | 3 | Fullscreen TUI | 두 모드 동일 기능, 설정 선택 가능. P3 필수 TC 통과 | 보류: 구현과 시험 완료(`fullscreen` 브랜치), 출시 보류 (E-09) |
 | 4 | 배포와 1.x 안정화 | 지원 플랫폼에서 문서화된 절차로 설치, 진단, 업데이트 가능 | 완료 (2026-10-25). 실기기 미확인 (E-08), 자격증명 이전 보류 (CR-010) |
-| 5 | API Key Provider | 복수 Provider를 동일 UI와 로직으로 사용 | 대기 |
+| 5 | API Key Provider | 복수 Provider를 동일 UI와 로직으로 사용 | 구현과 Mock 시험 완료 (2026-10-25, TC 22절). 실계정 추론 미확인 (TC-LLM-026) |
 | 6 | 로컬 LLM | 실행 중 로컬 서버로 생성과 수정 가능 | 대기 |
 | 2.0 이후 | 내장 llama.cpp, 모델 관리, 자동 모델 선택, 하드웨어 최적화 | 별도 장기 과제 | 범위 외 |
 
@@ -120,6 +120,17 @@ Phase 1 이월 항목 (요구사항 변경 없이 다음 작업으로 이월):
 - 보관 위치: `fullscreen` 브랜치. main에는 미포함 (`--mode fullscreen`은 기존 미지원 안내 후 Inline 실행)
 - 사유: 사용자 결정 E-09 (기존 기능 안정 확인, Fullscreen 출시 연기)
 - 재개 절차: `fullscreen` 브랜치를 main 기준으로 재정렬 후 병합, TC-CLI-008과 TC-FS-001-005 재실행
+
+### 3.5 Phase 5 진행 상태 (2026-10-25)
+
+| 작업 | 상태 | 비고 |
+| --- | --- | --- |
+| 명세 (CR-011, SRS 5.5절) | 완료 | 에이전트 전환, 키 관리 명령, `--provider` |
+| Provider 4종 (`src/llm/api.rs`) | 완료 | OpenAI Responses, Anthropic Messages, Gemini generateContent, OpenAI 호환 chat/completions |
+| 키 조회와 저장 (`src/llm/keys.rs`, `auth set-key`, `auth remove-key`) | 완료 | 환경변수 > 보안 저장소, 설정 파일 키 필드 거부, 민감 헤더 |
+| 에이전트 전환 (`src/llm/switch.rs`, 설정 화면) | 완료 | 선택 저장, 사용 불가 항목 안내, 대화 이력 유지 |
+| doctor, `auth status` | 완료 | 선택 에이전트 기준 점검, 키 출처 표시 |
+| 실계정 추론 (TC-LLM-026) | 미실행 | 사용자 API 키 필요 |
 
 ## 4. Phase 2-6 작업 개요
 
