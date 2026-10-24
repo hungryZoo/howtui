@@ -41,7 +41,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-CLI-005 | 높이 옵션 | PRD-CLI-006, SRS-TERM-007, SRS-CLI-006 | 터미널 100x30 | `howtui --height 5` | Inline 영역 5줄 | PTY | Unix | 통과 | - |
 | TC-CLI-006 | 쉘 지정 옵션과 기본값 | PRD-CLI-007, SRS-SH-007 | 쉘 판정 환경변수 제거 | (a) `--shell zsh` 지정 (b) 미지정 | (a) 요청 컨텍스트 shell=Zsh (b) OS 기본 조합 값 | 단위 | 전체 | 통과 | - |
 | TC-CLI-007 | init 출력 | PRD-CLI-008, SRS-SH-001 | 없음 | `howtui init bash`, `init zsh`, `init powershell` | 각 쉘 스크립트 stdout 출력, 종료 코드 0, 알 수 없는 쉘은 종료 코드 2 | 통합 | 전체 | 통과 | - |
-| TC-CLI-008 | 모드 옵션 | PRD-CLI-009, PRD-FS-005, SRS-TUI-007, SRS-CLI-007 | P3 구현 | `howtui --mode fullscreen` | Alternate Screen 진입 | PTY | Unix | 미실행 | - |
+| TC-CLI-008 | 모드 옵션 | PRD-CLI-009, PRD-FS-005, SRS-TUI-007, SRS-CLI-007 | P3 구현 | `howtui --mode fullscreen` | Alternate Screen 진입 | PTY | Unix | 통과 | - |
 | TC-CLI-009 | 종료 코드 매핑 | PRD-CLI-010, SRS-ERR-001 | 없음 | 오류 분류별 매핑 함수 호출 | 8.1절 표와 일치 | 단위 | 전체 | 통과 | - |
 | TC-CLI-010 | 사용법 오류 | PRD-CLI-010, SRS-CLI-003 | 없음 | `howtui --unknown-flag` | 종료 코드 2, stdout 0바이트 | 통합 | 전체 | 통과 | - |
 
@@ -50,7 +50,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | ID | 목적 | 관련 ID | 사전 조건 | 절차 및 입력 | 기대 결과 | 유형 | 플랫폼 | 결과 | 이슈 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | TC-UI-001 | 기존 출력 유지 | PRD-UI-001, SRS-ARC-003 | PTY에 기존 출력 20줄 | howtui 실행 후 취소 | 기존 20줄 화면 유지, Alternate Screen 시퀀스(`?1049h`) 미출력 | PTY | Unix | 통과 | - |
-| TC-UI-002 | 높이 제한 | PRD-UI-002, SRS-TERM-007 | 터미널 높이 6 | 기본 설정 실행 | 뷰포트 6줄로 축소 | PTY | Unix | 미실행 | - |
+| TC-UI-002 | 높이 제한 | PRD-UI-002, SRS-TERM-007 | 터미널 높이 6 | 기본 설정 실행 | 뷰포트 6줄로 축소 | PTY | Unix | 통과 | - |
 | TC-UI-003 | 화면 영역 렌더링 | PRD-UI-003, PRD-UI-004, PRD-UI-005, PRD-UI-006, SRS-TUI-003, SRS-TUI-004 | 고정 State | TestBackend 80x10 렌더링 | 질문, 명령어, 설명, 상태줄 스냅샷 일치 | 스냅샷 | 전체 | 통과 | - |
 | TC-UI-004 | 레이아웃 우선순위 | PRD-UI-002, SRS-TUI-003 | 명령어 8줄, 설명 5줄, 높이 6 | TestBackend 렌더링 | 상태줄 1, 질문 1, 명령어 4(스크롤 표시), 설명 0 | 스냅샷 | 전체 | 통과 | - |
 | TC-UI-005 | 진행 표시 | PRD-UI-007, SRS-ASYNC-005 | Mock 지연 2초 | 질문 제출 | 상태줄 진행 표시와 "Esc 취소", 응답 후 진행 표시 제거 | PTY | Unix | 통과 | - |
@@ -111,7 +111,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-LLM-008 | 모델 선택 | PRD-LLM-009, SRS-LLM-005, SRS-LLM-006 | 모델 목록 픽스처(list 2개, hidden 1개) | (a) 설정 없음 (b) 설정 모델 지정 (c) 목록에 없는 설정 | (a) 첫 list 모델 (b) 설정 모델 (c) 첫 list 모델 (PRD-LLM-009 기준, doctor provider 항목에 선택 모델 표시) | 단위 | 전체 | 통과 | - |
 | TC-LLM-009 | 응답 파싱 폴백 | PRD-LLM-010, SRS-LLM-003 | 픽스처 4종(JSON, 코드 블록 JSON, 일반 코드 블록, 형식 없음) | 파싱 | 1-3 성공, 4 InvalidResponse | 단위 | 전체 | 통과 | - |
 | TC-LLM-010 | 형식 오류 재시도 | PRD-LLM-010, SRS-LLM-003 | Mock: 첫 응답 형식 오류, 두 번째 정상 | 질문 제출 | 요청 2회, 결과 반영 | 단위 | 전체 | 통과 | - |
-| TC-LLM-011 | 제한 시간 | PRD-LLM-011, SRS-LLM-007 | Mock HTTP 서버: 첫 이벤트 지연 | 요청 | Timeout 분류, TUI 유지 | 통합 | 전체 | 미실행 | - |
+| TC-LLM-011 | 제한 시간 | PRD-LLM-011, SRS-LLM-007 | Mock HTTP 서버: 첫 이벤트 지연 | 요청 | Timeout 분류, TUI 유지 | 통합 | 전체 | 통과 | - |
 | TC-LLM-012 | Mock Provider 기능 | PRD-LLM-012, SRS-LLM-009, SRS-MOD-003 | `mock-provider` 기능 빌드 | 지연, 오류, 스트림 중단 시나리오 | 시나리오대로 동작, 기본 빌드에는 `mock` 문자열 경로 부재 | 통합 | 전체 | 통과 | - |
 | TC-LLM-013 | SSE 파서 | PRD-LLM-001, SRS-LLM-004 | 이벤트 픽스처(주석, 여러 줄 data, 분할 수신) | 파싱 | 이벤트 순서와 내용 일치 | 단위 | 전체 | 통과 | - |
 | TC-LLM-014 | ChatGPT 요청 본문 | PRD-LLM-009, SRS-LLM-005, SRS-MOD-005 | 로컬 Mock HTTP 서버 | 요청 캡처 | `store:false`, `stream:true`, 미지원 필드 부재, Bearer 헤더 | 통합 | 전체 | 통과 | - |
@@ -146,7 +146,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-AUTH-013 | 갱신 직렬화 | PRD-AUTH-009, SRS-AUTH-008 | Mock 토큰 서버, 프로세스 2개 동시 실행 | 동시 갱신 | 토큰 서버 갱신 요청 1회, 두 프로세스 같은 새 토큰 사용 | 통합 | 전체 | 통과 | - |
 | TC-AUTH-014 | 로그아웃 | PRD-AUTH-010, SRS-AUTH-009 | Mock revoke 서버 (200, 5xx) | `howtui logout` | 200: 토큰 삭제, 5xx: 재시도 후 삭제와 미확인 고지, client 매핑과 host ID 유지 | 통합 | 전체 | 통과 | - |
 | TC-AUTH-015 | 상태 출력 마스킹 | PRD-AUTH-011, SRS-AUTH-010, SRS-AUTH-012 | 로그인 상태 | `howtui auth status` | 마스킹 이메일, 만료 시각, 토큰 문자열 부재 | 통합 | 전체 | 통과 | - |
-| TC-AUTH-016 | TUI 내 로그인 | PRD-AUTH-013, SRS-TUI-009 | 자격증명 없음, Mock 인증 서버 | Enter, 콜백 수신 | 로그인 진행 표시 후 입력 대기 상태 | PTY | Unix | 미실행 | - |
+| TC-AUTH-016 | TUI 내 로그인 | PRD-AUTH-013, SRS-TUI-009 | 자격증명 없음, Mock 인증 서버 | Enter, 콜백 수신 | 로그인 진행 표시 후 입력 대기 상태 | PTY | Unix | 통과 | - |
 | TC-AUTH-017 | 브랜딩 문구 | PRD-AUTH-014, SRS-TUI-010 | 최초 로그인 | 로그인 완료 후 재실행 | 최초 1회 안내, 이후 미표시, 상태줄 플랜 표시 | 스냅샷 | 전체 | 통과 | - |
 | TC-AUTH-018 | 개인정보 고지 | PRD-AUTH-015, PRD-PRIV-003, SRS-AUTH-013 | 자격증명 없음 | `howtui login` 시작 | 수신 정보, 저장 위치, 전송 범위 고지 표시 | 통합 | 전체 | 통과 | - |
 | TC-AUTH-019 | 비공식 경로 부재 | PRD-AUTH-016, SRS-AUTH-014 | 소스 트리 | CI grep: `.codex`, `backend-api`, 쿠키 저장소 경로 | 검색 결과 0건 | 단위 | 전체 | 통과 | - |
@@ -167,7 +167,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-OUT-007 | stdin 파이프 | PRD-OUT-006 | PTY | `echo x \| howtui` | TUI 정상 동작, 확정 출력 정상 | PTY | Unix | 통과 | - |
 | TC-OUT-008 | 렌더링 대상 분리 | PRD-OUT-002, SRS-TERM-001 | PTY, stderr 파일 리디렉션 | `howtui 2> e \| cat > o` | e 0바이트(TUI 미출력), o 명령어만 | PTY | Unix | 통과 | - |
 | TC-OUT-009 | Windows 리디렉션 | PRD-OUT-001, PRD-OUT-006, SRS-TERM-003 | Windows Terminal | `howtui > out.txt`, `$x = howtui` | out.txt 명령어 UTF-8 + LF, TUI 정상 표시 | 수동 | Windows | 통과 | - |
-| TC-OUT-010 | 출력 파일 대상 | PRD-OUT-009, SRS-OUT-005 | P2 | `--output-file` 지정 확정과 취소 | 확정: 파일에 명령어(UTF-8, LF 미추가), 취소: 파일 미생성 | 통합 | 전체 | 미실행 | - |
+| TC-OUT-010 | 출력 파일 대상 | PRD-OUT-009, SRS-OUT-005 | P2 | 위젯 모드(`--widget`, `HOWTUI_OUTPUT_FILE` 지정) 확정과 취소 | 확정: 파일에 명령어(UTF-8, LF 미추가), 취소: 파일 미생성 | 통합 | 전체 | 통과 | - |
 | TC-OUT-011 | 로그 비출력 | PRD-OUT-010, SRS-OUT-004, PRD-PRIV-005 | `HOWTUI_LOG=debug` | 확정 실행 | stdout과 stderr에 로그 없음, 로그 파일에 토큰과 질문 본문 없음 | 통합 | 전체 | 통과 | - |
 | TC-OUT-012 | Windows stdout 리디렉션 자동 검증 | PRD-OUT-001, PRD-OUT-006, SRS-TERM-003 | ConPTY, `cmd /c howtui > out` 와 `> out 2> err` | `tests/conpty.rs` 2개 경로 실행 후 확정 | out에 명령어 UTF-8 + LF만, ESC 0건, err 0바이트 (TUI는 stderr 콘솔 또는 CONOUT$) | PTY | Windows | 통과 | - |
 
@@ -185,7 +185,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-SH-008 | 등록과 제거 안내 | PRD-SH-009, SRS-SH-010 | 없음 | init 출력 확인 | 등록 줄과 제거 방법 주석 포함 | 단위 | 전체 | 통과 | - |
 | TC-SH-009 | 설치 시 rc 무변경 | PRD-SH-010, PRD-INS-001, SRS-INS-005 | 임시 HOME | install.sh 실행 (터미널 없음, 질문에 n, `--no-shell-integration`) | `.bashrc`, `.zshrc`, `.profile` 내용 불변, 터미널 없음은 등록 명령 안내 | 통합 | Unix | 통과 | - |
 | TC-SH-010 | 통합 표식 | PRD-SH-011, PRD-DOC-006, SRS-SH-008, SRS-DOC-005 | init 등록 쉘 | `howtui doctor` | integration 항목에 쉘 종류 표시 | PTY | Unix | 통과 | - |
-| TC-SH-011 | 지원 상태 표기 | PRD-SH-012, SRS-TEST-004, SRS-SH-012 | Phase 2 테스트 완료 | 문서 확인 | 쉘별 검증 버전과 결과 기재 | 수동 | 전체 | 미실행 | - |
+| TC-SH-011 | 지원 상태 표기 | PRD-SH-012, SRS-TEST-004, SRS-SH-012 | Phase 2 테스트 완료 | 문서 확인 | 쉘별 검증 버전과 결과 기재 | 수동 | 전체 | 통과 | - |
 | TC-SH-012 | 위젯 출력 경로 | PRD-OUT-009, SRS-SH-005 | 위젯 모드 (3개 쉘 공통 출력 파일) | 단축키 후 확정, `HOWTUI_OUTPUT_FILE` 없이 `--widget` 실행 | 출력 파일로만 전달(화면에 명령어 출력 없음), 출력 파일 미지정 시 종료 코드 2 | 통합 | 전체 | 통과 | - |
 | TC-SH-013 | PowerShell 한글 인코딩 | PRD-SH-003, SRS-SH-004 | 한국어 Windows, PowerShell 5.1, 코드 페이지 949 | 한글 이모지 포함 명령어 확정 | 입력란 문자 손상 없음 | 수동 | Windows | 미실행 | - |
 | TC-SH-015 | 쉘 하한 미만 처리 | SRS-CMP-002, PRD-SH-001, PRD-SH-003 | Bash 3.2 (macOS 기본), PSReadLine 미로드 PowerShell | init 스크립트 로드, `howtui` 직접 실행 후 확정, ↑ | 바인딩 생략과 경고 1줄, 쉘 정상 동작, 다음 입력란 비어 있음, ↑로 명령어 호출 | PTY | macOS, Windows | 통과 | - |
@@ -201,11 +201,11 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 
 | ID | 목적 | 관련 ID | 사전 조건 | 절차 및 입력 | 기대 결과 | 유형 | 플랫폼 | 결과 | 이슈 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-FS-001 | Alternate Screen | PRD-FS-001, PRD-FS-004, SRS-TUI-007 | P3 | fullscreen 실행 후 확정 | 진입(`?1049h`)과 해제(`?1049l`), 종료 후 기존 화면 복구 | PTY | Unix | 미실행 | - |
-| TC-FS-002 | 기능 동등성 | PRD-FS-002, SRS-ARC-003 | P3 | TC-UI-006 상태 전이 시나리오를 fullscreen 렌더러로 실행 | Inline과 동일 상태 결과 | 단위 | 전체 | 미실행 | - |
-| TC-FS-003 | 긴 내용 레이아웃 | PRD-FS-003, SRS-TUI-007 | 이력 10개, 설명 30줄 | TestBackend 렌더링, 스크롤 | 이력 스크롤 동작, 스냅샷 일치 | 스냅샷 | 전체 | 미실행 | - |
-| TC-FS-004 | 모드 선택 우선순위 | PRD-FS-005, PRD-CFG-004, SRS-CFG-007 | 설정 fullscreen, CLI inline | 실행 | CLI 값 우선 | 단위 | 전체 | 미실행 | - |
-| TC-FS-005 | 리사이즈와 복구 | PRD-FS-004 | P3 | 리사이즈, panic 주입 | 화면 재구성, 종료 후 기존 화면 복구 | PTY | Unix | 미실행 | - |
+| TC-FS-001 | Alternate Screen | PRD-FS-001, PRD-FS-004, SRS-TUI-007 | P3 | fullscreen 실행 후 확정 | 진입(`?1049h`)과 해제(`?1049l`), 종료 후 기존 화면 복구 | PTY | Unix | 통과 | - |
+| TC-FS-002 | 기능 동등성 | PRD-FS-002, SRS-ARC-003 | P3 | TC-UI-006 상태 전이 시나리오를 fullscreen 렌더러로 실행 | Inline과 동일 상태 결과 | 단위 | 전체 | 통과 | - |
+| TC-FS-003 | 긴 내용 레이아웃 | PRD-FS-003, SRS-TUI-007 | 이력 10개, 설명 30줄 | TestBackend 렌더링, 스크롤 | 이력 스크롤 동작, 스냅샷 일치 | 스냅샷 | 전체 | 통과 | - |
+| TC-FS-004 | 모드 선택 우선순위 | PRD-FS-005, PRD-CFG-004, SRS-CFG-007 | 설정 fullscreen, CLI inline | 실행 | CLI 값 우선 | 단위 | 전체 | 통과 | - |
+| TC-FS-005 | 리사이즈와 복구 | PRD-FS-004 | P3 | 리사이즈, panic 주입 | 화면 재구성, 종료 후 기존 화면 복구 | PTY | Unix | 통과 | - |
 
 ## 10. 설정
 
@@ -242,7 +242,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-INS-004 | 아키텍처 판별 | PRD-INS-003, PRD-INS-004, SRS-INS-002 | `uname` 출력 모의 (x86_64, aarch64, armv7l, armv6l, aarch64 커널 + armhf 사용자 공간, riscv64) | 판별 함수 실행 | 표와 일치, armv6l과 riscv64는 미지원 종료 | 단위 | Unix | 통과 | - |
 | TC-INS-005 | install.ps1 정상 설치 | PRD-INS-002, SRS-INS-008, SRS-INS-010 | Windows PowerShell 5.1, PowerShell 7 | `irm ... \| iex` 동등 실행 | 사용자 경로 설치, PATH 등록, 버전 확인 | 수동 | Windows | 통과 | - |
 | TC-INS-006 | install.ps1 아키텍처 | PRD-INS-002, SRS-INS-009 | ARM64 Windows의 x64 PowerShell | 판별 | aarch64 자산 선택 | 수동 | WinARM | 미실행 | - |
-| TC-INS-007 | 대안 설치 문서 | PRD-INS-006, SRS-INS-011 | 릴리스 존재 | 문서 절차 수행 (스크립트 검토 후 실행, 직접 다운로드, 체크섬 독립 검증) | 각 절차 성공 | 수동 | 전체 | 미실행 | - |
+| TC-INS-007 | 대안 설치 문서 | PRD-INS-006, SRS-INS-011 | 릴리스 존재 | 문서 절차 수행 (스크립트 검토 후 실행, 직접 다운로드, 체크섬 독립 검증) | 각 절차 성공 | 수동 | 전체 | 통과 | - |
 | TC-INS-008 | 업데이트 | PRD-INS-007, SRS-INS-012 | P4, 구버전 설치 | 같은 방식 재실행 | 기존 경로에 신버전 | 통합 | Unix | 통과 | - |
 | TC-INS-009 | 제거 문서 | PRD-INS-008, SRS-INS-013 | P4 | 문서 절차 수행 | 바이너리, 설정, 자격증명, 쉘 통합 줄 제거 | 수동 | 전체 | 미실행 | - |
 | TC-INS-010 | 원격 코드 실행 부재 | PRD-INS-009, SRS-INS-004 | 스크립트 원문 | 다운로드 대상 검사 | 릴리스 자산과 SHA256SUMS 외 다운로드 없음, 다운로드 내용 실행 없음 | 단위 | 전체 | 통과 | - |
@@ -252,7 +252,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-REL-001 | 태그 릴리스 | PRD-REL-001, PRD-REL-007, SRS-BLD-008 | 테스트 저장소 또는 초안 릴리스 | `vX.Y.Z` 태그 | 빌드 성공, 초안 릴리스 생성, 공개는 수동 | 수동 | 전체 | 통과 | - |
 | TC-REL-002 | 자산 명명과 체크섬 | PRD-REL-002, SRS-BLD-006 | 릴리스 산출물 | 파일명 규칙 검사, `sha256sum -c SHA256SUMS` | 규칙 일치, 검증 통과 | 통합 | Linux | 통과 | - |
 | TC-REL-003 | 7개 타깃 | PRD-REL-003, PRD-PLAT-002, SRS-BLD-001, SRS-BLD-003, SRS-BLD-004, SRS-BLD-009, SRS-CMP-005 | P4 | 릴리스 산출물 검사 (`file`, ELF 속성, PE 머신 타입과 임포트 DLL, Mach-O minos와 `codesign -v`) | 7개 타깃 형식 일치, Windows VCRUNTIME 임포트 없음, macOS minos 11.0과 서명 유효 | 통합 | Linux, macOS, Windows | 통과 | - |
-| TC-REL-007 | CI 워크플로 동작 | SRS-BLD-007, PRD-REL-001 | 테스트 PR | PR 생성 | fmt, clippy, 5개 러너 테스트, armv7 교차 빌드와 GLIBC 검사, 추적성 검사, 설치 스크립트 구문 검사 실행과 결과 표시 | 통합 | 전체 | 미실행 | - |
+| TC-REL-007 | CI 워크플로 동작 | SRS-BLD-007, PRD-REL-001 | 테스트 PR | PR 생성 | fmt, clippy, 5개 러너 테스트, armv7 교차 빌드와 GLIBC 검사, 추적성 검사, 설치 스크립트 구문 검사 실행과 결과 표시 | 통합 | 전체 | 통과 | - |
 | TC-REL-008 | 공개 릴리스 설치 확인 | PRD-INS-001, PRD-INS-002, PRD-INS-008, SRS-INS-013 | 공개 릴리스, GitHub 러너 (ubuntu x64와 arm64, macos, windows x64 5.1과 7, windows arm64) | `.github/workflows/release-smoke.yml`: 공개 설치 명령, `--version`, 제거 스크립트 | 설치와 제거 성공 | 통합 | 전체 | 통과 | - |
 | TC-REL-004 | 최소 타깃과 glibc 하한 | PRD-REL-004, SRS-BLD-002, SRS-CMP-001, SRS-MOD-007 | P1 릴리스 | Linux 자산 GLIBC 심볼 최대 버전 검사 | 2.17 이하 | 통합 | Linux | 통과 | - |
 | TC-REL-005 | 릴리스 노트 | PRD-REL-005, SRS-BLD-011 | 릴리스 초안 | 노트 확인 | 변경 사항, 설치 명령, 체크섬 검증 방법 포함 | 수동 | 전체 | 미실행 | - |
@@ -273,17 +273,17 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-PRIV-002 | 전송 고지 | PRD-PRIV-003, PRD-PRIV-004 | 없음 | 문서, 로그인 고지, `--help` 확인 | 전송 범위와 수정 명령어 전송 고지 존재 | 수동 | 전체 | 통과 | - |
 | TC-PRIV-003 | 로그 내용 | PRD-PRIV-005, SRS-AUTH-012 | `HOWTUI_LOG=trace` | 로그인, 추론 | 로그에 토큰, 질문, 명령어 본문 부재 | 통합 | 전체 | 통과 | - |
 | TC-PRIV-004 | 파일 권한 | PRD-PRIV-006, SRS-AUTH-007 | 파일 대체 저장소 | 로그인 | credentials.json 0600 | 통합 | Unix | 통과 | - |
-| TC-PRIV-005 | 제출 전 전송 없음 | PRD-PRIV-004, SRS-SEC-007 | Mock HTTP 서버 요청 기록, `HOWTUI_BUFFER` 설정 위젯 모드 | 실행 후 10초 대기, 질문 제출 | 제출 전 추론 요청 0건(모델 목록 조회만), 제출 후 요청에 버퍼 내용 포함 | 통합 | 전체 | 미실행 | - |
+| TC-PRIV-005 | 제출 전 전송 없음 | PRD-PRIV-004, SRS-SEC-007 | Mock HTTP 서버 요청 기록, `HOWTUI_BUFFER` 설정 위젯 모드 | 실행 후 10초 대기, 질문 제출 | 제출 전 추론 요청 0건(모델 목록 조회만), 제출 후 요청에 버퍼 내용 포함 | 통합 | 전체 | 통과 | - |
 
 ## 14. 플랫폼과 오류 처리
 
 | ID | 목적 | 관련 ID | 사전 조건 | 절차 및 입력 | 기대 결과 | 유형 | 플랫폼 | 결과 | 이슈 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | TC-PLAT-001 | 1차 조합 동작 | PRD-PLAT-001, SRS-ARC-004 | Linux+Bash, macOS+Zsh, Windows+PowerShell | 생성, 편집, 확정, 출력 | 3조합 모두 성공 | 수동 | 전체 | 미실행 | - |
-| TC-PLAT-002 | ARMv7 실행 | PRD-PLAT-002, PRD-PLAT-003, SRS-BLD-001 | Raspberry Pi 2, 3 (32비트 OS) | 설치, TUI 실행, 원격 LLM 요청 | 동작, OS 버전과 glibc 버전 기록 | 실기기 | RPi | 미실행 | - |
-| TC-PLAT-003 | ARM64 Raspberry Pi | PRD-PLAT-003 | Raspberry Pi 4, 5 (64비트 OS), 64비트 커널 + 32비트 사용자 공간 | 설치, 실행 | 사용자 공간 기준 자산 선택, 동작 | 실기기 | RPi | 미실행 | - |
+| TC-PLAT-002 | ARMv7 실행 | PRD-PLAT-002, PRD-PLAT-003, SRS-BLD-001 | Raspberry Pi 2, 3 (32비트 OS) | 설치, TUI 실행, 원격 LLM 요청 | 동작, OS 버전과 glibc 버전 기록 | 실기기 | RPi | 미확인 | 실기기 없음, 사용자 결정으로 동작 가정 (2026-10-24). 실패 보고 시 수정 |
+| TC-PLAT-003 | ARM64 Raspberry Pi | PRD-PLAT-003 | Raspberry Pi 4, 5 (64비트 OS), 64비트 커널 + 32비트 사용자 공간 | 설치, 실행 | 사용자 공간 기준 자산 선택, 동작 | 실기기 | RPi | 미확인 | 실기기 없음, 사용자 결정으로 동작 가정 (2026-10-24). 실패 보고 시 수정 |
 | TC-PLAT-004 | 지원 상태 표기 | PRD-PLAT-004, SRS-TEST-004, SRS-BLD-012, SRS-CMP-006 | 릴리스 문서 | 표기 확인 | 실기기, 에뮬레이션, 빌드만, 미검증 구분 | 수동 | 전체 | 미실행 | - |
-| TC-PLAT-005 | Windows ARM64 실행 | PRD-PLAT-002 | Windows ARM64 장치 | 설치, 실행 | 동작 | 실기기 | WinARM | 미실행 | - |
+| TC-PLAT-005 | Windows ARM64 실행 | PRD-PLAT-002 | Windows ARM64 장치 | 설치, 실행 | 동작 | 실기기 | WinARM | 미확인 | 실기기 없음, 사용자 결정으로 동작 가정 (2026-10-24). 실패 보고 시 수정 |
 | TC-ERR-001 | 오류 메시지 구성 | PRD-ERR-001, SRS-ERR-002 | 오류 분류 전체 | 메시지 생성 | 원인 1줄 + 조치 1줄 | 단위 | 전체 | 통과 | - |
 | TC-ERR-002 | TUI 오류 유지 | PRD-ERR-002, SRS-ERR-002 | Mock 오류 후 정상 | 질문 제출 2회 | 1회차 오류 표시 후 상태 유지, 2회차 성공 | 단위 | 전체 | 통과 | - |
 | TC-ERR-003 | panic 복구 | PRD-ERR-005, SRS-TERM-006 | panic 주입 기능 | 실행 | 터미널 복구, stdout 0바이트, 종료 코드 101 | PTY | Unix | 통과 | - |
@@ -311,8 +311,8 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-NFR-003 | 유휴 CPU | SRS-PERF-002, SRS-ASYNC-005, PRD-UI-007 | 입력 대기 상태 10초 | CPU 시간 측정 | 1% 미만 (기록) | 수동 | Linux | 통과 | - |
 | TC-NFR-004 | 바이너리 크기 | SRS-PERF-003, PRD-REL-001, SRS-BLD-005 | 릴리스 빌드 | 타깃별 크기 기록 | 기록 완료 | 통합 | 전체 | 통과 | - |
 | TC-NFR-005 | Raspberry Pi 첫 화면 | SRS-PERF-004, PRD-PLAT-003 | Pi 2 | 첫 화면 시간 측정 | 기록 | 실기기 | RPi | 미실행 | - |
-| TC-NFR-006 | TLS 검증 고정 | SRS-SEC-001, PRD-AUTH-001, SRS-MOD-005 | 자체 서명 인증서 Mock 서버 | 요청 | 연결 거부 | 통합 | 전체 | 미실행 | - |
-| TC-NFR-007 | 프록시 | SRS-SEC-002, PRD-LLM-001 | 로컬 프록시, `HTTPS_PROXY` | 모델 목록 요청 | 프록시 경유 | 통합 | Linux | 미실행 | - |
+| TC-NFR-006 | TLS 검증 고정 | SRS-SEC-001, PRD-AUTH-001, SRS-MOD-005 | 자체 서명 인증서 Mock 서버 | 요청 | 연결 거부 | 통합 | 전체 | 통과 | - |
+| TC-NFR-007 | 프록시 | SRS-SEC-002, PRD-LLM-001 | 로컬 프록시, `HTTP_PROXY` (평문 API 주소). `HTTPS_PROXY` CONNECT 경로는 미실행 | 모델 목록 요청 | 프록시 경유 | 통합 | Linux | 통과 | - |
 | TC-NFR-008 | 의존성 취약점 | SRS-SEC-005, PRD-REL-001 | CI | `cargo deny check` 또는 `cargo audit` | 오류 0건 | 통합 | Linux | 미실행 | - |
 | TC-NFR-009 | 외부 인증 테스트 격리 | SRS-TEST-001, SRS-TEST-002, PRD-LLM-012 | CI 기본 실행 | `cargo test` | 실연동 테스트 미실행(ignored), 네트워크 외부 접속 0건 | 통합 | 전체 | 통과 | - |
 | TC-NFR-010 | 추적성 검사 | SRS-TEST-005, PRD-REL-001 | 문서 | `uv run scripts/trace_check.py` | 오류 0건 | 통합 | Linux | 통과 | - |
@@ -524,3 +524,28 @@ CI 도입 중 발견과 수정: (1) Bash 5.2의 `bind -x` 안 `$(<file)` 치환 
 | `TC-UPD-005` | 통과 | 단위 `cargo test`, PTY `tests/pty/run.sh` | update_notice_click_and_confirm, update_check_from_slash_command_and_settings, update_notice_and_view, update |
 | `TC-DOC-007` | 통과 | 수동 실행 (실제 GitHub, 닫힌 포트), 통합 | `[ok] update 0.1.1 is up to date`, `[info] update ... could not reach the release page`, 시험 환경 비활성화 시 skip |
 | `TC-INS-008` | 통과 | 통합 `tests/cli.rs`, `tests/install/run_unix.sh` | `--update`로 기존 경로에 신버전, 설치 스크립트 재실행 덮어쓰기 |
+
+## 20. 실행 기록 (Phase 1 이월 항목, Phase 3 Fullscreen, 2026-10-24)
+
+- 실행 환경: 로컬 Ubuntu 20.04 x86_64 (rustc 1.99.1, tmux 3.7c), GitHub Actions
+- 실기기 항목(TC-PLAT-002, TC-PLAT-003, TC-PLAT-005): 실기기 없음. 사용자 결정(2026-10-24)으로 동작 가정, 결과 `미확인` 표기. 사용자 실패 보고 시 다음 업데이트에서 수정
+
+| TC | 결과 | 실행 수단 | 근거 |
+| --- | --- | --- | --- |
+| `TC-LLM-011` | 통과 | 단위 `cargo test` | first_event_and_total_timeouts (첫 이벤트 지연, 전체 제한 시간 모두 Timeout 분류) |
+| `TC-NFR-006` | 통과 | 통합 `tests/net.rs` | self_signed_certificate_is_rejected |
+| `TC-NFR-007` | 통과 | 통합 `tests/cli.rs` | requests_go_through_http_proxy (`HTTP_PROXY` 경로만, `HTTPS_PROXY` CONNECT 미실행) |
+| `TC-AUTH-016` | 통과 | PTY `tests/pty_e2e.rs` | tui_login_then_nothing_sent_before_submit (Mock 인증 서버, 로그인 후 입력 대기) |
+| `TC-PRIV-005` | 통과 | PTY `tests/pty_e2e.rs` | tui_login_then_nothing_sent_before_submit, widget_buffer_is_sent_only_on_submit (제출 전 추론 요청 0건, 제출 후 1건) |
+| `TC-UI-002` | 통과 | PTY `tests/pty/run.sh` | shortterm (터미널 높이 6) |
+| `TC-OUT-010` | 통과 | 단위 `cargo test`, PTY `tests/pty/shell.sh` | file_destinations_write_and_widget_failure_exits_1, file_format_has_no_trailing_newline, widget_replace, widget_cancel. 절차 문구를 위젯 모드 출력 파일로 정정 (`--output-file` 옵션은 명세에 없음) |
+| `TC-SH-011` | 통과 | 문서 검토 | README 쉘별 지원 표 (검증 버전과 결과) |
+| `TC-REL-007` | 통과 | CI `ci.yml` (push 기준) | fmt, clippy, 5개 러너 테스트, armv7 교차 빌드와 GLIBC 검사, 추적성 검사, 설치 스크립트 시험 (TC 18절, 19절 CI 기록) |
+| `TC-INS-007` | 통과 | 릴리스 확인 절차 | v0.1.0-0.1.2 공개 전 직접 다운로드, `SHA256SUMS` 독립 대조, `gh attestation verify`. 설치 스크립트 실행은 `release-smoke.yml` |
+| `TC-CLI-008` | 통과 | PTY `tests/pty/run.sh` | fullscreen (`--mode fullscreen`, 원시 출력 `?1049h`) |
+| `TC-FS-001` | 통과 | PTY `tests/pty/run.sh` | fullscreen: 진입 `?1049h`와 해제 `?1049l`, stdout 명령어 일치, 종료 후 이전 출력(MARKER-FS) 유지와 대화 기록 화면 잔존 없음 |
+| `TC-FS-002` | 통과 | 단위 `cargo test` | same_core_state_as_inline, small_screen_and_other_views_use_inline_renderer (같은 `State`와 `update`, 설정과 로그인 화면은 Inline 렌더러 공용) |
+| `TC-FS-003` | 통과 | 단위 `cargo test` | long_history_scrolls_with_page_keys_and_wheel (이력 10개, 설명 30줄, PageUp, PageDown, 휠, 최대 위치 제한, 새 응답 시 최신 위치 복귀), layout_history_on_top_main_at_bottom |
+| `TC-FS-004` | 통과 | 단위 `cargo test`, PTY `tests/pty/run.sh` | mode_priority_cli_over_config, fs_mode (설정 fullscreen + `--mode inline`은 `?1049h` 없음, 설정만 지정 시 `?1049h`) |
+| `TC-FS-005` | 통과 | PTY `tests/pty/run.sh` | fullscreen (100x30에서 60x20 리사이즈 후 대화 기록 영역 재구성), fs_panic (종료 코드 101, `?1049l`, 터미널 모드 복구, 이전 출력 유지) |
+

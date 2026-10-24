@@ -1,0 +1,9 @@
+# cargo audit 설정 (TC-NFR-008)
+# 예외: keyring의 Linux Secret Service 백엔드가 쓰는 zbus 계열 unmaintained 경고.
+# 대체 백엔드가 없어 keyring 갱신 시 재검토. 취약점(vulnerability)은 예외 없음.
+[advisories]
+ignore = [
+  "RUSTSEC-2026-0370", # zvariant unmaintained
+  "RUSTSEC-2026-0371", # zbus_names unmaintained
+  "RUSTSEC-2026-0372", # zvariant_derive unmaintained
+]

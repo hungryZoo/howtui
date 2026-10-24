@@ -19,7 +19,7 @@ use crate::safety::Level;
 
 const SPINNER: [&str; 4] = ["|", "/", "-", "\\"];
 
-fn dim() -> Style {
+pub(super) fn dim() -> Style {
     Style::default().fg(Color::DarkGray)
 }
 
@@ -335,7 +335,7 @@ fn render_settings(
     );
 }
 
-fn row(area: Rect, y: u16) -> Rect {
+pub(super) fn row(area: Rect, y: u16) -> Rect {
     Rect {
         x: area.x,
         y: area.y + y,
@@ -344,7 +344,7 @@ fn row(area: Rect, y: u16) -> Rect {
     }
 }
 
-fn label_width(state: &State) -> u16 {
+pub(super) fn label_width(state: &State) -> u16 {
     [
         Msg::LabelQuestion,
         Msg::LabelCommand,
@@ -358,14 +358,14 @@ fn label_width(state: &State) -> u16 {
         + 3
 }
 
-fn label(state: &State, msg: Msg, width: u16, style: Style) -> Span<'static> {
+pub(super) fn label(state: &State, msg: Msg, width: u16, style: Style) -> Span<'static> {
     // "레이블 + 공백 + ' > '" 전체 폭을 width로 맞춘다
     let text = tr_in(state.lang, msg);
     let pad = (width as usize).saturating_sub(display_width(text) + 3);
     Span::styled(format!("{text}{} > ", " ".repeat(pad)), style)
 }
 
-fn render_main(frame: &mut Frame, state: &State, area: Rect, hits: &mut Hits) {
+pub(super) fn render_main(frame: &mut Frame, state: &State, area: Rect, hits: &mut Hits) {
     let lw = label_width(state);
     let content_w = area.width.saturating_sub(lw).max(1);
     let total = area.height;

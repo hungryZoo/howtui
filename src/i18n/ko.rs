@@ -69,7 +69,10 @@ pub fn text(msg: Msg) -> &'static str {
             "위험도 높은 명령. Enter를 한 번 더 누르면 확정, 다른 키는 편집 계속"
         }
         Msg::StatusTooSmall => "터미널 크기 부족 (최소 {w}x{h})",
-        Msg::StatusFullscreenUnavailable => "전체화면 모드 미지원 버전. Inline 모드로 실행",
+        Msg::HistoryTitle => "대화 기록",
+        Msg::HistoryEmpty => "질문 입력 후 이 영역에 대화 기록 표시",
+        Msg::HistoryScrolled => "위로 {n}행 (PgUp, PgDn, 휠)",
+        Msg::HistoryExplainRequest => "(명령어 설명 요청)",
         Msg::UsingChatGptPlan => "Using ChatGPT plan",
         Msg::PlanNotice => {
             "You're using your ChatGPT plan. 사용량 관리: https://chatgpt.com/settings/usage"
