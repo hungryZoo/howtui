@@ -41,7 +41,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-CLI-005 | 높이 옵션 | PRD-CLI-006, SRS-TERM-007, SRS-CLI-006 | 터미널 100x30 | `howtui --height 5` | Inline 영역 5줄 | PTY | Unix | 통과 | - |
 | TC-CLI-006 | 쉘 지정 옵션과 기본값 | PRD-CLI-007, SRS-SH-007 | 쉘 판정 환경변수 제거 | (a) `--shell zsh` 지정 (b) 미지정 | (a) 요청 컨텍스트 shell=Zsh (b) OS 기본 조합 값 | 단위 | 전체 | 통과 | - |
 | TC-CLI-007 | init 출력 | PRD-CLI-008, SRS-SH-001 | 없음 | `howtui init bash`, `init zsh`, `init powershell` | 각 쉘 스크립트 stdout 출력, 종료 코드 0, 알 수 없는 쉘은 종료 코드 2 | 통합 | 전체 | 통과 | - |
-| TC-CLI-008 | 모드 옵션 | PRD-CLI-009, PRD-FS-005, SRS-TUI-007, SRS-CLI-007 | P3 구현 | `howtui --mode fullscreen` | Alternate Screen 진입 | PTY | Unix | 미실행 | - |
+| TC-CLI-008 | 모드 옵션 | PRD-CLI-009, PRD-FS-005, SRS-TUI-007, SRS-CLI-007 | P3 구현 | `howtui --mode fullscreen` | Alternate Screen 진입 | PTY | Unix | 통과 | - |
 | TC-CLI-009 | 종료 코드 매핑 | PRD-CLI-010, SRS-ERR-001 | 없음 | 오류 분류별 매핑 함수 호출 | 8.1절 표와 일치 | 단위 | 전체 | 통과 | - |
 | TC-CLI-010 | 사용법 오류 | PRD-CLI-010, SRS-CLI-003 | 없음 | `howtui --unknown-flag` | 종료 코드 2, stdout 0바이트 | 통합 | 전체 | 통과 | - |
 
@@ -201,11 +201,11 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 
 | ID | 목적 | 관련 ID | 사전 조건 | 절차 및 입력 | 기대 결과 | 유형 | 플랫폼 | 결과 | 이슈 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-FS-001 | Alternate Screen | PRD-FS-001, PRD-FS-004, SRS-TUI-007 | P3 | fullscreen 실행 후 확정 | 진입(`?1049h`)과 해제(`?1049l`), 종료 후 기존 화면 복구 | PTY | Unix | 미실행 | - |
-| TC-FS-002 | 기능 동등성 | PRD-FS-002, SRS-ARC-003 | P3 | TC-UI-006 상태 전이 시나리오를 fullscreen 렌더러로 실행 | Inline과 동일 상태 결과 | 단위 | 전체 | 미실행 | - |
-| TC-FS-003 | 긴 내용 레이아웃 | PRD-FS-003, SRS-TUI-007 | 이력 10개, 설명 30줄 | TestBackend 렌더링, 스크롤 | 이력 스크롤 동작, 스냅샷 일치 | 스냅샷 | 전체 | 미실행 | - |
-| TC-FS-004 | 모드 선택 우선순위 | PRD-FS-005, PRD-CFG-004, SRS-CFG-007 | 설정 fullscreen, CLI inline | 실행 | CLI 값 우선 | 단위 | 전체 | 미실행 | - |
-| TC-FS-005 | 리사이즈와 복구 | PRD-FS-004 | P3 | 리사이즈, panic 주입 | 화면 재구성, 종료 후 기존 화면 복구 | PTY | Unix | 미실행 | - |
+| TC-FS-001 | Alternate Screen | PRD-FS-001, PRD-FS-004, SRS-TUI-007 | P3 | fullscreen 실행 후 확정 | 진입(`?1049h`)과 해제(`?1049l`), 종료 후 기존 화면 복구 | PTY | Unix | 통과 | - |
+| TC-FS-002 | 기능 동등성 | PRD-FS-002, SRS-ARC-003 | P3 | TC-UI-006 상태 전이 시나리오를 fullscreen 렌더러로 실행 | Inline과 동일 상태 결과 | 단위 | 전체 | 통과 | - |
+| TC-FS-003 | 긴 내용 레이아웃 | PRD-FS-003, SRS-TUI-007 | 이력 10개, 설명 30줄 | TestBackend 렌더링, 스크롤 | 이력 스크롤 동작, 스냅샷 일치 | 스냅샷 | 전체 | 통과 | - |
+| TC-FS-004 | 모드 선택 우선순위 | PRD-FS-005, PRD-CFG-004, SRS-CFG-007 | 설정 fullscreen, CLI inline | 실행 | CLI 값 우선 | 단위 | 전체 | 통과 | - |
+| TC-FS-005 | 리사이즈와 복구 | PRD-FS-004 | P3 | 리사이즈, panic 주입 | 화면 재구성, 종료 후 기존 화면 복구 | PTY | Unix | 통과 | - |
 
 ## 10. 설정
 
@@ -525,10 +525,9 @@ CI 도입 중 발견과 수정: (1) Bash 5.2의 `bind -x` 안 `$(<file)` 치환 
 | `TC-DOC-007` | 통과 | 수동 실행 (실제 GitHub, 닫힌 포트), 통합 | `[ok] update 0.1.1 is up to date`, `[info] update ... could not reach the release page`, 시험 환경 비활성화 시 skip |
 | `TC-INS-008` | 통과 | 통합 `tests/cli.rs`, `tests/install/run_unix.sh` | `--update`로 기존 경로에 신버전, 설치 스크립트 재실행 덮어쓰기 |
 
-## 20. 실행 기록 (Phase 1 이월 항목, 2026-10-24)
+## 20. 실행 기록 (Phase 1 이월 항목, Phase 3 Fullscreen, 2026-10-24)
 
 - 실행 환경: 로컬 Ubuntu 20.04 x86_64 (rustc 1.99.1, tmux 3.7c), GitHub Actions
-- Phase 3 Fullscreen 시험(TC-CLI-008, TC-FS-001-005) 기록은 `fullscreen` 브랜치 TC 20절. 출시 보류 (사용자 결정 E-09, 2026-10-25)
 - 실기기 항목(TC-PLAT-002, TC-PLAT-003, TC-PLAT-005): 실기기 없음. 사용자 결정(2026-10-24)으로 동작 가정, 결과 `미확인` 표기. 사용자 실패 보고 시 다음 업데이트에서 수정
 
 | TC | 결과 | 실행 수단 | 근거 |
@@ -543,6 +542,12 @@ CI 도입 중 발견과 수정: (1) Bash 5.2의 `bind -x` 안 `$(<file)` 치환 
 | `TC-SH-011` | 통과 | 문서 검토 | README 쉘별 지원 표 (검증 버전과 결과) |
 | `TC-REL-007` | 통과 | CI `ci.yml` (push 기준) | fmt, clippy, 5개 러너 테스트, armv7 교차 빌드와 GLIBC 검사, 추적성 검사, 설치 스크립트 시험 (TC 18절, 19절 CI 기록) |
 | `TC-INS-007` | 통과 | 릴리스 확인 절차 | v0.1.0-0.1.2 공개 전 직접 다운로드, `SHA256SUMS` 독립 대조, `gh attestation verify`. 설치 스크립트 실행은 `release-smoke.yml` |
+| `TC-CLI-008` | 통과 | PTY `tests/pty/run.sh` | fullscreen (`--mode fullscreen`, 원시 출력 `?1049h`) |
+| `TC-FS-001` | 통과 | PTY `tests/pty/run.sh` | fullscreen: 진입 `?1049h`와 해제 `?1049l`, stdout 명령어 일치, 종료 후 이전 출력(MARKER-FS) 유지와 대화 기록 화면 잔존 없음 |
+| `TC-FS-002` | 통과 | 단위 `cargo test` | same_core_state_as_inline, small_screen_and_other_views_use_inline_renderer (같은 `State`와 `update`, 설정과 로그인 화면은 Inline 렌더러 공용) |
+| `TC-FS-003` | 통과 | 단위 `cargo test` | long_history_scrolls_with_page_keys_and_wheel (이력 10개, 설명 30줄, PageUp, PageDown, 휠, 최대 위치 제한, 새 응답 시 최신 위치 복귀), layout_history_on_top_main_at_bottom |
+| `TC-FS-004` | 통과 | 단위 `cargo test`, PTY `tests/pty/run.sh` | mode_priority_cli_over_config, fs_mode (설정 fullscreen + `--mode inline`은 `?1049h` 없음, 설정만 지정 시 `?1049h`) |
+| `TC-FS-005` | 통과 | PTY `tests/pty/run.sh` | fullscreen (100x30에서 60x20 리사이즈 후 대화 기록 영역 재구성), fs_panic (종료 코드 101, `?1049l`, 터미널 모드 복구, 이전 출력 유지) |
 | `TC-NFR-008` | 통과 | CI `audit` 작업 (`cargo audit --deny warnings`) | run 40073443763 (커밋 1c6ccf1): 취약점 0건. 첫 실행(run 40072506488)의 ctutils 취약점은 0.4.5 갱신으로 해소, zbus 계열 unmaintained 경고 3건은 `.cargo/audit.toml` 예외 |
 
-CI 실행 기록 (run 40073443763, 커밋 1c6ccf1, 15개 작업 전체 통과): lint, audit, 5개 러너 테스트, armv7 교차 빌드, pty 2개 러너, 설치 스크립트 4개 작업.
+CI 실행 기록 (run 40073443763, 커밋 1c6ccf1, 15개 작업 전체 통과): lint, audit, 5개 러너 테스트, armv7 교차 빌드, pty 2개 러너(Fullscreen PTY 시험 포함), 설치 스크립트 4개 작업.

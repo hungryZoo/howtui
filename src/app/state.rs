@@ -198,6 +198,9 @@ pub enum KeyAction {
     Settings,
     /// 현재 폴더 목록 전송 켜기와 끄기 (Ctrl+F, CR-007)
     ToggleFolder,
+    /// 대화 기록 스크롤 (PageUp, PageDown. Fullscreen, PRD-FS-003)
+    HistoryUp,
+    HistoryDown,
     /// 그 외 키 (위험 확인 해제용)
     Other,
 }
@@ -224,6 +227,11 @@ pub enum Action {
     Click(Hit),
     /// 휠 (음수 위, 양수 아래)
     Scroll(i8),
+    /// Fullscreen 렌더러가 계산한 대화 기록 스크롤 범위 (최대 위치, 한 쪽 행 수)
+    HistoryLayout {
+        max: u16,
+        page: u16,
+    },
     SettingsLoaded(Result<ProviderSettings, LlmError>),
     ModelSelected(Result<ProviderLabel, LlmError>),
     SignedOut,
@@ -284,6 +292,10 @@ pub struct State {
     /// 새 버전 알림 (캐시 기준, CR-009)
     pub update: Option<UpdateInfo>,
     pub update_view: Option<UpdateView>,
+    /// 대화 기록 스크롤 위치: 최신 기록 기준 위로 올린 행 수 (Fullscreen, PRD-FS-003)
+    pub history_scroll: u16,
+    pub history_max: u16,
+    pub history_page: u16,
 }
 
 impl State {
@@ -317,6 +329,9 @@ impl State {
             send_folder: false,
             update: None,
             update_view: None,
+            history_scroll: 0,
+            history_max: 0,
+            history_page: 1,
         }
     }
 

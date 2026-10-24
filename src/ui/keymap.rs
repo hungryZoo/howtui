@@ -54,6 +54,8 @@ pub fn map_key(ev: KeyEvent) -> Option<KeyAction> {
         KeyCode::Down => KeyAction::Edit(EditOp::Down),
         KeyCode::Home => KeyAction::Edit(EditOp::Home),
         KeyCode::End => KeyAction::Edit(EditOp::End),
+        KeyCode::PageUp => KeyAction::HistoryUp,
+        KeyCode::PageDown => KeyAction::HistoryDown,
         _ => KeyAction::Other,
     };
     Some(action)
@@ -112,6 +114,8 @@ mod tests {
             ),
             (k(KeyCode::Home, M::NONE), KeyAction::Edit(EditOp::Home)),
             (k(KeyCode::End, M::NONE), KeyAction::Edit(EditOp::End)),
+            (k(KeyCode::PageUp, M::NONE), KeyAction::HistoryUp),
+            (k(KeyCode::PageDown, M::NONE), KeyAction::HistoryDown),
             (
                 k(KeyCode::Backspace, M::NONE),
                 KeyAction::Edit(EditOp::Backspace),

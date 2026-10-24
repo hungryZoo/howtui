@@ -21,7 +21,7 @@ use crate::i18n::Lang;
 use crate::llm::complete_with_retry;
 use crate::llm::types::{CancelToken, EnvContext, LlmError, Provider, RequestId};
 use crate::ui::terminal::{SessionError, TerminalSession};
-use crate::ui::{inline, keymap};
+use crate::ui::{fullscreen, inline, keymap};
 
 pub const TICK: Duration = Duration::from_millis(120);
 const IDLE_POLL: Duration = Duration::from_millis(500);
@@ -67,6 +67,8 @@ pub struct TuiConfig {
     /// 현재 폴더 목록 전송 초기값과 변경 저장 (CR-007)
     pub send_folder: bool,
     pub save_folder: Option<Arc<dyn Fn(bool) + Send + Sync>>,
+    /// Fullscreen 모드: Alternate Screen과 대화 기록 영역 (PRD-FS-001)
+    pub fullscreen: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -99,7 +101,12 @@ pub fn run_tui(
         cfg.height.max(LOGIN_HEIGHT)
     };
     // 미로그인 시작은 로그인 URL 복사를 위해 클릭 수신 없이 시작
-    let mut session = TerminalSession::start(height, cfg.keep_paste, cfg.mouse && cfg.logged_in)?;
+    let mut session = TerminalSession::start(
+        height,
+        cfg.keep_paste,
+        cfg.mouse && cfg.logged_in,
+        cfg.fullscreen,
+    )?;
     let (tx, rx) = channel::<Msg>();
     spawn_signal_listener(rt, tx.clone());
 
@@ -260,8 +267,30 @@ pub fn run_tui(
         }
         // 로그인 URL을 마우스로 복사할 수 있도록 로그인 진행 중에는 클릭 수신 해제
         let _ = session.set_mouse(cfg.mouse && state.phase != Phase::LoggingIn);
-        if let Err(e) = session.draw(|f| hits = inline::render(f, &state)) {
+        let mut layout = None;
+        let drawn = session.draw(|f| {
+            if cfg.fullscreen {
+                let (h, l) = fullscreen::render(f, &state);
+                hits = h;
+                layout = Some(l);
+            } else {
+                hits = inline::render(f, &state);
+            }
+        });
+        if let Err(e) = drawn {
             return Err(SessionError::Io(e));
+        }
+        // 대화 기록 스크롤 범위는 렌더링 결과(화면 폭 기준 줄바꿈)로 결정
+        if let Some(l) = layout
+            && (l.max, l.page) != (state.history_max, state.history_page)
+        {
+            app::update(
+                &mut state,
+                Action::HistoryLayout {
+                    max: l.max,
+                    page: l.page,
+                },
+            );
         }
         if first_frame {
             first_frame = false;

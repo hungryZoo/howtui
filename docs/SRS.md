@@ -447,6 +447,10 @@ pub fn emit(target: &OutputTarget, command: &str) -> io::Result<()>;
 - 같은 `State` 사용. 레이아웃: 상단 대화 이력 스크롤 영역, 하단 질문, 명령어, 경고, 상태줄.
 - Alternate Screen 진입과 해제는 터미널 세션 설정에서 처리. 뷰포트 `Viewport::Fullscreen`.
 - 모드 결정 순서: CLI `--mode` > 설정 `ui.mode` > 기본 `inline`.
+- 영역 배치: 하단 편집 영역 8행(Inline `render_main`과 동일 규칙), 나머지 행은 대화 기록 영역(제목 1행, 내용, 구분선 1행). 대화 기록 영역 4행 미만이면 하단 영역만 표시.
+- 대화 기록 내용: 세션 `conversation` 전체의 질문(설명 요청은 안내 문구), 응답 명령어(공백 보존 문자 단위 줄바꿈), 설명, 모델 참고. 최신 기록을 아래쪽에 표시.
+- 스크롤: `State.history_scroll`(최신 위치 기준 위로 올린 행 수). PageUp과 PageDown은 내용 행 수 - 1 단위, 마우스 휠은 3행 단위. 최대 위치와 한 쪽 행 수는 렌더러가 화면 폭 기준 줄바꿈 결과로 계산해 런타임이 `Action::HistoryLayout`으로 전달. 새 응답 반영 시 0으로 복귀.
+- 로그인, 설정, 업데이트, 크기 부족 화면: Inline 렌더러를 전체 화면에 사용.
 
 ### 7.4 편집기 구현
 

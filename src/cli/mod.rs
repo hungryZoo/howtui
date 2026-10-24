@@ -10,7 +10,6 @@ use std::sync::Arc;
 
 use clap::{CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
 
-use crate::app::Status;
 use crate::config::{self, UiMode};
 use crate::i18n::{self, Msg, tr, trf};
 use crate::llm::types::EnvContext;
@@ -418,11 +417,7 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
         return no_tui::run(&question, built, ctx, send_folder, rt);
     }
 
-    let wants_fullscreen = cli
-        .mode
-        .map(|m| m == ModeArg::Fullscreen)
-        .unwrap_or(loaded.config.ui.mode == UiMode::Fullscreen);
-    let startup_notice = wants_fullscreen.then(|| Status::warn(Msg::StatusFullscreenUnavailable));
+    let fullscreen = resolve_fullscreen(cli.mode, loaded.config.ui.mode);
     let height = cli.height.unwrap_or(loaded.config.ui.inline_height);
     // 새 버전: 지난 실행 캐시로 알림, 하루 지났으면 백그라운드 확인 (시작 대기 없음, CR-009)
     let update_enabled = loaded.config.update.check && !crate::update::disabled_by_env(&env);
@@ -439,12 +434,13 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
         initial_question: (widget_input.is_none() && !question.trim().is_empty())
             .then_some(question),
         initial_command: widget_input.as_ref().and_then(|w| w.initial_command()),
-        startup_notice,
+        startup_notice: None,
         keep_paste: widget_input.as_ref().is_some_and(|w| w.keep_paste),
         mouse: loaded.config.ui.mouse,
         update: update_notice,
         send_folder,
         save_folder,
+        fullscreen,
     };
     // TUI 시작 전 판정 (TUI 중에는 fd 1이 터미널로 전환됨)
     let destination = widget::Destination::current(widget_input.as_ref(), &env);
@@ -462,6 +458,14 @@ fn run_main(cli: Cli, loaded: config::Loaded, rt: &tokio::runtime::Runtime) -> E
             eprintln!("{}", trf(Msg::ErrInternal, &[("detail", &e.to_string())]));
             ExitCode::from(1)
         }
+    }
+}
+
+/// 화면 모드 결정: CLI `--mode` > 설정 `ui.mode` > 기본 inline (SRS 7.3절, TC-FS-004).
+fn resolve_fullscreen(cli: Option<ModeArg>, config: UiMode) -> bool {
+    match cli {
+        Some(m) => m == ModeArg::Fullscreen,
+        None => config == UiMode::Fullscreen,
     }
 }
 
@@ -626,4 +630,25 @@ fn init_logging(env: &dyn Fn(&str) -> Option<String>) {
         .with_writer(std::sync::Mutex::new(file))
         .try_init();
     let _ = std::io::stderr().flush();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mode_priority_cli_over_config() {
+        // TC-FS-004: CLI 값 우선, 없으면 설정값, 기본 inline
+        assert!(!resolve_fullscreen(
+            Some(ModeArg::Inline),
+            UiMode::Fullscreen
+        ));
+        assert!(resolve_fullscreen(
+            Some(ModeArg::Fullscreen),
+            UiMode::Inline
+        ));
+        assert!(resolve_fullscreen(None, UiMode::Fullscreen));
+        assert!(!resolve_fullscreen(None, UiMode::Inline));
+        assert!(!resolve_fullscreen(None, UiMode::default()));
+    }
 }

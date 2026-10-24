@@ -283,5 +283,53 @@ if finish update; then
   fi
 fi
 
+# (20) Fullscreen: Alternate Screen 진입과 해제, 대화 기록 영역, 리사이즈, 기존 화면 복구 (TC-FS-001, TC-FS-005, TC-CLI-008)
+tmux pipe-pane -t "$P" -o "cat > $OUT/fs_raw.log" 2>&1 | cat
+start fullscreen "echo MARKER-FS; $ENV $MOCK $BIN --mode fullscreen > $OUT/fullscreen.out"
+lit "find big files"; send Enter; sleep 1.5; snap fs_result
+tmux resize-window -t "$P" -x 60 -y 20 2>&1 | cat; sleep 0.5; snap fs_resize
+tmux resize-window -t "$P" -x 100 -y 30 2>&1 | cat; sleep 0.5
+send Enter
+if finish fullscreen; then
+  tmux pipe-pane -t "$P" 2>&1 | cat
+  snap fs_after
+  if cmp -s "$OUT/fullscreen.out" "$EXPECTED" && grep -q $'\e\[?1049h' "$OUT/fs_raw.log" && grep -q $'\e\[?1049l' "$OUT/fs_raw.log" \
+    && grep -q '── History' "$OUT/fs_result.screen" && grep -q 'Ask *> find big files' "$OUT/fs_result.screen" \
+    && grep -q '── History' "$OUT/fs_resize.screen" && grep -q MARKER-FS "$OUT/fs_after.screen" && ! grep -q 'History' "$OUT/fs_after.screen"; then
+    pass fullscreen
+  else
+    fail fullscreen "alternate screen, history area or restore"
+  fi
+fi
+
+# (21) Fullscreen panic 복구: Alternate Screen 해제와 터미널 모드 복구 (TC-FS-005)
+tmux pipe-pane -t "$P" -o "cat > $OUT/fs_panic_raw.log" 2>&1 | cat
+start fs_panic "echo MARKER-FSP; HOWTUI_TEST_PANIC=1 $ENV $MOCK $BIN --mode fullscreen > $OUT/fs_panic.out 2> $OUT/fs_panic.err"
+if finish fs_panic; then
+  tmux pipe-pane -t "$P" 2>&1 | cat
+  snap fs_panic_after
+  if [ "$(rc_of fs_panic)" = 101 ] && [ ! -s "$OUT/fs_panic.out" ] && grep -q $'\e\[?1049l' "$OUT/fs_panic_raw.log" && grep -q MARKER-FSP "$OUT/fs_panic_after.screen"; then
+    pass fs_panic
+  else
+    fail fs_panic "rc $(rc_of fs_panic) or screen not restored"
+  fi
+fi
+
+# (22) 모드 우선순위: 설정 fullscreen + CLI inline은 Inline (TC-FS-004)
+printf '[ui]\nmode = "fullscreen"\n' > "$OUT/fs.toml"
+tmux pipe-pane -t "$P" -o "cat > $OUT/fs_mode_raw.log" 2>&1 | cat
+start fs_mode "HOWTUI_LANG=en HOWTUI_DATA_DIR=$OUT/data HOWTUI_CONFIG=$OUT/fs.toml HOWTUI_NO_UPDATE_CHECK=1 $MOCK $BIN --mode inline > /dev/null"
+send Escape
+if finish fs_mode; then
+  tmux pipe-pane -t "$P" 2>&1 | cat
+  tmux pipe-pane -t "$P" -o "cat > $OUT/fs_mode2_raw.log" 2>&1 | cat
+  start fs_mode2 "HOWTUI_LANG=en HOWTUI_DATA_DIR=$OUT/data HOWTUI_CONFIG=$OUT/fs.toml HOWTUI_NO_UPDATE_CHECK=1 $MOCK $BIN > /dev/null"
+  send Escape
+  if finish fs_mode2; then
+    tmux pipe-pane -t "$P" 2>&1 | cat
+    if ! grep -q $'\e\[?1049h' "$OUT/fs_mode_raw.log" && grep -q $'\e\[?1049h' "$OUT/fs_mode2_raw.log"; then pass fs_mode; else fail fs_mode "mode priority"; fi
+  fi
+fi
+
 echo "result: $( [ $FAILED = 0 ] && echo ok || echo failed ) ($OUT)"
 exit $FAILED
