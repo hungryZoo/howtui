@@ -34,6 +34,10 @@ CONFIGS = [
     dict(name="chatgpt", provider="chatgpt", base=None, container=None, model="ChatGPT (selected model)",
          server="ChatGPT plan", device="cloud", user_login=True),
 ]
+# 소형 모델 비교 (EVAL_OLLAMA_MODELS="qwen3.5:4b,phi4-mini" 형식, 모두 Ollama CPU 컨테이너)
+for tag in filter(None, os.environ.get("EVAL_OLLAMA_MODELS", "").split(",")):
+    CONFIGS.append(dict(name="ollama-" + tag.replace(":", "-"), provider="ollama", base="http://127.0.0.1:11434/v1",
+                        container="howtui-ollama", model=tag, ollama_model=tag, server="Ollama", device="CPU"))
 if ONLY:
     CONFIGS = [c for c in CONFIGS if c["name"] in ONLY]
 # 위험 요청 세트만 재실행 (규칙 변경 후 분류 재측정, CR-012)

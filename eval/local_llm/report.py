@@ -11,6 +11,8 @@ ROOT = HERE.parent.parent
 SUMMARY = json.loads((HERE / "results" / "summary.json").read_text())
 BASE_PATH = HERE / "results" / "summary_chatgpt.json"
 BASELINE = json.loads(BASE_PATH.read_text()) if BASE_PATH.exists() else None
+SMALL_PATH = HERE / "results" / "summary_small.json"
+SMALL = json.loads(SMALL_PATH.read_text()) if SMALL_PATH.exists() else None
 PRELIM_PATH = HERE / "results" / "prelim" / "summary.json"
 PRELIM = json.loads(PRELIM_PATH.read_text()) if PRELIM_PATH.exists() else None
 ENV_PATH = HERE / "results" / "environment.json"
@@ -102,6 +104,18 @@ spread_text = ", ".join(f"`{n}` {min(v):.1f}-{max(v):.1f}%" for n, v in spread.i
 final_timeouts = sum(float(r["seconds"]) >= 299 for r in FINAL_RUNS)
 final_requests = len(FINAL_RUNS)
 
+# %% 4B 이하 모델 비교 (같은 Ollama 0.40.7 CPU 컨테이너, 같은 과제와 판정)
+small_rows = ""
+if SMALL:
+    pool = [c for c in local_cfgs if c["server"] == "Ollama"] + SMALL["configs"] + (BASELINE["configs"] if BASELINE else [])
+    pool = [{**c, "model": ENV.get("chatgpt_model", c["model"]) if c["name"] == "chatgpt" else c["model"]} for c in pool]
+    pool.sort(key=lambda c: -c["accuracy_all"])
+    small_rows = "| 모델 | 전체 정확도 | Bash | Zsh | PowerShell | 응답 시간 중앙값 | 위험 요청 거절 | 위험 요청 높음 판정 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n" + "".join(
+        f"| {c['model']} | {pct(c['accuracy_all'])} | {pct(c['per_shell']['bash']['accuracy'])} | {pct(c['per_shell']['zsh']['accuracy'])} | "
+        f"{pct(c['per_shell']['powershell']['accuracy'])} | {c['seconds_median']} s | {pct(c['danger']['no_command'])} | {pct(c['danger']['howtui_high_risk'])} |\n"
+        for c in pool
+    )
+
 # %% 문서 저장
 doc = f"""# 로컬 LLM 평가 결과 (TC-LLM-021)
 
@@ -148,7 +162,14 @@ doc = f"""# 로컬 LLM 평가 결과 (TC-LLM-021)
 - 판정 환경 영향 실패: 판정 컨테이너에 `python3` 없음 (`python3 -c ...` 형태 응답은 실행 실패로 집계), 한 줄에 공백 구분으로 출력한 응답은 줄 단위 비교에서 실패로 집계
 - 명령어 없음 응답: "data.csv 줄 수" 질문에 명령어 없이 설명만 응답한 경우 실패로 집계
 
-## 8. 미측정 항목과 한계
+## 8. 4B 이하 모델 비교
+
+- 조건: Ollama 0.40.7 CPU 컨테이너, 같은 과제 세트와 판정, 3회 반복 (`results/summary_small.json`). Gemma 4 행은 2절 최종 실행 값, ChatGPT 행은 기준선
+- 모델 크기는 Ollama 메타데이터 기준 (`qwen3.5:4b`는 4.2B, `deepseek-r1:1.5b`는 1.8B). `qwen3:4b`, `deepseek-r1:1.5b`는 사고 모델 (howtui 요청은 `reasoning_effort: "none"`)
+- `deepseek-r1:1.5b`는 형식은 맞지만 과제와 무관한 명령어 응답 (예: 줄 수 질문에 `ls -l`)
+
+{small_rows}
+## 9. 미측정 항목과 한계
 
 - 후속 수정 성공률: `--no-tui` 1회 생성 경로로 측정 불가. TUI 다중 턴 자동 시험은 향후 과제
 - 첫 토큰 시간과 초당 토큰: howtui가 스트림을 쓰지 않아 전체 응답 시간만 측정
