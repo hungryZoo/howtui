@@ -24,7 +24,7 @@ pub fn default_env(kind: ProviderKind) -> Option<&'static str> {
         ProviderKind::Openai => Some("OPENAI_API_KEY"),
         ProviderKind::Anthropic => Some("ANTHROPIC_API_KEY"),
         ProviderKind::Gemini => Some("GEMINI_API_KEY"),
-        ProviderKind::Chatgpt | ProviderKind::OpenaiCompatible => None,
+        _ => None,
     }
 }
 

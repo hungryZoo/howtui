@@ -59,6 +59,7 @@ Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit             g
    - [Keys](#keys)
    - [Settings: agent and model](#settings-agent-and-model)
    - [Agents and API keys](#agents-and-api-keys)
+   - [Local models](#local-models)
    - [Folder listing](#folder-listing)
    - [Shell integration](#shell-integration)
    - [Non-interactive mode](#non-interactive-mode)
@@ -82,7 +83,7 @@ Enter accept or revise  ↓ edit command  Ctrl+E explain  Esc quit             g
 - **Edit, then ask.** Edit the command in place (multi-line, undo and redo, Unicode aware), then ask a follow-up; the model sees your edits.
 - **Explain on demand.** After editing by hand, press Ctrl+E to explain the current command.
 - **Folder-aware on request.** Turn on the folder listing (Ctrl+F or the `[folder: off]` button) and *"extract the archive"* picks the archive that is actually in the current folder. It sends an `ls -al` style listing (no file contents, owners or paths); it is off until you turn it on.
-- **Pick the agent and model.** Use your ChatGPT plan, or your own API key for OpenAI, Anthropic or Gemini, or any OpenAI-compatible server. Ctrl+O, `/model` or a click on the model name in the status line opens the settings view to switch agents and models; the choice is kept for next time.
+- **Pick the agent and model.** Use your ChatGPT plan, your own API key for OpenAI, Anthropic or Gemini, a local model through Ollama or llama.cpp `llama-server`, or any OpenAI-compatible server. Ctrl+O, `/model` or a click on the model name in the status line opens the settings view to switch agents and models; the choice is kept for next time.
 - **Clean stdout.** The UI draws on the controlling terminal, so `cmd=$(howtui)` and `howtui | pbcopy` receive only the command.
 - **Shell integration (optional).** Ctrl+G opens howtui on the current command line in Bash, Zsh or PowerShell, and typing `howtui` puts the result into the next prompt. The installer asks before adding it to your rc file; nothing is changed without a yes.
 - **Never executes.** howtui prints or hands over the command; it has no code path that runs generated commands.
@@ -356,6 +357,8 @@ agent and not adopted, see [ADR-0017](docs/adr/0017-no-codex-cli-delegation.md).
 | Anthropic | `anthropic` | `claude-opus-5-5` | `ANTHROPIC_API_KEY` or `howtui auth set-key anthropic` | `api.anthropic.com` (Messages API) |
 | Gemini | `gemini` | `gemini-3.8-flash` | `GEMINI_API_KEY` or `howtui auth set-key gemini` | `generativelanguage.googleapis.com` |
 | OpenAI compatible | `openai_compatible` | first listed model | optional, `howtui auth set-key openai_compatible` or `api_key_env` | `provider.openai_compatible.base_url` (`/chat/completions`) |
+| Ollama | `ollama` | first listed model | none | `http://127.0.0.1:11434/v1` or `provider.ollama.base_url` |
+| llama-server | `llama_server` | the loaded model | only when started with `--api-key` | `http://127.0.0.1:9931/v1`, then `:8080` (older builds), or `provider.llama_server.base_url` |
 
 ```bash
 howtui auth set-key openai        # paste the key; nothing is shown while you type or paste
@@ -369,6 +372,26 @@ An environment variable wins over a saved key. `set-key` stores the key in the O
 available, in a `0600` file in the data directory). Keys are never read from the config file: a `provider.<agent>.api_key`
 entry stops howtui with a configuration error. For Anthropic models that support it, howtui asks for low reasoning
 effort and turns on Anthropic's server-side fallback model for declined requests.
+
+### Local models
+
+howtui connects to a local server that is already running; it never downloads, loads or starts models itself.
+
+```bash
+# Ollama
+ollama pull gemma4:e2b-it-qat
+howtui --provider ollama
+
+# llama.cpp
+llama-server -m gemma-4-E2B_q4_0-it.gguf
+howtui --provider llama_server
+```
+
+For local servers howtui turns the model's thinking mode off (`reasoning_effort: "none"`) to keep answers fast, asks
+for JSON output through `response_format`, and waits up to 300 seconds per request (CPU-only machines are slow). If the
+server is not running you get `Cannot reach Ollama at http://127.0.0.1:11434/v1` and exit code 6. `howtui doctor` shows the
+server type, version, whether the model is still loading, and the model in use. Measured results for Gemma 4 E2B and E4B
+on CPU: [docs/research/local-llm-eval.md](docs/research/local-llm-eval.md).
 
 ### Folder listing
 
@@ -468,7 +491,7 @@ check = true           # false: no daily check and no "available" note (same as 
 folder = false         # true: send the ls -al style folder listing unless turned off with Ctrl+F
 
 [provider]
-# default = "chatgpt"      # chatgpt, openai, anthropic, gemini, openai_compatible (Settings choice and --provider win)
+# default = "chatgpt"      # chatgpt, openai, anthropic, gemini, openai_compatible, ollama, llama_server (Settings choice and --provider win)
 
 [provider.chatgpt]
 # model = "<model slug>"   # used when nothing was chosen in Settings; default gpt-6-luna, else the first listed
@@ -476,6 +499,10 @@ folder = false         # true: send the ls -al style folder listing unless turne
 [provider.openai]          # same keys for [provider.anthropic] and [provider.gemini]
 # model = "gpt-6-astra"
 # api_key_env = "OPENAI_API_KEY"   # name of the variable to read; never the key itself
+
+[provider.ollama]          # same keys for [provider.llama_server] (plus api_key_env)
+# base_url = "http://127.0.0.1:11434/v1"
+# model = "gemma4:e2b-it-qat"
 
 [provider.openai_compatible]
 # base_url = "http://localhost:8080/v1"
@@ -535,7 +562,7 @@ Zero W (ARMv6) are not supported, and no Raspberry Pi hardware has been tested y
 ## 7. Privacy and safety
 
 - **Sent to the agent you chose when you submit a request** (OpenAI for ChatGPT and OpenAI, Anthropic, Google for
-  Gemini, or the server at your `base_url`): your question, the current command (including your edits), your OS, CPU
+  Gemini, your local Ollama or llama-server, or the server at your `base_url`): your question, the current command (including your edits), your OS, CPU
   architecture and shell name, and earlier turns of the same session. Only when you turn on the
   [folder listing](#folder-listing): an `ls -al` style listing of the current folder (names including hidden ones,
   permissions, sizes, modification times). Never sent: environment variables, file contents, owner names, shell history,
@@ -585,7 +612,7 @@ Releases are built by `.github/workflows/release.yml` from `v*` tags as drafts a
 - [ ] Phase 3: fullscreen mode
 - [x] Phase 4: update checks in `doctor`, release provenance, uninstall; Raspberry Pi and Windows ARM64 hardware not checked yet
 - [x] Phase 5: API key providers (OpenAI, Gemini, Anthropic, OpenAI-compatible) and agent switching in Settings
-- [ ] Phase 6: local models through Ollama and llama.cpp `llama-server`
+- [x] Phase 6: local models through Ollama and llama.cpp `llama-server`, Gemma 4 E2B and E4B measured on CPU
 
 <p align="right"><a href="#table-of-contents">↑ back to top</a></p>
 

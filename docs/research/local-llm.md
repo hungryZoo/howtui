@@ -227,7 +227,7 @@ pub enum ChatEvent {
 | llama.cpp armv7 소스 빌드 | CMake 아키텍처 판정 정규식 `^(aarch64\|arm.*\|ARM64)$`(armv7l 일치), `ggml-cpu-impl.h`에 "32-bit ARM compatibility" 코드 구역 존재. KleidiAI는 32-bit Arm 비허용. armv7 공식 지원 명시 문구 없음 | 소스 확인 (L9), 빌드 성공과 동작 미확인 |
 | 32-bit 주소 공간 | 32-bit 프로세스 가상 주소 공간 최대 4 GiB. E2B QAT GGUF(3.35 GB) 적재 가능 여부 | 적재 가능 여부 미확인 (실측 필요) |
 
-## 6. 벤치마크 계획 (결과 없음)
+## 6. 벤치마크 계획 (결과: [local-llm-eval.md](local-llm-eval.md))
 
 - 공통 조건: 모델(E2B QAT Q4_0, E4B QAT Q4_0, Unsloth UD-Q4_K_XL 등), 서버(Ollama, llama-server), 샘플링(카드 권장값, temperature 0), 사고 모드(on, off), 구조화 출력(on, off), 반복 3회, 하드웨어와 서버 버전 기록.
 - 과제 세트: 셸별 자연어 요청과 판정 기준(기대 출력 또는 판정 스크립트) 묶음. 위험 요청 세트와 정상 요청 세트 분리.

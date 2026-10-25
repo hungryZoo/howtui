@@ -856,6 +856,15 @@ mod self_update {
                 cmd.env(k, v);
             }
         }
+        // 방금 복사한 실행 파일: 병렬 시험의 fork가 쓰기 fd를 잠시 물려받으면 ETXTBSY(26). 짧게 재시도
+        for _ in 0..20 {
+            match cmd.output() {
+                Err(e) if e.raw_os_error() == Some(26) => {
+                    std::thread::sleep(std::time::Duration::from_millis(50))
+                }
+                r => return r.unwrap(),
+            }
+        }
         cmd.output().unwrap()
     }
 
@@ -1206,5 +1215,65 @@ mod api_agents {
         assert_eq!(agent["details"]["agent"], "openai");
         assert_eq!(agent["details"]["key_source"], "set-key");
         assert!(!String::from_utf8_lossy(&out.stdout).contains("sk-from-store"));
+    }
+}
+
+/// 로컬 서버 에이전트 (TC-LLM-027): 연결 실패는 종료 코드 6과 주소 안내, 응답 서버로 생성.
+mod local_agents {
+    use super::*;
+    use wiremock::matchers::{body_partial_json, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    #[test]
+    fn unreachable_local_server_exits_6_with_address() {
+        let dir = tempfile::tempdir().unwrap();
+        let port = {
+            let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+            l.local_addr().unwrap().port()
+        };
+        let out = run(bin(dir.path())
+            .env(
+                "HOWTUI_TEST_OLLAMA_BASE",
+                format!("http://127.0.0.1:{port}/v1"),
+            )
+            .args(["--provider", "ollama", "--no-tui", "list files"]));
+        assert_eq!(out.status.code(), Some(6));
+        let err = String::from_utf8_lossy(&out.stderr);
+        assert!(
+            err.contains(&format!(
+                "Cannot reach Ollama at http://127.0.0.1:{port}/v1"
+            )),
+            "{err}"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn llama_server_generates_without_key() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/v1/models"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(json!({"data":[{"id":"gemma.gguf"}]})),
+            )
+            .mount(&server)
+            .await;
+        Mock::given(method("POST"))
+            .and(path("/v1/chat/completions"))
+            .and(body_partial_json(json!({"model":"gemma.gguf","reasoning_effort":"none","response_format":{"type":"json_schema"}})))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"choices":[{"finish_reason":"stop","message":{"content":"{\"command\":\"ls\",\"explanation\":\"x\",\"notes\":[]}"}}]})))
+            .mount(&server)
+            .await;
+        let dir = tempfile::tempdir().unwrap();
+        let d = dir.path().to_path_buf();
+        std::fs::write(d.join("config.toml"), format!("[provider]\ndefault = \"llama_server\"\n[provider.llama_server]\nbase_url = \"{}/v1\"\n", server.uri())).unwrap();
+        let out = tokio::task::spawn_blocking(move || run(bin(&d).args(["--no-tui", "list"])))
+            .await
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert_eq!(out.stdout, b"ls\n");
     }
 }

@@ -151,6 +151,9 @@ pub fn text(msg: Msg) -> &'static str {
         }
         Msg::ErrQuota => "Provider 계정 사용량 또는 결제 한도 도달. Provider 결제 화면 확인",
         Msg::ErrRefused => "모델이 요청 거절. 질문 수정 또는 다른 모델 선택",
+        Msg::ErrLocalUnreachable => {
+            "{provider} 서버 연결 실패 ({url}). 서버 실행 확인 또는 설정 base_url 확인"
+        }
         Msg::AgentSignedIn => "로그인됨",
         Msg::AgentNeedsLogin => "로그인 필요",
         Msg::AgentKeyEnv => "키: {env}",
@@ -169,9 +172,7 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::KeySourceEnv => "환경변수 {env}",
         Msg::KeySourceStore => "howtui auth set-key로 저장",
         Msg::KeySourceNone => "없음",
-        Msg::HelpProvider => {
-            "이번 실행 에이전트 (chatgpt, openai, anthropic, gemini, openai_compatible)"
-        }
+        Msg::HelpProvider => "이번 실행 에이전트",
         Msg::HelpSetKey => "OS 보안 저장소에 API 키 저장",
         Msg::HelpRemoveKey => "저장된 API 키 삭제",
         Msg::ErrInvalidResponse => "모델 응답 형식 해석 실패. 다시 시도",
@@ -208,6 +209,7 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::CatGitHistory => "git 이력 또는 변경 사항 손실 가능",
         Msg::CatSystemConfig => "시스템 설정 변경",
         Msg::CatForkBomb => "fork bomb",
+        Msg::CatContainerData => "컨테이너 데이터 삭제",
         Msg::DoctorTitle => "howtui doctor",
         Msg::DoctorPass => "정상",
         Msg::DoctorWarn => "경고",

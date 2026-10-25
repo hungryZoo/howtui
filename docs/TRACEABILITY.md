@@ -9,8 +9,8 @@
 | --- | --- |
 | MRD 항목 | 77 |
 | PRD 요구사항 | 171 |
-| SRS 설계 요구사항 | 198 |
-| TC | 218 |
+| SRS 설계 요구사항 | 202 |
+| TC | 219 |
 | 오류 (누락, 불일치) | 0 |
 | 경고 (TC 미연결 SRS) | 0 |
 
@@ -83,9 +83,9 @@
 | PRD-LLM-017 | P5 | 필수 | MRD-SCP-104 | SRS-CLI-008, SRS-LLM-011, SRS-LLM-017, SRS-CFG-009 | TC-LLM-019 | `src/cli/mod.rs`, `src/cli/keys.rs`<br>`src/cli/provider.rs`<br>`src/config/mod.rs`<br>`src/llm/` | 통과 1 |
 | PRD-LLM-021 | P5 | 필수 | MRD-SCP-104 | SRS-LLM-018 | TC-LLM-025 | `src/llm/switch.rs`, `src/app/update.rs`, `src/ui/inline.rs` | 통과 1 |
 | PRD-LLM-022 | P5 | 필수 | MRD-SCP-104 | SRS-CLI-008, SRS-LLM-015 | TC-LLM-023, TC-LLM-024 | `src/cli/mod.rs`, `src/cli/keys.rs`<br>`src/llm/keys.rs` | 통과 2 |
-| PRD-LLM-018 | P6 | 필수 | MRD-SCP-105 | SRS-LLM-012 | TC-LLM-020 | `src/llm/local.rs` | 미실행 1 |
-| PRD-LLM-019 | P6 | 필수 | MRD-SCP-105 | SRS-LLM-012 | TC-LLM-020 | `src/llm/local.rs` | 미실행 1 |
-| PRD-LLM-020 | P6 | 필수 | MRD-SCP-105 | SRS-LLM-012 | TC-LLM-021 | `src/llm/local.rs` | 미실행 1 |
+| PRD-LLM-018 | P6 | 필수 | MRD-SCP-105 | SRS-LLM-012, SRS-LLM-019, SRS-LLM-020, SRS-LLM-021 | TC-LLM-020, TC-LLM-027 | `src/llm/api.rs`<br>`src/llm/api.rs`, `src/app/update.rs`<br>`src/llm/local.rs`<br>`src/llm/local.rs`, `src/llm/api.rs` | 통과 2 |
+| PRD-LLM-019 | P6 | 필수 | MRD-SCP-105 | SRS-LLM-012, SRS-LLM-019, SRS-LLM-020, SRS-LLM-021 | TC-LLM-020, TC-LLM-027 | `src/llm/api.rs`<br>`src/llm/api.rs`, `src/app/update.rs`<br>`src/llm/local.rs`<br>`src/llm/local.rs`, `src/llm/api.rs` | 통과 2 |
+| PRD-LLM-020 | P6 | 필수 | MRD-SCP-105 | SRS-LLM-012 | TC-LLM-021 | `src/llm/local.rs`, `src/llm/api.rs` | 통과 1 |
 | PRD-AUTH-001 | P1 | 필수 | MRD-SCP-004, MRD-USR-005 | SRS-MOD-005, SRS-AUTH-001, SRS-AUTH-003, SRS-SEC-001 | TC-AUTH-001, TC-AUTH-002, TC-AUTH-003, TC-AUTH-022, TC-NFR-006 | `src/auth/callback.rs`<br>`src/auth/oauth.rs`<br>`src/llm/`, `src/auth/`<br>`src/llm/http.rs` | 미실행 1, 통과 4 |
 | PRD-AUTH-002 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-001 | TC-AUTH-001 | `src/auth/oauth.rs` | 통과 1 |
 | PRD-AUTH-003 | P1 | 필수 | MRD-SCP-004 | SRS-AUTH-002 | TC-AUTH-004 | `src/auth/state.rs` | 통과 1 |
@@ -148,7 +148,7 @@
 | PRD-DOC-005 | P1 | 필수 | MRD-SCN-008 | SRS-DOC-003 | TC-DOC-005 | `src/doctor/mask.rs` | 통과 1 |
 | PRD-DOC-006 | P2 | 필수 | MRD-SCP-101 | SRS-SH-008, SRS-DOC-005 | TC-SH-010 | `src/doctor/`<br>`src/shell/scripts/`, `src/doctor/` | 통과 1 |
 | PRD-DOC-007 | P2 | 필수 | MRD-SCP-103 | SRS-DOC-005 | TC-DOC-007 | `src/doctor/` | 통과 1 |
-| PRD-DOC-008 | P6 | 필수 | MRD-SCP-105 | SRS-DOC-005 | TC-DOC-008 | `src/doctor/` | 미실행 1 |
+| PRD-DOC-008 | P6 | 필수 | MRD-SCP-105 | SRS-LLM-020, SRS-DOC-007, SRS-DOC-005 | TC-DOC-008 | `src/doctor/`<br>`src/llm/local.rs` | 통과 1 |
 | PRD-DOC-009 | P1 | 필수 | MRD-SCN-008 | SRS-DOC-004 | TC-DOC-006 | `src/doctor/mod.rs` | 통과 1 |
 | PRD-INS-001 | P1 | 필수 | MRD-SCP-007, MRD-SCN-009 | SRS-INS-001, SRS-INS-003, SRS-INS-004, SRS-INS-005, SRS-INS-006, SRS-INS-007, SRS-INS-014, SRS-SEC-006 | TC-SH-009, TC-INS-001, TC-INS-002, TC-INS-003, TC-INS-011, TC-REL-008 | `scripts/`<br>`scripts/install.sh`<br>`scripts/install.sh`, `scripts/install.ps1` | 통과 6 |
 | PRD-INS-002 | P1 | 필수 | MRD-SCP-007 | SRS-INS-008, SRS-INS-009, SRS-INS-010, SRS-INS-015 | TC-INS-005, TC-INS-006, TC-INS-013, TC-REL-008 | `scripts/install.ps1`<br>`scripts/install.ps1`, `src/shell/rc.rs` | 미실행 1, 통과 3 |

@@ -29,6 +29,8 @@ pub enum Category {
     GitHistory,
     SystemConfig,
     ForkBomb,
+    /// 컨테이너, 이미지, 볼륨 일괄 삭제 (CR-012)
+    ContainerData,
 }
 
 impl Category {
@@ -46,6 +48,7 @@ impl Category {
             Category::GitHistory => Msg::CatGitHistory,
             Category::SystemConfig => Msg::CatSystemConfig,
             Category::ForkBomb => Msg::CatForkBomb,
+            Category::ContainerData => Msg::CatContainerData,
         }
     }
 }
@@ -215,10 +218,20 @@ fn check_segment(
             if has_long(&args, "-delete") {
                 push(out, Level::High, Category::RecursiveDelete, "find -delete");
             }
-            if let Some(pos) = args.iter().position(|a| a == "-exec" || a == "-execdir")
-                && args.get(pos + 1).map(|a| base_name(a)) == Some("rm".into())
-            {
-                push(out, Level::High, Category::RecursiveDelete, "find -exec rm");
+            if let Some(pos) = args.iter().position(|a| a == "-exec" || a == "-execdir") {
+                match args.get(pos + 1).map(|a| base_name(a)).as_deref() {
+                    Some("rm") => {
+                        push(out, Level::High, Category::RecursiveDelete, "find -exec rm")
+                    }
+                    // 일괄 권한 변경 (CR-012)
+                    Some(c @ ("chmod" | "chown" | "chgrp")) => push(
+                        out,
+                        Level::High,
+                        Category::Permission,
+                        &format!("find -exec {c}"),
+                    ),
+                    _ => {}
+                }
             }
         }
         "shred" | "wipefs" => push(out, Level::High, Category::Disk, &cmd),
@@ -234,7 +247,10 @@ fn check_segment(
             push(out, Level::High, Category::Disk, &cmd)
         }
         "chmod" | "chown" | "chgrp" => {
-            if has_short_flag(raw, 'R') || has_long(&args, "--recursive") {
+            if has_short_flag(raw, 'R')
+                || has_long(&args, "--recursive")
+                || args.iter().any(|a| a == "/")
+            {
                 push(out, Level::High, Category::Permission, &cmd);
             } else if args.iter().any(|a| a == "777" || a == "a+rwx") {
                 push(out, Level::Caution, Category::Permission, &cmd);
@@ -243,8 +259,18 @@ fn check_segment(
         "kill" => {
             if args.iter().any(|a| a == "-1") {
                 push(out, Level::High, Category::MassKill, "kill -1");
+            } else if args.iter().any(|a| a == "1") {
+                // PID 1 (init) 종료 (CR-012)
+                push(out, Level::High, Category::MassKill, "kill 1");
+            } else if args
+                .iter()
+                .any(|a| a.contains("$(") || a.contains('`') || a.contains("pgrep"))
+            {
+                // 명령 치환으로 얻은 PID 목록 종료 (CR-012)
+                push(out, Level::High, Category::MassKill, "kill $(...)");
             }
         }
+        "docker" | "podman" => check_containers(&cmd, &args, out),
         "killall" | "pkill" => push(out, Level::High, Category::MassKill, &cmd),
         "shutdown" | "reboot" | "halt" | "poweroff" => {
             push(out, Level::Caution, Category::Power, &cmd)
@@ -344,6 +370,38 @@ fn check_segment(
 }
 
 /// `rmdir`가 PowerShell 별칭으로 `/s` 등과 함께 쓰인 경우는 PowerShell 규칙에서 처리.
+/// 컨테이너 데이터 일괄 삭제 (CR-012): 볼륨 삭제는 높음, 그 외 정리는 주의.
+fn check_containers(cmd: &str, args: &[String], out: &mut Vec<Finding>) {
+    let words: Vec<&str> = args
+        .iter()
+        .map(String::as_str)
+        .filter(|a| !a.starts_with('-'))
+        .collect();
+    let volumes = args.iter().any(|a| a == "--volumes");
+    let evidence = format!(
+        "{cmd} {}",
+        words.iter().take(2).copied().collect::<Vec<_>>().join(" ")
+    );
+    match words.as_slice() {
+        ["volume", "prune" | "rm", ..] => {
+            push(out, Level::High, Category::ContainerData, &evidence)
+        }
+        ["system", "prune", ..] if volumes => push(
+            out,
+            Level::High,
+            Category::ContainerData,
+            &format!("{evidence} --volumes"),
+        ),
+        ["system" | "container" | "image" | "builder", "prune", ..] => {
+            push(out, Level::Caution, Category::ContainerData, &evidence)
+        }
+        ["rm" | "rmi", rest @ ..] if rest.iter().any(|a| a.contains("$(") || a.contains('`')) => {
+            push(out, Level::Caution, Category::ContainerData, &evidence)
+        }
+        _ => {}
+    }
+}
+
 fn is_ps_alias_context(args: &[String]) -> bool {
     args.iter().any(|a| a == "/s" || a.starts_with("-rec"))
 }
@@ -422,6 +480,14 @@ mod tests {
         "cat image.iso > /dev/sdc",
         "env FOO=1 rm -rf x",
         "parted /dev/sda mklabel gpt",
+        // CR-012 (로컬 LLM 평가 위험 요청 세트에서 발견)
+        "find / -type f -exec chmod a+w {} +",
+        "chmod a+w /",
+        "sudo kill $(pgrep -f /sbin/init)",
+        "kill -9 $(jobs -p)",
+        "kill -9 1",
+        "docker volume prune -f",
+        "docker system prune -a --volumes",
     ];
 
     const CAUTION_BASH: &[&str] = &[
@@ -440,6 +506,9 @@ mod tests {
         "truncate -s 0 app.log",
         "chmod 777 file",
         "dd if=a of=b",
+        "docker system prune -a",
+        "docker image prune -a",
+        "docker rm -f $(docker ps -aq)",
     ];
 
     const SAFE_BASH: &[&str] = &[
@@ -461,6 +530,10 @@ mod tests {
         "kill 1234",
         "printf '%s\\n' \"안녕 세계 🌏\" | grep -n '세계'",
         "docker ps -a",
+        "docker run --rm alpine echo hi",
+        "docker rm old-container",
+        "find . -name '*.sh' -exec grep -l bash {} +",
+        "chmod 644 file.txt",
         "ssh host uptime",
         "cp a b",
     ];

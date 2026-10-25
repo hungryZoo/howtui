@@ -28,15 +28,20 @@ pub enum ProviderKind {
     Anthropic,
     Gemini,
     OpenaiCompatible,
+    /// 로컬 서버 (P6)
+    Ollama,
+    LlamaServer,
 }
 
 impl ProviderKind {
-    pub const ALL: [ProviderKind; 5] = [
+    pub const ALL: [ProviderKind; 7] = [
         ProviderKind::Chatgpt,
         ProviderKind::Openai,
         ProviderKind::Anthropic,
         ProviderKind::Gemini,
         ProviderKind::OpenaiCompatible,
+        ProviderKind::Ollama,
+        ProviderKind::LlamaServer,
     ];
 
     /// 설정 파일과 상태 파일에 쓰는 이름
@@ -47,7 +52,14 @@ impl ProviderKind {
             ProviderKind::Anthropic => "anthropic",
             ProviderKind::Gemini => "gemini",
             ProviderKind::OpenaiCompatible => "openai_compatible",
+            ProviderKind::Ollama => "ollama",
+            ProviderKind::LlamaServer => "llama_server",
         }
+    }
+
+    /// 로컬 서버 에이전트 (P6, SRS 5.6절)
+    pub fn is_local(self) -> bool {
+        matches!(self, ProviderKind::Ollama | ProviderKind::LlamaServer)
     }
 
     pub fn parse(s: &str) -> Option<ProviderKind> {
@@ -62,6 +74,8 @@ impl ProviderKind {
             ProviderKind::Anthropic => "Anthropic",
             ProviderKind::Gemini => "Gemini",
             ProviderKind::OpenaiCompatible => "OpenAI compatible",
+            ProviderKind::Ollama => "Ollama",
+            ProviderKind::LlamaServer => "llama-server",
         }
     }
 }
@@ -114,6 +128,8 @@ pub struct ProviderConfig {
     pub anthropic: ApiProviderConfig,
     pub gemini: ApiProviderConfig,
     pub openai_compatible: ApiProviderConfig,
+    pub ollama: ApiProviderConfig,
+    pub llama_server: ApiProviderConfig,
 }
 
 impl ProviderConfig {
@@ -124,6 +140,8 @@ impl ProviderConfig {
             ProviderKind::Anthropic => Some(&self.anthropic),
             ProviderKind::Gemini => Some(&self.gemini),
             ProviderKind::OpenaiCompatible => Some(&self.openai_compatible),
+            ProviderKind::Ollama => Some(&self.ollama),
+            ProviderKind::LlamaServer => Some(&self.llama_server),
         }
     }
 }
@@ -198,6 +216,13 @@ const KNOWN_KEYS: &[&str] = &[
     "provider.openai_compatible.model",
     "provider.openai_compatible.api_key_env",
     "provider.openai_compatible.base_url",
+    "provider.ollama",
+    "provider.ollama.model",
+    "provider.ollama.base_url",
+    "provider.llama_server",
+    "provider.llama_server.model",
+    "provider.llama_server.api_key_env",
+    "provider.llama_server.base_url",
     "context",
     "context.folder",
     "update",
@@ -273,12 +298,16 @@ fn validate(config: &Config) -> Result<(), String> {
             ));
         }
     }
-    if let Some(url) = &config.provider.openai_compatible.base_url {
+    for kind in ProviderKind::ALL {
+        let Some(url) = config.provider.api(kind).and_then(|a| a.base_url.as_ref()) else {
+            continue;
+        };
         let ok = url::Url::parse(url)
             .is_ok_and(|u| matches!(u.scheme(), "http" | "https") && u.host().is_some());
         if !ok {
             return Err(format!(
-                "provider.openai_compatible.base_url = {url:?}: use an http:// or https:// address"
+                "provider.{}.base_url = {url:?}: use an http:// or https:// address",
+                kind.id()
             ));
         }
     }

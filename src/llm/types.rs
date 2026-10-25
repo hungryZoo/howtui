@@ -143,6 +143,9 @@ pub enum LlmError {
     /// 계정 사용량, 결제 한도 (API Key Provider)
     #[error("quota or billing limit reached")]
     QuotaExceeded,
+    /// 로컬 서버 또는 지정 주소 서버 연결 실패 (P6, SRS-LLM-021)
+    #[error("cannot reach {provider} at {url}")]
+    LocalUnreachable { provider: String, url: String },
     /// 모델 또는 안전 정책의 응답 거절
     #[error("request declined by the model")]
     Refused,
@@ -161,7 +164,10 @@ impl LlmError {
             | LlmError::QuotaExceeded
             | LlmError::ClientNotEnabled
             | LlmError::PlanNotGranted => 5,
-            LlmError::Transient { .. } | LlmError::Network { .. } | LlmError::Timeout => 6,
+            LlmError::Transient { .. }
+            | LlmError::Network { .. }
+            | LlmError::Timeout
+            | LlmError::LocalUnreachable { .. } => 6,
             LlmError::Cancelled => 130,
             _ => 7,
         }

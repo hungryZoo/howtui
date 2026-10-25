@@ -225,7 +225,7 @@
 | PRD-LLM-015 | Anthropic API Key Provider | P5 | 필수 | MRD-SCP-104 |
 | PRD-LLM-016 | OpenAI 호환 엔드포인트 Provider (URL, 선택적 키) | P5 | 필수 | MRD-SCP-104 |
 | PRD-LLM-017 | Provider 설정과 전환: CLI `--provider` > 설정 화면 선택(저장값) > 설정 파일 `provider.default` > `chatgpt` (CR-011) | P5 | 필수 | MRD-SCP-104 |
-| PRD-LLM-021 | 설정 화면 에이전트 목록: ChatGPT, OpenAI, Anthropic, Gemini, OpenAI 호환. 항목별 사용 가능 상태(로그인, 키 유무, 주소 설정) 표시, 클릭 또는 Enter로 전환, 다음 실행에도 유지. 전환 시 대화 이력 유지, 전송 대상 표시 (CR-011) | P5 | 필수 | MRD-SCP-104 |
+| PRD-LLM-021 | 설정 화면 에이전트 목록: ChatGPT, OpenAI, Anthropic, Gemini, OpenAI 호환 (P6: Ollama, llama-server 추가). 항목별 사용 가능 상태(로그인, 키 유무, 주소 설정) 표시, 클릭 또는 Enter로 전환, 다음 실행에도 유지. 전환 시 대화 이력 유지, 전송 대상 표시 (CR-011) | P5 | 필수 | MRD-SCP-104 |
 | PRD-LLM-022 | API 키 관리: `howtui auth set-key <provider>`(입력 화면 표시 없음, 붙여넣기 허용, 파이프 입력 허용), `howtui auth remove-key <provider>`, `auth status`에 키 출처(환경변수, 보안 저장소, 없음) 표시. 키 값은 출력, 로그, 설정 파일에 미기록 (CR-011) | P5 | 필수 | MRD-SCP-104 |
 | PRD-LLM-018 | Ollama HTTP API 연동 (실행 중 서버 연결) | P6 | 필수 | MRD-SCP-105 |
 | PRD-LLM-019 | llama.cpp llama-server HTTP API 연동 (실행 중 서버 연결) | P6 | 필수 | MRD-SCP-105 |
@@ -422,6 +422,7 @@
 | CR-009 | 2026-10-24 | 사용자 요청 "업데이트 기능, agent-skill 지침 참고" | self-update-check 스킬 구조 적용: 하루 1회 백그라운드 확인, 다음 실행 상태줄 알림, 설치 방식 감지, `--check-update`, `--update`. howtui 규칙(외부 명령 실행 0곳)에 따라 버전 조회는 내장 HTTP 클라이언트, 설치 스크립트 설치본은 `curl \| sh` 대신 내려받기와 SHA-256 검증 후 직접 교체 | PRD-UPD-001-003 신규, PRD-INS-007, PRD-DOC-007 |
 | CR-010 | 2026-10-25 | 사용자 위임 "권장대로 진행" | PRD-AUTH-007 자격증명 이전 보류. 사유: (1) 토큰 파일 이동은 유출 경로 추가 (2) 발급 시 원본 host ID로 인가된 토큰을 다른 장치에서 쓰는 동작은 서버 측 정책 미확인 (3) 원격 장치는 붙여넣기 로그인(PRD-AUTH-006)과 SSH 포트 포워딩(PRD-AUTH-005)으로 장치별 로그인 가능. 재개 조건: 공식 원격 장치 절차 문서 확인 | PRD-AUTH-007, SRS-AUTH-015, TC-AUTH-010 |
 | CR-011 | 2026-10-25 | 사용자 지시 "메인에서 그 다음 진행", 기존 요청 "에이전트 옵션을 TUI(클릭 등)로 언제든 변경" (2026-10-23) | Phase 5 범위 구체화: (1) 설정 화면 에이전트 목록과 전환(선택 저장) (2) API 키 저장과 삭제 명령 `howtui auth set-key`, `howtui auth remove-key` (OS 보안 저장소) (3) `--provider` CLI 옵션 (4) Provider trait에 기본 구현 메서드 추가(에이전트 목록, 전환). 기존 구현체 변경 없음 | PRD-LLM-017, PRD-LLM-021, PRD-LLM-022 신규, SRS-LLM-011, SRS-LLM-014-018, SRS-CFG-009, SRS-CLI-008 |
+| CR-012 | 2026-10-25 | 로컬 LLM 평가 위험 요청 세트 결과 (TC-LLM-021) | 위험 판정 규칙 보강: `find -exec chmod/chown/chgrp`, 대상 `/`인 권한 변경, `kill 1`, 명령 치환 PID 목록 `kill`, 컨테이너 데이터 삭제 범주 신설. 평가에서 Gemma 4 E2B가 생성한 `find / -type f -exec chmod a+w {} +`, `kill $(pgrep ...)`, `docker system prune -a`가 기존 규칙에서 미판정 | SRS 16.1절, PRD-SAFE-002 |
 
 ## 7. 단계별 기능 우선순위 요약
 

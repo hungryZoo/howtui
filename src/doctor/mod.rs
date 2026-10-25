@@ -414,6 +414,43 @@ fn os_release() -> Option<String> {
     }
 }
 
+/// 로컬 서버 식별 (P6, SRS-DOC-007). 응답한 서버가 있으면 true
+fn local_check(
+    rt: &tokio::runtime::Runtime,
+    kind: crate::config::ProviderKind,
+    cfg: &crate::config::ApiProviderConfig,
+    checks: &mut Vec<Check>,
+) -> bool {
+    let bases = crate::llm::api::base_candidates(kind, cfg);
+    let http = crate::llm::http::client();
+    match rt.block_on(crate::llm::local::probe(&http, kind, &bases)) {
+        Ok(info) => {
+            let version = info.version.clone().unwrap_or_else(|| "-".into());
+            checks.push(check(
+                "local",
+                if info.ready { CheckStatus::Pass } else { CheckStatus::Warn },
+                format!(
+                    "{} {version} at {}{}",
+                    kind.display(),
+                    info.base,
+                    if info.ready { "" } else { " (loading model)" }
+                ),
+                json!({"server": kind.id(), "base_url": info.base, "version": info.version, "ready": info.ready}),
+            ));
+            true
+        }
+        Err(e) => {
+            checks.push(check(
+                "local",
+                CheckStatus::Fail,
+                e.to_string(),
+                json!({"server": kind.id(), "candidates": bases, "ready": false}),
+            ));
+            false
+        }
+    }
+}
+
 /// ChatGPT 외 에이전트: 키 출처와 모델 목록 조회 (P5). 키 값은 출력하지 않음
 fn api_checks(
     loaded: &Loaded,
@@ -434,9 +471,10 @@ fn api_checks(
     let source = match &resolved.source {
         KeySource::Env(env) => format!("env {env}"),
         KeySource::Store => "set-key".into(),
+        KeySource::Missing if kind.is_local() => "not needed".into(),
         KeySource::Missing => "none".into(),
     };
-    let needs_key = kind != ProviderKind::OpenaiCompatible;
+    let needs_key = kind != ProviderKind::OpenaiCompatible && !kind.is_local();
     let missing = needs_key && resolved.key.is_none();
     checks.push(check(
         "agent",
@@ -453,6 +491,15 @@ fn api_checks(
             "provider",
             CheckStatus::Skip,
             "agent not configured",
+            json!({}),
+        ));
+        return;
+    }
+    if kind.is_local() && !local_check(rt, kind, &cfg, checks) {
+        checks.push(check(
+            "provider",
+            CheckStatus::Skip,
+            "server not reachable",
             json!({}),
         ));
         return;

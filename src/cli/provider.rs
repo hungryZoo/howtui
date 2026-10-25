@@ -92,6 +92,18 @@ fn api_agent(kind: ProviderKind, loaded: &Loaded, auth: &Arc<AuthManager>) -> Ag
         kind,
         provider: Arc::new(provider),
         describe: Arc::new(move || {
+            if kind.is_local() {
+                // 로컬 서버: 키 불필요, 주소 표시 (연결 여부는 첫 요청과 doctor에서 판정)
+                return AgentState {
+                    ready: true,
+                    detail: base_url.clone().unwrap_or_else(|| {
+                        crate::llm::api::default_base(kind)
+                            .unwrap_or_default()
+                            .to_string()
+                    }),
+                    blocker: None,
+                };
+            }
             if kind == ProviderKind::OpenaiCompatible {
                 return match &base_url {
                     Some(url) => AgentState {
@@ -179,6 +191,8 @@ pub fn build_with(loaded: &Loaded, cli_agent: Option<ProviderKind>) -> Result<Bu
         ProviderKind::Anthropic,
         ProviderKind::Gemini,
         ProviderKind::OpenaiCompatible,
+        ProviderKind::Ollama,
+        ProviderKind::LlamaServer,
     ] {
         agents.push(api_agent(kind, loaded, &auth));
     }

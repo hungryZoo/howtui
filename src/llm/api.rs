@@ -1,8 +1,9 @@
-//! API Key Provider 4종: OpenAI, Anthropic, Gemini, OpenAI 호환 (P5, SRS 5.5절).
+//! API Key Provider 4종: OpenAI, Anthropic, Gemini, OpenAI 호환 (P5, SRS 5.5절)와
+//! 로컬 서버 Ollama, llama-server (P6, SRS 5.6절).
 //!
 //! 요청 본문, 응답 추출, 오류 매핑은 순수 함수로 두고 단위 시험한다. 키 값은 헤더에만 넣는다.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -17,10 +18,14 @@ use crate::auth::state::ModelInfo;
 use crate::config::{ApiProviderConfig, ProviderKind};
 
 const TOTAL_TIMEOUT: Duration = Duration::from_secs(120);
+/// 로컬 서버 전체 제한 시간 (CPU 실행 고려, SRS 5.6절)
+const LOCAL_TIMEOUT: Duration = Duration::from_secs(300);
 const ANTHROPIC_VERSION: &str = "2026-10-21";
 const ANTHROPIC_FALLBACK_BETA: &str = "server-side-fallback-2026-07-01";
 /// 응답 상한 (적응형 사고 토큰 포함)
 const ANTHROPIC_MAX_TOKENS: u32 = 16000;
+/// 로컬, OpenAI 호환 서버 응답 상한 (반복 생성으로 제한 시간까지 멈추지 않는 경우 방지, 평가 TC-LLM-021 발견)
+const SERVER_MAX_TOKENS: u32 = 1024;
 /// 목록 페이지 조회 상한
 const MAX_PAGES: usize = 5;
 
@@ -30,7 +35,24 @@ pub fn default_base(kind: ProviderKind) -> Option<&'static str> {
         ProviderKind::Openai => Some("https://api.openai.com/v1"),
         ProviderKind::Anthropic => Some("https://api.anthropic.com/v1"),
         ProviderKind::Gemini => Some("https://generativelanguage.googleapis.com/v1beta"),
+        ProviderKind::Ollama => Some("http://127.0.0.1:11434/v1"),
+        ProviderKind::LlamaServer => Some("http://127.0.0.1:9931/v1"),
         ProviderKind::Chatgpt | ProviderKind::OpenaiCompatible => None,
+    }
+}
+
+/// 주소 후보: 설정 `base_url` 또는 기본 주소. llama-server는 b11799 이전 기본 포트 8080 추가 (SRS 5.6절)
+pub fn base_candidates(kind: ProviderKind, cfg: &ApiProviderConfig) -> Vec<String> {
+    let clean = |s: &str| s.trim_end_matches('/').to_string();
+    if let Some(url) = &cfg.base_url {
+        return vec![clean(url)];
+    }
+    match kind {
+        ProviderKind::LlamaServer => vec![
+            "http://127.0.0.1:9931/v1".into(),
+            "http://127.0.0.1:8080/v1".into(),
+        ],
+        _ => default_base(kind).map(clean).into_iter().collect(),
     }
 }
 
@@ -40,7 +62,7 @@ pub fn default_model(kind: ProviderKind) -> Option<&'static str> {
         ProviderKind::Openai => Some("gpt-6-astra"),
         ProviderKind::Anthropic => Some("claude-opus-5-5"),
         ProviderKind::Gemini => Some("gemini-3.8-flash"),
-        ProviderKind::Chatgpt | ProviderKind::OpenaiCompatible => None,
+        _ => None,
     }
 }
 
@@ -84,7 +106,9 @@ const OPENAI_NON_TEXT: &[&str] = &[
 pub struct ApiProvider {
     kind: ProviderKind,
     http: reqwest::Client,
-    base: String,
+    /// 주소 후보와 현재 사용 위치 (연결 실패 시 다음 후보)
+    bases: Vec<String>,
+    active: AtomicUsize,
     key: Option<Secret>,
     key_env: Option<String>,
     model_pref: Option<String>,
@@ -104,14 +128,11 @@ impl ApiProvider {
         key: Option<Secret>,
         state: Option<Arc<AuthManager>>,
     ) -> Self {
-        let base = match kind {
-            ProviderKind::OpenaiCompatible => cfg.base_url.clone().unwrap_or_default(),
-            _ => default_base(kind).unwrap_or_default().to_string(),
-        };
         Self {
             kind,
             http,
-            base: base.trim_end_matches('/').to_string(),
+            bases: base_candidates(kind, cfg),
+            active: AtomicUsize::new(0),
             key,
             key_env: super::keys::env_name(kind, cfg),
             model_pref: cfg.model.clone(),
@@ -119,13 +140,25 @@ impl ApiProvider {
             model: Mutex::new(None),
             models: Mutex::new(None),
             structured: AtomicBool::new(kind != ProviderKind::OpenaiCompatible),
-            timeout: TOTAL_TIMEOUT,
+            timeout: if kind.is_local() {
+                LOCAL_TIMEOUT
+            } else {
+                TOTAL_TIMEOUT
+            },
         }
     }
 
     /// 시험용 주소 재정의
-    pub fn with_base(mut self, base: impl Into<String>) -> Self {
-        self.base = base.into().trim_end_matches('/').to_string();
+    pub fn with_base(self, base: impl Into<String>) -> Self {
+        self.with_bases(vec![base.into()])
+    }
+
+    pub fn with_bases(mut self, bases: Vec<String>) -> Self {
+        self.bases = bases
+            .into_iter()
+            .map(|b| b.trim_end_matches('/').to_string())
+            .collect();
+        self.active = AtomicUsize::new(0);
         self
     }
 
@@ -139,15 +172,63 @@ impl ApiProvider {
         self.kind
     }
 
+    /// 현재 주소
+    pub fn base(&self) -> String {
+        let i = self.active.load(Ordering::Relaxed);
+        self.bases.get(i).cloned().unwrap_or_default()
+    }
+
     fn url(&self, path: &str) -> String {
-        format!("{}{path}", self.base)
+        format!("{}{path}", self.base())
+    }
+
+    /// 다음 주소 후보로 이동 (없으면 false)
+    fn advance(&self) -> bool {
+        let i = self.active.load(Ordering::Relaxed);
+        if i + 1 < self.bases.len() {
+            self.active.store(i + 1, Ordering::Relaxed);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// 연결 실패 분류: 주소 지정 서버(로컬, OpenAI 호환)는 `LocalUnreachable` (SRS-LLM-021)
+    fn net_err(&self, e: reqwest::Error) -> LlmError {
+        let server = self.kind.is_local() || self.kind == ProviderKind::OpenaiCompatible;
+        if server && e.is_connect() {
+            return LlmError::LocalUnreachable {
+                provider: self.kind.display().into(),
+                url: self.base(),
+            };
+        }
+        network(e)
+    }
+
+    /// 요청 전송. 연결 실패 시 남은 주소 후보로 재시도
+    async fn send_with(
+        &self,
+        make: impl Fn(&Self) -> reqwest::RequestBuilder,
+    ) -> Result<reqwest::Response, LlmError> {
+        loop {
+            match make(self).send().await {
+                Ok(r) => return Ok(r),
+                Err(e) if e.is_connect() && self.advance() => {
+                    tracing::debug!(provider = self.kind.id(), "trying next address");
+                }
+                Err(e) => return Err(self.net_err(e)),
+            }
+        }
     }
 
     fn missing(&self) -> Option<LlmError> {
         if self.kind == ProviderKind::OpenaiCompatible {
-            return self.base.is_empty().then(|| LlmError::Unsupported {
+            return self.base().is_empty().then(|| LlmError::Unsupported {
                 param: Some("provider.openai_compatible.base_url".into()),
             });
+        }
+        if self.kind.is_local() {
+            return None;
         }
         self.key.is_none().then(|| LlmError::NoApiKey {
             provider: self.kind.id().into(),
@@ -178,12 +259,17 @@ impl ApiProvider {
         }
     }
 
-    async fn get_json(&self, url: String) -> Result<Value, LlmError> {
-        let mut rb = self.authed(self.http.get(url));
-        if self.kind == ProviderKind::Anthropic && self.key.is_none() {
-            rb = rb.header("anthropic-version", ANTHROPIC_VERSION);
-        }
-        let resp = rb.send().await.map_err(network)?;
+    async fn get_json(&self, path: &str) -> Result<Value, LlmError> {
+        let resp = self
+            .send_with(|p| {
+                let rb = p.authed(p.http.get(p.url(path)));
+                if p.kind == ProviderKind::Anthropic && p.key.is_none() {
+                    rb.header("anthropic-version", ANTHROPIC_VERSION)
+                } else {
+                    rb
+                }
+            })
+            .await?;
         read_json(self.kind, resp).await
     }
 
@@ -191,18 +277,18 @@ impl ApiProvider {
         let mut out = Vec::new();
         let mut page: Option<String> = None;
         for _ in 0..MAX_PAGES {
-            let url = match (self.kind, &page) {
-                (ProviderKind::Anthropic, None) => self.url("/models?limit=100"),
+            let path = match (self.kind, &page) {
+                (ProviderKind::Anthropic, None) => "/models?limit=100".to_string(),
                 (ProviderKind::Anthropic, Some(after)) => {
-                    self.url(&format!("/models?limit=100&after_id={after}"))
+                    format!("/models?limit=100&after_id={after}")
                 }
-                (ProviderKind::Gemini, None) => self.url("/models?pageSize=1000"),
+                (ProviderKind::Gemini, None) => "/models?pageSize=1000".to_string(),
                 (ProviderKind::Gemini, Some(token)) => {
-                    self.url(&format!("/models?pageSize=1000&pageToken={token}"))
+                    format!("/models?pageSize=1000&pageToken={token}")
                 }
-                _ => self.url("/models"),
+                _ => "/models".to_string(),
             };
-            let v = self.get_json(url).await?;
+            let v = self.get_json(&path).await?;
             out.extend(models_from(self.kind, &v));
             page = next_page(self.kind, &v);
             if page.is_none() {
@@ -281,13 +367,16 @@ impl ApiProvider {
         structured: bool,
     ) -> Result<String, LlmError> {
         let body = body(self.kind, req, model, structured);
-        let mut rb = self
-            .authed(self.http.post(self.infer_path(model)))
-            .json(&body);
-        if self.kind == ProviderKind::Anthropic && body.get("fallbacks").is_some() {
-            rb = rb.header("anthropic-beta", ANTHROPIC_FALLBACK_BETA);
-        }
-        let resp = rb.send().await.map_err(network)?;
+        let resp = self
+            .send_with(|p| {
+                let rb = p.authed(p.http.post(p.infer_path(model))).json(&body);
+                if p.kind == ProviderKind::Anthropic && body.get("fallbacks").is_some() {
+                    rb.header("anthropic-beta", ANTHROPIC_FALLBACK_BETA)
+                } else {
+                    rb
+                }
+            })
+            .await?;
         let status = resp.status().as_u16();
         tracing::debug!(
             provider = self.kind.id(),
@@ -331,10 +420,7 @@ impl ApiProvider {
     }
 
     fn account(&self) -> Option<String> {
-        match self.kind {
-            ProviderKind::OpenaiCompatible => Some(self.base.clone()),
-            _ => None,
-        }
+        (self.kind == ProviderKind::OpenaiCompatible || self.kind.is_local()).then(|| self.base())
     }
 }
 
@@ -588,7 +674,23 @@ pub fn body(kind: ProviderKind, req: &LlmRequest, model: &str, structured: bool)
         ProviderKind::OpenaiCompatible | ProviderKind::Chatgpt => {
             let mut messages = vec![json!({ "role": "system", "content": p.instructions })];
             messages.extend(turns("assistant"));
-            json!({ "model": model, "messages": messages, "stream": false })
+            json!({ "model": model, "messages": messages, "stream": false, "max_tokens": SERVER_MAX_TOKENS })
+        }
+        ProviderKind::Ollama | ProviderKind::LlamaServer => {
+            let mut messages = vec![json!({ "role": "system", "content": p.instructions })];
+            messages.extend(turns("assistant"));
+            // 사고 모드 끔 (지연 축소), 구조화 출력은 OpenAI 중첩 형식만 (research 4.3절)
+            let mut b = json!({
+                "model": model,
+                "messages": messages,
+                "stream": false,
+                "reasoning_effort": "none",
+                "max_tokens": SERVER_MAX_TOKENS,
+            });
+            if structured {
+                b["response_format"] = json!({ "type": "json_schema", "json_schema": { "name": "howtui_response", "schema": schema } });
+            }
+            b
         }
     }
 }
@@ -669,12 +771,18 @@ pub fn extract(kind: ProviderKind, v: &Value) -> Result<String, LlmError> {
                 out.push_str(part.get("text").and_then(Value::as_str).unwrap_or(""));
             }
         }
-        ProviderKind::OpenaiCompatible | ProviderKind::Chatgpt => {
+        ProviderKind::OpenaiCompatible
+        | ProviderKind::Chatgpt
+        | ProviderKind::Ollama
+        | ProviderKind::LlamaServer => {
             let choice = v
                 .pointer("/choices/0")
                 .ok_or_else(|| invalid("no choices"))?;
-            if choice.get("finish_reason").and_then(Value::as_str) == Some("content_filter") {
-                return Err(LlmError::Refused);
+            match choice.get("finish_reason").and_then(Value::as_str) {
+                Some("content_filter") => return Err(LlmError::Refused),
+                // 응답 상한 도달: 형식 오류로 분류 (재시도 1회 대상)
+                Some("length") => return Err(invalid("max tokens reached")),
+                _ => {}
             }
             out.push_str(
                 choice
@@ -760,7 +868,7 @@ pub fn map_error(kind: ProviderKind, status: u16, body: &str) -> LlmError {
         401 => rejected(),
         402 => LlmError::QuotaExceeded,
         403 => LlmError::RegionOrPolicy { detail },
-        404 if kind == ProviderKind::OpenaiCompatible => LlmError::Unsupported {
+        404 if kind == ProviderKind::OpenaiCompatible || kind.is_local() => LlmError::Unsupported {
             param: Some(detail),
         },
         404 => LlmError::ModelNotFound,

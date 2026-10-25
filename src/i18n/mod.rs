@@ -161,6 +161,7 @@ messages! {
     ErrKeyRejected,
     ErrQuota,
     ErrRefused,
+    ErrLocalUnreachable,
     AgentSignedIn,
     AgentNeedsLogin,
     AgentKeyEnv,
@@ -209,6 +210,7 @@ messages! {
     CatGitHistory,
     CatSystemConfig,
     CatForkBomb,
+    CatContainerData,
     // doctor
     DoctorTitle,
     DoctorPass,

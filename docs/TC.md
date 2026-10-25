@@ -120,13 +120,14 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-LLM-017 | 실계정 추론 | PRD-LLM-001, PRD-LLM-009, SRS-LLM-005 | ChatGPT Plus 이상 계정 로그인 | 모델 목록 조회, Generate, Revise, Explain | 3작업 성공, `response.completed` 수신 | 실연동 | 전체 | 미실행 | - |
 | TC-LLM-018 | API Key Provider 4종 | PRD-LLM-013, PRD-LLM-014, PRD-LLM-015, PRD-LLM-016, SRS-LLM-011, SRS-LLM-014, SRS-LLM-016 | P5, Mock HTTP 서버 | Provider별 요청과 오류 | 요청 형식과 오류 매핑 일치 | 통합 | 전체 | 통과 | - |
 | TC-LLM-019 | Provider 전환 | PRD-LLM-017, SRS-LLM-011, SRS-LLM-017, SRS-CLI-008 | P5 | 설정과 CLI 옵션으로 전환 | 선택 Provider로 요청 | 통합 | 전체 | 통과 | - |
-| TC-LLM-020 | 로컬 서버 연동 | PRD-LLM-018, PRD-LLM-019, SRS-LLM-012 | P6, Ollama와 llama-server 실행 | 생성, 수정, 취소 | 두 서버 모두 성공, 취소 시 연결 종료 | 실연동 | Linux | 미실행 | - |
-| TC-LLM-021 | 로컬 모델 평가 | PRD-LLM-020, SRS-LLM-012 | P6, Gemma 4 E2B와 E4B | research/local-llm.md 평가 계획 실행 | 지표별 측정값 기록 (평가 전 성능 단정 없음) | 수동 | Linux, RPi | 미실행 | - |
+| TC-LLM-020 | 로컬 서버 연동 | PRD-LLM-018, PRD-LLM-019, SRS-LLM-012, SRS-LLM-019, SRS-LLM-020, SRS-LLM-021 | P6, Ollama와 llama-server 실행 | 생성, 수정, 취소 | 두 서버 모두 성공, 취소 시 연결 종료 | 실연동 | Linux | 통과 | - |
+| TC-LLM-021 | 로컬 모델 평가 | PRD-LLM-020, SRS-LLM-012 | P6, Gemma 4 E2B와 E4B | research/local-llm.md 평가 계획 실행 | 지표별 측정값 기록 (평가 전 성능 단정 없음) | 수동 | Linux, RPi | 통과 | - |
 | TC-LLM-022 | 모델 선택 순서와 저장 | PRD-LLM-009, SRS-LLM-006, SRS-LLM-013 | Mock HTTP 서버, 숨김 모델 포함 목록 | 설정 조회, 숨김 모델 선택, 표시 모델 선택, 새 Provider로 준비 | 기본 `gpt-6-luna`, 숨김 모델 거부, 선택 저장과 다음 실행 유지, 설정 파일 값보다 우선 | 단위 | 전체 | 통과 | - |
 | TC-LLM-023 | API 키 조회와 비노출 | PRD-LLM-022, PRD-CFG-007, SRS-LLM-015, SRS-CFG-009 | 환경변수, 보안 저장소(파일 대체 저장소), 키 없음 | 조회, `auth status`, Debug 출력, 로그 | 조회 순서 일치, 키 없음 `NoApiKey`(종료 코드 4), 출력과 로그에 키 값 0건, 설정 파일 키 필드 거부 | 단위, 통합 | 전체 | 통과 | - |
 | TC-LLM-024 | 키 저장과 삭제 명령 | PRD-LLM-022, SRS-CLI-008 | 시험 데이터 디렉터리 | `auth set-key openai`(파이프 입력), `auth status`, `auth remove-key openai` | 저장 후 출처 `keyring` 표시, 삭제 후 `not set`, 출력에 키 값 없음 | 통합 | 전체 | 통과 | - |
 | TC-LLM-025 | 설정 화면 에이전트 전환 | PRD-LLM-021, SRS-LLM-018 | Mock Provider 2종 | 에이전트 목록 조회, 사용 불가 항목 선택, 사용 가능 항목 선택 | 사용 불가 항목은 안내만, 전환 후 다음 요청은 새 Provider, 선택 저장, 대화 이력 유지 | 단위, PTY | 전체 | 통과 | - |
 | TC-LLM-026 | 실계정 API Key 추론 | PRD-LLM-013-015 | 사용자 API 키 | Generate, Revise, Explain | 3작업 성공 | 실연동 | 전체 | 미실행 | - |
+| TC-LLM-027 | 로컬 서버 Mock 시험 | PRD-LLM-018, PRD-LLM-019, SRS-LLM-019-021 | Mock HTTP 서버 (Ollama, llama-server 응답 형식), 닫힌 포트 | 식별, 모델 목록, 생성, 503 적재 중, 연결 실패, 주소 후보 | 요청 형식 일치, `LocalUnreachable`(종료 코드 6), 8080 후보 전환 | 단위, 통합 | 전체 | 통과 | - |
 
 ## 6. 인증
 
@@ -234,7 +235,7 @@ Phase 0 실험(SPIKE)은 제품 코드 테스트가 아님. 아래 TC는 구현 
 | TC-DOC-005 | 마스킹 | PRD-DOC-005, SRS-DOC-003 | 토큰, 이메일, 홈 경로, 비밀 환경변수 설정 | `doctor`, `doctor --json` | 토큰 0건, 이메일 마스킹, `~` 치환, 환경변수 값 부재 | 단위 | 전체 | 통과 | - |
 | TC-DOC-006 | 종료 코드 | PRD-DOC-009, SRS-DOC-004 | 실패 항목 유무 | doctor 실행 | 실패 있음 1, 경고만 0 | 통합 | 전체 | 통과 | - |
 | TC-DOC-007 | 업데이트 점검 | PRD-DOC-007, SRS-DOC-005 | P4, Mock 릴리스 응답 | doctor | 최신 버전 비교와 업데이트 방법 표시 | 통합 | 전체 | 통과 | - |
-| TC-DOC-008 | 로컬 LLM 점검 | PRD-DOC-008, SRS-DOC-005 | P6 | doctor | 서버별 연결과 모델 상태 표시 | 실연동 | Linux | 미실행 | - |
+| TC-DOC-008 | 로컬 LLM 점검 | PRD-DOC-008, SRS-DOC-005, SRS-DOC-007 | P6 | doctor | 서버별 연결과 모델 상태 표시 | 실연동 | Linux | 통과 | - |
 
 ## 12. 설치와 릴리스
 
@@ -574,4 +575,16 @@ CI 실행 기록 (run 40073443763, 커밋 1c6ccf1, 15개 작업 전체 통과): 
 | `TC-LLM-024` | 통과 | 통합 `tests/cli.rs`, 로컬 tmux PTY | set_key_status_and_remove_key_hide_the_value (파이프 입력, 출력에 키 없음, chatgpt 대상 거부, 빈 입력 거부). tmux: 입력과 bracketed paste 내용 화면 미표시, Backspace 반영, 저장 성공 |
 | `TC-LLM-025` | 통과 | 단위 `cargo test`, PTY `tests/pty_e2e.rs` | settings_agent_switch_flow, settings_agent_problem_and_login, settings_view_lists_agents_before_models, switch_delegates_saves_and_blocks_unready, api_agent_generate_and_switch_in_settings (Ctrl+O, 키 없는 Anthropic 거부 안내, OpenAI 호환 전환 후 후속 요청에 이력 포함, `selected_provider` 저장) |
 | `TC-LLM-026` | 미실행 | - | 사용자 API 키 필요 |
+
+## 23. 실행 기록 (Phase 6 로컬 서버, 2026-10-25)
+
+- 실행 환경: 로컬 Ubuntu 20.04 x86_64, Docker. llama-server b11429 (`ghcr.io/ggml-org/llama.cpp:server-vulkan-b11429`, GPU 미할당, `-ngl 0`, 기본 포트 8080 빌드), Ollama 0.40.7 (`ollama/ollama:0.40.7`, GPU 미할당). 모델 Google QAT Q4_0 GGUF Gemma 4 E2B(3,349,516,256 바이트), E4B(5,154,941,280 바이트), Ollama `gemma4:e2b-it-qat`, `gemma4:e4b-it-qat`
+- 서버는 127.0.0.1에만 바인딩. 모델 내려받기와 서버 실행은 시험 준비 단계에서 수동 수행 (howtui는 서버 관리 API 미호출)
+
+| TC | 결과 | 실행 수단 | 근거 |
+| --- | --- | --- | --- |
+| `TC-LLM-020` | 통과 | 실연동 (로컬 Docker 서버), tmux PTY | llama-server: 주소 미설정 실행에서 9931 연결 실패 후 8080으로 전환, 생성 2건 성공 (CPU, 2.50-4.71초). Ollama: 생성 3건 성공 (CPU, 3.88-7.27초), 구조화 출력 수락. 취소: TUI Esc 직후 llama-server 로그 `stop: cancel task`, Ollama 요청 500 종료(1.56초)와 `stop: cancel task`, howtui 종료 코드 130 |
+| `TC-LLM-027` | 통과 | 단위 `cargo test`, 통합 `tests/cli.rs` | local_request_body_and_candidates, local_unreachable_fallback_and_loading (연결 실패 `LocalUnreachable`, 후보 전환, 503 적재 중 `Transient`, 사고 텍스트 무시), ollama_and_llama_server_identification, unreachable_local_server_exits_6_with_address, llama_server_generates_without_key |
+| `TC-DOC-008` | 통과 | 실연동 doctor | Ollama: `[ok] local Ollama 0.40.7 at http://127.0.0.1:11434/v1`, `[ok] provider 1 model(s), using gemma4:e2b-it-qat`. llama-server: `[ok] local llama-server b11429-d81235049 at http://127.0.0.1:8080/v1`. 닫힌 주소: `[FAIL] local cannot reach Ollama at http://127.0.0.1:1/v1`, `--no-tui` 종료 코드 6과 한국어 안내 |
+| `TC-LLM-021` | 통과 | `eval/local_llm/run_eval.py` (격리 컨테이너 판정), [local-llm-eval.md](research/local-llm-eval.md) | CPU 전용 4개 설정 x 3회 x 41개 과제. 전체 정확도 llama-cpu-e2b 80.0%, llama-cpu-e4b 76.2%, ollama-cpu-e2b 68.6%, ollama-cpu-e4b 77.1%. 응답 시간 중앙값 llama-cpu-e2b 3.32초, llama-cpu-e4b 6.12초, ollama-cpu-e2b 4.7초, ollama-cpu-e4b 8.93초 (수치는 `eval/local_llm/results/summary.json`). Raspberry Pi 실기기는 미확인 (E-08). 평가 중 발견: 응답 상한 미적용 시 반복 생성 3건이 300초 제한 시간 도달 (`max_tokens: 1024` 적용 후 0건), 위험 판정 규칙 누락 (CR-012) |
 

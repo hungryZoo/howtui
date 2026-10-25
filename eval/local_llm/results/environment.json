@@ -1,0 +1,8 @@
+{
+ "date": "2026-10-25",
+ "cpu": "Intel(R) Core(TM) i5-14600K (20 logical CPUs)",
+ "memory_gib": 125.6,
+ "llama_build": "b11429-d81235049",
+ "ollama_version": "0.40.7",
+ "howtui": "howtui 0.1.2"
+}

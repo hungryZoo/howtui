@@ -4,3 +4,4 @@ logs/
 # Rust 빌드 산출물
 /target
 spikes/*/target
+__pycache__/

@@ -4,6 +4,7 @@ pub mod api;
 pub mod chatgpt;
 pub mod http;
 pub mod keys;
+pub mod local;
 #[cfg(feature = "mock-provider")]
 pub mod mock;
 pub mod parse;

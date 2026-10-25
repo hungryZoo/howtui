@@ -356,7 +356,7 @@ pub trait Provider: Send + Sync {
 | SRS-LLM-009 | Mock Provider: 시나리오 파일(JSON 단계 목록: 응답, 지연, 오류 이름, 원문 응답)로 동작. `HOWTUI_MOCK_SCENARIO=<파일>` 또는 `echo`. 같은 기능 플래그에서만 테스트 재정의 `HOWTUI_TEST_API_BASE`, `HOWTUI_TEST_AUTH_BASE`, `HOWTUI_TEST_PANIC` 허용 (릴리스 빌드 문자열 부재 확인) | PRD-LLM-012 | `src/llm/mock.rs`, `src/auth/oauth.rs`, `src/runtime.rs` |
 | SRS-LLM-010 | 취소 시 HTTP 스트림 즉시 drop, 결과 미반환 | PRD-LLM-004 | `src/llm/chatgpt.rs` |
 | SRS-LLM-011 | P5 Provider 추가 시 trait 변경 없이 구현체 추가 (OpenAI, Gemini, Anthropic, OpenAI 호환) | PRD-LLM-013-017 | `src/llm/` |
-| SRS-LLM-012 | P6 로컬 서버: OpenAI 호환 채팅 API 공통 구현 + 서버 종류별 탐지(Ollama `/api/version`, llama-server `/health`), 기본 주소 설정 가능 | PRD-LLM-018-020 | `src/llm/local.rs` |
+| SRS-LLM-012 | P6 로컬 서버: OpenAI 호환 채팅 API 공통 구현 + 서버 종류별 탐지(Ollama `/api/version`, llama-server `/health`), 기본 주소 설정 가능 (5.6절) | PRD-LLM-018-020 | `src/llm/local.rs`, `src/llm/api.rs` |
 | SRS-LLM-013 | Provider 설정 인터페이스 (CR-005): `settings()`는 에이전트 이름, 마스킹 계정, 모델 목록, 현재 모델, 로그아웃 가능 여부 반환. `select_model(id)`은 목록 확인 후 저장. 로그아웃은 `LoginService::logout`(세션 폐기 시도와 로컬 토큰 삭제, 등록 정보 유지) | PRD-UI-015, PRD-LLM-009 | `src/llm/types.rs`, `src/llm/chatgpt.rs`, `src/runtime.rs` |
 
 ### 5.5 API Key Provider (P5, CR-011)
@@ -389,6 +389,36 @@ pub trait Provider: Send + Sync {
 | SRS-LLM-016 | 5.5절 오류 매핑과 구조화 출력 거부 시 1회 재요청 | PRD-LLM-013-016, PRD-LLM-010 | `src/llm/api.rs` |
 | SRS-LLM-017 | Provider 선택 순서 CLI `--provider` > 상태 파일 `selected_provider` > 설정 `provider.default` > `chatgpt` | PRD-LLM-017 | `src/cli/provider.rs` |
 | SRS-LLM-018 | `SwitchProvider` 위임과 전환 저장, 설정 화면 에이전트 목록(`ProviderSettings.agents`)과 `select_agent` | PRD-LLM-021 | `src/llm/switch.rs`, `src/app/update.rs`, `src/ui/inline.rs` |
+
+### 5.6 로컬 서버 Provider (P6)
+
+근거: [research/local-llm.md](research/local-llm.md) 1절, 2절, 4절.
+
+| 항목 | Ollama | llama-server |
+| --- | --- | --- |
+| 설정 이름 | `ollama` | `llama_server` |
+| 기본 주소 | `http://127.0.0.1:11434/v1` | `http://127.0.0.1:9931/v1`, 응답 없으면 `http://127.0.0.1:8080/v1` (b11799 이전 빌드 기본 포트) |
+| 서버 식별 | `GET /api/version` (`version`) | `GET /health` (200 준비, 503 모델 적재 중), `GET /props` (`build_info`) |
+| 추론 | `POST /v1/chat/completions` (`stream: false`) | 동일 |
+| 구조화 출력 | `response_format: {"type": "json_schema", "json_schema": {"name", "schema"}}` (중첩 형식만) | 동일 |
+| 사고 모드 | `reasoning_effort: "none"` (명령어 생성 지연 축소) | 동일 |
+| 모델 목록 | `GET /v1/models` `data[].id` | 동일 (단일 모델 모드는 항목 1개) |
+| 인증 | 없음 | `--api-key` 실행 시 `Authorization: Bearer` (키 조회는 5.5절과 동일, 기본 환경변수 없음) |
+| 제한 시간 | 연결 10초, 전체 300초 (CPU 실행 고려) | 동일 |
+| 응답 상한 | `max_tokens: 1024` (OpenAI 호환 서버 포함). `finish_reason: "length"`는 형식 오류(재시도 1회) | 동일 |
+
+- 연결 실패(연결 거부, 주소 해석 실패): `LlmError::LocalUnreachable`(종료 코드 6), 안내 "서버 실행 확인 (주소)". 모델 적재 중 503은 `Transient`.
+- 모델 선택 순서: 5.5절과 동일 (설정 화면 선택 > 설정 파일 > 목록 첫 항목). 기본 모델 없음.
+- 서버 관리 기능 미사용: 모델 내려받기, 적재, 해제 API 미호출. 서버 실행과 종료는 사용자 담당.
+- 사고 텍스트(`reasoning`, `reasoning_content`)는 무시하고 `message.content`만 사용.
+- 취소: 요청 future drop으로 HTTP 연결 종료 (서버 측 생성 중단은 서버 구현 의존, research 4.2절).
+
+| ID | 설계 요구사항 | 관련 PRD | 구현 위치 |
+| --- | --- | --- | --- |
+| SRS-LLM-019 | 5.6절 로컬 서버 요청 규칙 (OpenAI 호환 공통 경로, `reasoning_effort`, 중첩 `response_format`, 제한 시간 300초) | PRD-LLM-018, PRD-LLM-019 | `src/llm/api.rs` |
+| SRS-LLM-020 | 서버 식별과 상태 조회 (`probe`): 종류, 버전, 준비 상태, 주소 후보 순차 시도 | PRD-LLM-018, PRD-LLM-019, PRD-DOC-008 | `src/llm/local.rs` |
+| SRS-LLM-021 | 연결 실패 분류 `LocalUnreachable`와 안내 메시지 | PRD-LLM-018, PRD-LLM-019 | `src/llm/api.rs`, `src/app/update.rs` |
+| SRS-DOC-007 | doctor 로컬 서버 점검: 설정된 로컬 에이전트 또는 현재 에이전트 기준 서버 종류, 버전, 준비 상태, 모델 목록과 선택 모델 | PRD-DOC-008 | `src/doctor/` |
 
 ## 6. 터미널 세션과 Output Layer
 
@@ -796,7 +826,7 @@ language = "auto"        # "auto", "en", "ko"
 | SRS-CFG-006 | 설정 스키마에 비밀값 필드 부재. P5 API 키는 OS 보안 저장소 또는 환경변수 이름 참조(`api_key_env = "OPENAI_API_KEY"`) | PRD-CFG-007 | `src/config/mod.rs` |
 | SRS-CFG-007 | `ui.mode = "fullscreen"` 허용 (P3) | PRD-CFG-004 | `src/config/mod.rs` |
 | SRS-CFG-008 | 데이터 디렉터리 생성 시 0700, 파일 0600 (Unix) | PRD-PRIV-006 | `src/platform/fs.rs` |
-| SRS-CFG-009 | P5 Provider 설정: `provider.default` 허용 값 `chatgpt`, `openai`, `anthropic`, `gemini`, `openai_compatible`. `provider.<이름>.model`, `provider.<이름>.api_key_env`, `provider.openai_compatible.base_url`(http 또는 https 주소 검증). 키 값 필드 없음 (CR-011) | PRD-LLM-017, PRD-CFG-007 | `src/config/mod.rs` |
+| SRS-CFG-009 | P5 Provider 설정: `provider.default` 허용 값 `chatgpt`, `openai`, `anthropic`, `gemini`, `openai_compatible` (P6: `ollama`, `llama_server` 추가, `base_url` 선택 설정). `provider.<이름>.model`, `provider.<이름>.api_key_env`, `provider.openai_compatible.base_url`(http 또는 https 주소 검증). 키 값 필드 없음 (CR-011) | PRD-LLM-017, PRD-CFG-007 | `src/config/mod.rs` |
 
 ## 13. 플랫폼별 빌드와 릴리스
 
@@ -989,7 +1019,7 @@ rustflags = ["-C", "target-feature=+crt-static"]
 | SRS-DOC-003 | 마스킹 함수 단일화: 토큰 패턴 제거, 이메일 마스킹, 홈 경로 `~`, 환경변수 값 미출력 | PRD-DOC-005 | `src/doctor/mask.rs` |
 | SRS-DOC-004 | 종료 코드 0 또는 1 | PRD-DOC-009 | `src/doctor/mod.rs` |
 | SRS-DOC-005 | 쉘 통합 점검 (P2), 업데이트 점검 (P4), 로컬 LLM 점검 (P6) | PRD-DOC-006-008 | `src/doctor/` |
-| SRS-DOC-006 | 점검 실행 중 네트워크 요청은 모델 목록 조회 1회와 (P4) 릴리스 확인 1회로 한정 | PRD-DOC-003 | `src/doctor/` |
+| SRS-DOC-006 | 점검 실행 중 네트워크 요청은 모델 목록 조회 1회와 (P4) 릴리스 확인 1회, (P6) 로컬 서버 식별(주소 후보별 1회)로 한정 | PRD-DOC-003 | `src/doctor/` |
 
 ## 16. 안전 검사
 
@@ -999,15 +1029,16 @@ rustflags = ["-C", "target-feature=+crt-static"]
 | --- | --- | --- | --- |
 | 재귀 삭제 | 높음 | `rm` + (`-r`, `-R`, `--recursive`) 또는 `-f` 조합, `find ... -delete`, `find ... -exec rm` | `Remove-Item` + `-Recurse`, `rm`/`del`/`rd`/`rmdir` + `/s` |
 | 디스크 초기화, 직접 쓰기 | 높음 | `mkfs*`, `dd ... of=/dev/`, `wipefs`, `shred`, `> /dev/sd*` | `Format-Volume`, `Clear-Disk`, `Initialize-Disk` |
-| 권한 변경 (재귀) | 높음 | `chmod -R`, `chown -R`, `chmod 777 /` 계열 | `Set-Acl`, `icacls ... /grant` + `/t` |
+| 권한 변경 (재귀) | 높음 | `chmod -R`, `chown -R`, `chmod 777 /` 계열, 대상 `/`, `find ... -exec chmod`/`chown`/`chgrp` (CR-012) | `Set-Acl`, `icacls ... /grant` + `/t` |
 | 원격 스크립트 실행 | 높음 | `curl`/`wget` 출력의 `sh`, `bash`, `zsh` 파이프 | `iex`/`Invoke-Expression` + `irm`/`iwr`/`Invoke-WebRequest` |
-| 대량 프로세스 종료 | 높음 | `kill -9 -1`, `killall`, `pkill` | `Stop-Process` + 와일드카드 또는 `-Name *` |
+| 대량 프로세스 종료 | 높음 | `kill -9 -1`, `kill 1`, `kill $(...)`(명령 치환 PID 목록, CR-012), `killall`, `pkill` | `Stop-Process` + 와일드카드 또는 `-Name *` |
 | 시스템 전원, 서비스 | 주의 | `shutdown`, `reboot`, `systemctl (stop\|disable\|mask)` | `Stop-Computer`, `Restart-Computer`, `Stop-Service` |
 | 권한 상승 | 주의 | `sudo`, `su`, `doas` | `Start-Process -Verb RunAs` |
 | 덮어쓰기 | 주의 | `>` 리디렉션(`>>`, `/dev/null` 제외), `mv -f`, `cp -f`, `truncate` | `Set-Content`, `Out-File` (`-Append` 제외), `>` |
 | 이력 손실 (git) | 주의 | `git reset --hard`, `git clean -fd`, `git push --force`, `git push -f` | 동일 |
 | 시스템 설정 | 주의 | `/etc/` 경로 쓰기, `crontab -r`, `iptables -F` | `Set-ExecutionPolicy`, `reg delete`, `Remove-ItemProperty HKLM:` |
 | fork bomb | 높음 | `:(){ :\|:& };:` 형태 | 해당 없음 |
+| 컨테이너 데이터 삭제 (CR-012) | 높음: 볼륨 삭제, 주의: 그 외 정리 | `docker`/`podman` `volume prune`, `volume rm`, `system prune --volumes` (높음), `system`/`container`/`image`/`builder prune`, `rm`/`rmi` + 명령 치환 (주의) | 동일 |
 
 | ID | 설계 요구사항 | 관련 PRD | 구현 위치 |
 | --- | --- | --- | --- |

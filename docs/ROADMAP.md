@@ -15,7 +15,7 @@
 | 3 | Fullscreen TUI | 두 모드 동일 기능, 설정 선택 가능. P3 필수 TC 통과 | 보류: 구현과 시험 완료(`fullscreen` 브랜치), 출시 보류 (E-09) |
 | 4 | 배포와 1.x 안정화 | 지원 플랫폼에서 문서화된 절차로 설치, 진단, 업데이트 가능 | 완료 (2026-10-25). 실기기 미확인 (E-08), 자격증명 이전 보류 (CR-010) |
 | 5 | API Key Provider | 복수 Provider를 동일 UI와 로직으로 사용 | 구현과 Mock 시험 완료 (2026-10-25, TC 22절). 실계정 추론 미확인 (TC-LLM-026) |
-| 6 | 로컬 LLM | 실행 중 로컬 서버로 생성과 수정 가능 | 대기 |
+| 6 | 로컬 LLM | 실행 중 로컬 서버로 생성과 수정 가능 | 완료 (2026-10-25, TC 23절, [평가 결과](research/local-llm-eval.md)). Raspberry Pi 실기기 미확인 (E-08) |
 | 2.0 이후 | 내장 llama.cpp, 모델 관리, 자동 모델 선택, 하드웨어 최적화 | 별도 장기 과제 | 범위 외 |
 
 ## 2. Phase 0 산출물
@@ -131,6 +131,18 @@ Phase 1 이월 항목 (요구사항 변경 없이 다음 작업으로 이월):
 | 에이전트 전환 (`src/llm/switch.rs`, 설정 화면) | 완료 | 선택 저장, 사용 불가 항목 안내, 대화 이력 유지 |
 | doctor, `auth status` | 완료 | 선택 에이전트 기준 점검, 키 출처 표시 |
 | 실계정 추론 (TC-LLM-026) | 미실행 | 사용자 API 키 필요 |
+
+### 3.6 Phase 6 진행 상태 (2026-10-25)
+
+| 작업 | 상태 | 비고 |
+| --- | --- | --- |
+| 명세 (SRS 5.6절) | 완료 | Ollama, llama-server 공통 OpenAI 호환 경로, 서버 식별, 연결 실패 분류 |
+| 로컬 서버 에이전트 (`src/llm/api.rs`, `src/llm/local.rs`) | 완료 | 주소 후보(llama-server 9931, 8080), 사고 모드 끔, 중첩 `response_format`, 응답 상한 1024, 제한 시간 300초 |
+| doctor 로컬 서버 점검 | 완료 | 종류, 버전, 적재 상태, 모델 |
+| 실서버 연동 (CPU) | 완료 | llama-server b11429, Ollama 0.40.7, 생성과 취소 |
+| Gemma 4 E2B, E4B 평가 | 완료 | `eval/local_llm/`, 결과 문서 [local-llm-eval.md](research/local-llm-eval.md) |
+| 위험 판정 규칙 보강 (CR-012) | 완료 | 평가 위험 요청 세트에서 발견 |
+| 사용자 확인 목록 | 완료 | [USER_CHECKS.md](USER_CHECKS.md) |
 
 ## 4. Phase 2-6 작업 개요
 

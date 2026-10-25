@@ -77,9 +77,16 @@ pub enum TuiOutcome {
     Signal(i32),
 }
 
+/// 작업 스레드에서 이벤트 루프로 보내는 메시지. `Action`은 크기가 커서 상자에 담아 전달
 enum Msg {
-    Action(Action),
+    Action(Box<Action>),
     Signal(i32),
+}
+
+impl Msg {
+    fn action(a: Action) -> Msg {
+        Msg::Action(Box::new(a))
+    }
 }
 
 struct LoginTask {
@@ -162,7 +169,7 @@ pub fn run_tui(
                         let outcome = crate::update::check_now(&env).await;
                         let method = crate::update::detect_install_method(&env);
                         let view = crate::update::view_for(&outcome, &method);
-                        let _ = tx.send(Msg::Action(Action::UpdateChecked(view)));
+                        let _ = tx.send(Msg::action(Action::UpdateChecked(view)));
                     });
                 }
                 Effect::StartRequest(mut req) => {
@@ -183,7 +190,7 @@ pub fn run_tui(
                             r = complete_with_retry(&*provider, req, cancel.clone()) => r,
                             _ = cancel.cancelled() => Err(LlmError::Cancelled),
                         };
-                        let _ = tx.send(Msg::Action(Action::LlmDone { id, result }));
+                        let _ = tx.send(Msg::action(Action::LlmDone { id, result }));
                     });
                 }
                 Effect::CancelRequest(id) => {
@@ -202,7 +209,7 @@ pub fn run_tui(
                         ))
                     }
                     None => {
-                        let _ = tx.send(Msg::Action(Action::LoginDone(Err(LoginFailure::Other(
+                        let _ = tx.send(Msg::action(Action::LoginDone(Err(LoginFailure::Other(
                             "login unavailable".into(),
                         )))));
                     }
@@ -227,7 +234,7 @@ pub fn run_tui(
                     let tx = tx.clone();
                     rt.spawn(async move {
                         let result = provider.settings().await;
-                        let _ = tx.send(Msg::Action(Action::SettingsLoaded(result)));
+                        let _ = tx.send(Msg::action(Action::SettingsLoaded(result)));
                     });
                 }
                 Effect::SelectModel(id) => {
@@ -235,7 +242,7 @@ pub fn run_tui(
                     let tx = tx.clone();
                     rt.spawn(async move {
                         let result = provider.select_model(id).await;
-                        let _ = tx.send(Msg::Action(Action::ModelSelected(result)));
+                        let _ = tx.send(Msg::action(Action::ModelSelected(result)));
                     });
                 }
                 Effect::SelectAgent(id) => {
@@ -243,7 +250,7 @@ pub fn run_tui(
                     let tx = tx.clone();
                     rt.spawn(async move {
                         let result = provider.select_agent(id).await;
-                        let _ = tx.send(Msg::Action(Action::AgentSelected(result)));
+                        let _ = tx.send(Msg::action(Action::AgentSelected(result)));
                     });
                 }
                 Effect::Prepare => spawn_prepare(rt, provider.clone(), tx.clone()),
@@ -254,7 +261,7 @@ pub fn run_tui(
                         if let Some(service) = login {
                             service.logout().await;
                         }
-                        let _ = tx.send(Msg::Action(Action::SignedOut));
+                        let _ = tx.send(Msg::action(Action::SignedOut));
                     });
                 }
             }
@@ -308,7 +315,7 @@ pub fn run_tui(
         }
         while let Ok(msg) = rx.try_recv() {
             match msg {
-                Msg::Action(a) => actions.push(a),
+                Msg::Action(a) => actions.push(*a),
                 Msg::Signal(sig) => break 'main TuiOutcome::Signal(sig),
             }
         }
@@ -354,13 +361,13 @@ fn start_login(
                 LoginProgress::Started(view) => Action::LoginStarted(view),
                 LoginProgress::InvalidPaste => Action::LoginDone(Err(LoginFailure::InvalidPaste)),
             };
-            let _ = progress_tx.send(Msg::Action(action));
+            let _ = progress_tx.send(Msg::action(action));
         });
         let result = service.login(progress, paste_rx, token).await;
         let ok = result.as_ref().is_ok_and(|info| info.plan_enabled);
-        let _ = tx.send(Msg::Action(Action::LoginDone(result)));
+        let _ = tx.send(Msg::action(Action::LoginDone(result)));
         if ok && let Ok(label) = provider.prepare().await {
-            let _ = tx.send(Msg::Action(Action::ProviderReady(label)));
+            let _ = tx.send(Msg::action(Action::ProviderReady(label)));
         }
     });
     LoginTask {
@@ -376,7 +383,7 @@ fn spawn_prepare(rt: &tokio::runtime::Handle, provider: Arc<dyn Provider>, tx: S
             Err(LlmError::AuthRequired) | Err(LlmError::AuthFailed { .. }) => Action::AuthLost,
             Err(e) => Action::Notice(app::update::error_status(&e)),
         };
-        let _ = tx.send(Msg::Action(action));
+        let _ = tx.send(Msg::action(action));
     });
 }
 

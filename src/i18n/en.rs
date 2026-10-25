@@ -160,6 +160,9 @@ pub fn text(msg: Msg) -> &'static str {
             "Account quota or billing limit reached at the provider. Check the provider's billing page."
         }
         Msg::ErrRefused => "The model declined this request. Rephrase it or choose another model.",
+        Msg::ErrLocalUnreachable => {
+            "Cannot reach {provider} at {url}. Start the server, or set its address in the config (base_url)."
+        }
         Msg::AgentSignedIn => "signed in",
         Msg::AgentNeedsLogin => "sign-in needed",
         Msg::AgentKeyEnv => "key from {env}",
@@ -178,9 +181,7 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::KeySourceEnv => "environment variable {env}",
         Msg::KeySourceStore => "saved with howtui auth set-key",
         Msg::KeySourceNone => "not set",
-        Msg::HelpProvider => {
-            "Agent for this run (chatgpt, openai, anthropic, gemini, openai_compatible)"
-        }
+        Msg::HelpProvider => "Agent for this run",
         Msg::HelpSetKey => "Save an API key in the OS credential store",
         Msg::HelpRemoveKey => "Delete a saved API key",
         Msg::ErrInvalidResponse => "Could not read the model response. Try again.",
@@ -221,6 +222,7 @@ pub fn text(msg: Msg) -> &'static str {
         Msg::CatGitHistory => "may discard git history or changes",
         Msg::CatSystemConfig => "changes system configuration",
         Msg::CatForkBomb => "fork bomb",
+        Msg::CatContainerData => "removes container data",
         Msg::DoctorTitle => "howtui doctor",
         Msg::DoctorPass => "ok",
         Msg::DoctorWarn => "warn",

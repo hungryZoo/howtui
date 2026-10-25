@@ -131,6 +131,7 @@ fn request_bodies_per_provider() {
     assert_eq!(b["messages"][0]["role"], "system");
     assert_eq!(b["stream"], false);
     assert!(b.get("response_format").is_none());
+    assert_eq!(b["max_tokens"], 1024);
 }
 
 #[test]
@@ -179,6 +180,13 @@ fn extract_text_and_refusals() {
         extract(ProviderKind::OpenaiCompatible, &compat).unwrap(),
         ANSWER
     );
+    assert!(matches!(
+        extract(
+            ProviderKind::LlamaServer,
+            &json!({"choices":[{"finish_reason":"length","message":{"content":"{\"command\": \"ls"}}]})
+        ),
+        Err(LlmError::InvalidResponse { .. })
+    ));
     assert!(matches!(
         extract(ProviderKind::OpenaiCompatible, &json!({"choices":[]})),
         Err(LlmError::InvalidResponse { .. })
@@ -553,5 +561,140 @@ async fn timeout_and_cancel() {
     assert_eq!(
         p.complete(request(Operation::Generate), cancel).await,
         Err(LlmError::Cancelled)
+    );
+}
+
+fn closed_base() -> String {
+    let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = l.local_addr().unwrap().port();
+    drop(l);
+    format!("http://127.0.0.1:{port}/v1")
+}
+
+/// TC-LLM-027: 로컬 서버 요청 형식 (사고 끔, 중첩 json_schema), 기본 주소 후보.
+#[test]
+fn local_request_body_and_candidates() {
+    let req = request(Operation::Generate);
+    for kind in [ProviderKind::Ollama, ProviderKind::LlamaServer] {
+        let b = body(kind, &req, "gemma4:e2b-it-qat", true);
+        assert_eq!(b["reasoning_effort"], "none");
+        assert_eq!(b["max_tokens"], 1024);
+        assert_eq!(b["stream"], false);
+        assert_eq!(b["response_format"]["type"], "json_schema");
+        assert!(
+            b["response_format"]["json_schema"]["schema"].is_object(),
+            "중첩 형식"
+        );
+        assert!(b["response_format"].get("schema").is_none());
+        assert_eq!(b["messages"][0]["role"], "system");
+        assert!(
+            body(kind, &req, "m", false)
+                .get("response_format")
+                .is_none()
+        );
+    }
+    let cfg = ApiProviderConfig::default();
+    assert_eq!(
+        base_candidates(ProviderKind::Ollama, &cfg),
+        ["http://127.0.0.1:11434/v1"]
+    );
+    assert_eq!(
+        base_candidates(ProviderKind::LlamaServer, &cfg),
+        ["http://127.0.0.1:9931/v1", "http://127.0.0.1:8080/v1"]
+    );
+    let custom = ApiProviderConfig {
+        base_url: Some("http://pi.local:9931/v1/".into()),
+        ..Default::default()
+    };
+    assert_eq!(
+        base_candidates(ProviderKind::LlamaServer, &custom),
+        ["http://pi.local:9931/v1"]
+    );
+}
+
+/// TC-LLM-027: 연결 실패는 LocalUnreachable(종료 코드 6), 첫 후보 실패 시 다음 후보, 적재 중 503은 Transient.
+#[tokio::test]
+async fn local_unreachable_fallback_and_loading() {
+    let http = crate::llm::http::client;
+    let cfg = ApiProviderConfig {
+        model: Some("m".into()),
+        ..Default::default()
+    };
+    let down = closed_base();
+    let p =
+        ApiProvider::new(ProviderKind::Ollama, http(), &cfg, None, None).with_base(down.clone());
+    let err = p
+        .complete(request(Operation::Generate), CancelToken::new())
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err,
+        LlmError::LocalUnreachable {
+            provider: "Ollama".into(),
+            url: down.clone()
+        }
+    );
+    assert_eq!(err.exit_code(), 6);
+
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v1/models"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(json!({"data":[{"id":"gemma-4-E2B_q4_0-it.gguf"}]})),
+        )
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/v1/chat/completions"))
+        .and(body_partial_json(json!({"reasoning_effort":"none"})))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"choices":[{"finish_reason":"stop","message":{"content":ANSWER,"reasoning_content":"hidden"}}]})))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let p = ApiProvider::new(
+        ProviderKind::LlamaServer,
+        http(),
+        &ApiProviderConfig::default(),
+        None,
+        None,
+    )
+    .with_bases(vec![down.clone(), format!("{}/v1", server.uri())]);
+    let r = p
+        .complete(request(Operation::Generate), CancelToken::new())
+        .await
+        .unwrap();
+    assert_eq!(
+        r.model, "gemma-4-E2B_q4_0-it.gguf",
+        "단일 모델 모드 목록의 첫 항목"
+    );
+    assert_eq!(r.explanation, "Lists files.", "사고 텍스트 무시");
+    assert_eq!(p.base(), format!("{}/v1", server.uri()), "응답한 후보 유지");
+    let s = p.settings().await.unwrap();
+    assert_eq!(s.account.as_deref(), Some(p.base().as_str()));
+
+    let loading = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/v1/chat/completions"))
+        .respond_with(ResponseTemplate::new(503).set_body_json(
+            json!({"error":{"code":503,"message":"Loading model","type":"unavailable_error"}}),
+        ))
+        .mount(&loading)
+        .await;
+    let p = ApiProvider::new(ProviderKind::LlamaServer, http(), &cfg, None, None)
+        .with_base(format!("{}/v1", loading.uri()));
+    assert_eq!(
+        p.complete(request(Operation::Generate), CancelToken::new())
+            .await,
+        Err(LlmError::Transient { status: Some(503) })
+    );
+    // Ollama 모델 없음 (OpenAI 호환 오류 형식)
+    assert_eq!(
+        map_error(
+            ProviderKind::Ollama,
+            404,
+            &json!({"error":{"message":"model \"x\" not found, try pulling it first","type":"not_found_error"}}).to_string()
+        ),
+        LlmError::ModelNotFound
     );
 }

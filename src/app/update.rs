@@ -801,6 +801,10 @@ pub fn error_message(err: &LlmError) -> (Msg, Vec<(&'static str, String)>) {
         }
         LlmError::QuotaExceeded => (Msg::ErrQuota, vec![]),
         LlmError::Refused => (Msg::ErrRefused, vec![]),
+        LlmError::LocalUnreachable { provider, url } => (
+            Msg::ErrLocalUnreachable,
+            vec![("provider", provider.clone()), ("url", url.clone())],
+        ),
     }
 }
 

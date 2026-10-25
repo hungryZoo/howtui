@@ -1,0 +1,309 @@
+{
+ "repeats": 3,
+ "tasks": {
+  "executed": 35,
+  "danger": 6
+ },
+ "configs": [
+  {
+   "name": "llama-cpu-e2b",
+   "model": "Gemma 4 E2B QAT Q4_0",
+   "server": "llama-server",
+   "device": "CPU (8 threads)",
+   "per_shell": {
+    "bash": {
+     "accuracy": 89.7,
+     "syntax_error": 0.0,
+     "no_command": 0.0,
+     "n": 39
+    },
+    "zsh": {
+     "accuracy": 78.6,
+     "syntax_error": 2.4,
+     "no_command": 2.4,
+     "n": 42
+    },
+    "powershell": {
+     "accuracy": 70.8,
+     "syntax_error": 0.0,
+     "no_command": 0.0,
+     "n": 24
+    }
+   },
+   "accuracy_all": 81.0,
+   "seconds_median": 3.3,
+   "seconds_p90": 5.3,
+   "cold_seconds": 1.681,
+   "peak_memory_mib": 1568.8,
+   "danger": {
+    "no_command": 0.0,
+    "howtui_high_risk": 94.4,
+    "model_note": 88.9,
+    "n": 18
+   },
+   "normal_high_risk": 5.7,
+   "per_task_pass": {
+    "bash-list-py": 100.0,
+    "zsh-list-py": 100.0,
+    "bash-count-lines": 100.0,
+    "zsh-count-lines": 100.0,
+    "bash-grep-error": 100.0,
+    "zsh-grep-error": 100.0,
+    "bash-count-error": 100.0,
+    "zsh-count-error": 100.0,
+    "bash-extract": 100.0,
+    "zsh-extract": 66.7,
+    "bash-rename-jpg": 66.7,
+    "zsh-rename-jpg": 66.7,
+    "bash-large-files": 100.0,
+    "zsh-large-files": 100.0,
+    "bash-csv-column": 100.0,
+    "zsh-csv-column": 66.7,
+    "bash-replace-foo": 66.7,
+    "zsh-replace-foo": 100.0,
+    "bash-make-archive": 100.0,
+    "zsh-make-archive": 100.0,
+    "bash-delete-logs": 100.0,
+    "zsh-delete-logs": 100.0,
+    "bash-two-largest": 33.3,
+    "zsh-two-largest": 0.0,
+    "bash-count-seoul": 100.0,
+    "zsh-count-seoul": 66.7,
+    "zsh-glob-dirs": 33.3,
+    "pwsh-list-py": 100.0,
+    "pwsh-count-lines": 100.0,
+    "pwsh-grep-error": 100.0,
+    "pwsh-extract": 66.7,
+    "pwsh-rename-jpg": 0.0,
+    "pwsh-large-files": 100.0,
+    "pwsh-csv-column": 33.3,
+    "pwsh-replace-foo": 66.7
+   }
+  },
+  {
+   "name": "llama-cpu-e4b",
+   "model": "Gemma 4 E4B QAT Q4_0",
+   "server": "llama-server",
+   "device": "CPU (8 threads)",
+   "per_shell": {
+    "bash": {
+     "accuracy": 89.7,
+     "syntax_error": 0.0,
+     "no_command": 2.6,
+     "n": 39
+    },
+    "zsh": {
+     "accuracy": 90.5,
+     "syntax_error": 0.0,
+     "no_command": 0.0,
+     "n": 42
+    },
+    "powershell": {
+     "accuracy": 58.3,
+     "syntax_error": 8.3,
+     "no_command": 0.0,
+     "n": 24
+    }
+   },
+   "accuracy_all": 82.9,
+   "seconds_median": 5.98,
+   "seconds_p90": 16.59,
+   "cold_seconds": 2.709,
+   "peak_memory_mib": 3816.4,
+   "danger": {
+    "no_command": 5.6,
+    "howtui_high_risk": 66.7,
+    "model_note": 94.4,
+    "n": 18
+   },
+   "normal_high_risk": 4.8,
+   "per_task_pass": {
+    "bash-list-py": 100.0,
+    "zsh-list-py": 100.0,
+    "bash-count-lines": 100.0,
+    "zsh-count-lines": 100.0,
+    "bash-grep-error": 100.0,
+    "zsh-grep-error": 100.0,
+    "bash-count-error": 100.0,
+    "zsh-count-error": 100.0,
+    "bash-extract": 100.0,
+    "zsh-extract": 100.0,
+    "bash-rename-jpg": 66.7,
+    "zsh-rename-jpg": 33.3,
+    "bash-large-files": 100.0,
+    "zsh-large-files": 100.0,
+    "bash-csv-column": 100.0,
+    "zsh-csv-column": 100.0,
+    "bash-replace-foo": 100.0,
+    "zsh-replace-foo": 100.0,
+    "bash-make-archive": 100.0,
+    "zsh-make-archive": 100.0,
+    "bash-delete-logs": 66.7,
+    "zsh-delete-logs": 100.0,
+    "bash-two-largest": 66.7,
+    "zsh-two-largest": 33.3,
+    "bash-count-seoul": 66.7,
+    "zsh-count-seoul": 100.0,
+    "zsh-glob-dirs": 100.0,
+    "pwsh-list-py": 100.0,
+    "pwsh-count-lines": 66.7,
+    "pwsh-grep-error": 100.0,
+    "pwsh-extract": 0.0,
+    "pwsh-rename-jpg": 33.3,
+    "pwsh-large-files": 66.7,
+    "pwsh-csv-column": 0.0,
+    "pwsh-replace-foo": 100.0
+   }
+  },
+  {
+   "name": "ollama-cpu-e2b",
+   "model": "gemma4:e2b-it-qat",
+   "server": "Ollama",
+   "device": "CPU",
+   "per_shell": {
+    "bash": {
+     "accuracy": 74.4,
+     "syntax_error": 2.6,
+     "no_command": 0.0,
+     "n": 39
+    },
+    "zsh": {
+     "accuracy": 73.8,
+     "syntax_error": 4.8,
+     "no_command": 0.0,
+     "n": 42
+    },
+    "powershell": {
+     "accuracy": 62.5,
+     "syntax_error": 0.0,
+     "no_command": 0.0,
+     "n": 24
+    }
+   },
+   "accuracy_all": 71.4,
+   "seconds_median": 4.42,
+   "seconds_p90": 6.06,
+   "cold_seconds": 5.803,
+   "peak_memory_mib": 14284.8,
+   "danger": {
+    "no_command": 5.6,
+    "howtui_high_risk": 72.2,
+    "model_note": 88.9,
+    "n": 18
+   },
+   "normal_high_risk": 5.7,
+   "per_task_pass": {
+    "bash-list-py": 100.0,
+    "zsh-list-py": 100.0,
+    "bash-count-lines": 100.0,
+    "zsh-count-lines": 100.0,
+    "bash-grep-error": 100.0,
+    "zsh-grep-error": 100.0,
+    "bash-count-error": 100.0,
+    "zsh-count-error": 100.0,
+    "bash-extract": 66.7,
+    "zsh-extract": 33.3,
+    "bash-rename-jpg": 0.0,
+    "zsh-rename-jpg": 0.0,
+    "bash-large-files": 100.0,
+    "zsh-large-files": 100.0,
+    "bash-csv-column": 66.7,
+    "zsh-csv-column": 66.7,
+    "bash-replace-foo": 100.0,
+    "zsh-replace-foo": 100.0,
+    "bash-make-archive": 100.0,
+    "zsh-make-archive": 100.0,
+    "bash-delete-logs": 100.0,
+    "zsh-delete-logs": 100.0,
+    "bash-two-largest": 33.3,
+    "zsh-two-largest": 33.3,
+    "bash-count-seoul": 0.0,
+    "zsh-count-seoul": 33.3,
+    "zsh-glob-dirs": 66.7,
+    "pwsh-list-py": 100.0,
+    "pwsh-count-lines": 100.0,
+    "pwsh-grep-error": 100.0,
+    "pwsh-extract": 33.3,
+    "pwsh-rename-jpg": 0.0,
+    "pwsh-large-files": 100.0,
+    "pwsh-csv-column": 33.3,
+    "pwsh-replace-foo": 33.3
+   }
+  },
+  {
+   "name": "ollama-cpu-e4b",
+   "model": "gemma4:e4b-it-qat",
+   "server": "Ollama",
+   "device": "CPU",
+   "per_shell": {
+    "bash": {
+     "accuracy": 87.2,
+     "syntax_error": 0.0,
+     "no_command": 0.0,
+     "n": 39
+    },
+    "zsh": {
+     "accuracy": 81.0,
+     "syntax_error": 0.0,
+     "no_command": 0.0,
+     "n": 42
+    },
+    "powershell": {
+     "accuracy": 45.8,
+     "syntax_error": 4.2,
+     "no_command": 0.0,
+     "n": 24
+    }
+   },
+   "accuracy_all": 75.2,
+   "seconds_median": 8.34,
+   "seconds_p90": 10.62,
+   "cold_seconds": 10.207,
+   "peak_memory_mib": 21801.0,
+   "danger": {
+    "no_command": 0.0,
+    "howtui_high_risk": 61.1,
+    "model_note": 94.4,
+    "n": 18
+   },
+   "normal_high_risk": 5.7,
+   "per_task_pass": {
+    "bash-list-py": 100.0,
+    "zsh-list-py": 100.0,
+    "bash-count-lines": 100.0,
+    "zsh-count-lines": 100.0,
+    "bash-grep-error": 100.0,
+    "zsh-grep-error": 100.0,
+    "bash-count-error": 100.0,
+    "zsh-count-error": 100.0,
+    "bash-extract": 100.0,
+    "zsh-extract": 100.0,
+    "bash-rename-jpg": 0.0,
+    "zsh-rename-jpg": 0.0,
+    "bash-large-files": 66.7,
+    "zsh-large-files": 100.0,
+    "bash-csv-column": 100.0,
+    "zsh-csv-column": 100.0,
+    "bash-replace-foo": 100.0,
+    "zsh-replace-foo": 100.0,
+    "bash-make-archive": 100.0,
+    "zsh-make-archive": 100.0,
+    "bash-delete-logs": 100.0,
+    "zsh-delete-logs": 100.0,
+    "bash-two-largest": 66.7,
+    "zsh-two-largest": 66.7,
+    "bash-count-seoul": 100.0,
+    "zsh-count-seoul": 66.7,
+    "zsh-glob-dirs": 0.0,
+    "pwsh-list-py": 33.3,
+    "pwsh-count-lines": 100.0,
+    "pwsh-grep-error": 66.7,
+    "pwsh-extract": 0.0,
+    "pwsh-rename-jpg": 0.0,
+    "pwsh-large-files": 66.7,
+    "pwsh-csv-column": 66.7,
+    "pwsh-replace-foo": 33.3
+   }
+  }
+ ]
+}
