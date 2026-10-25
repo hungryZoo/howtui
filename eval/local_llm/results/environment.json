@@ -4,5 +4,6 @@
  "memory_gib": 125.6,
  "llama_build": "b11429-d81235049",
  "ollama_version": "0.40.7",
- "howtui": "howtui 0.1.2"
+ "howtui": "howtui 0.1.2",
+ "chatgpt_model": "gpt-6-luna"
 }

@@ -390,8 +390,12 @@ howtui --provider llama_server
 For local servers howtui turns the model's thinking mode off (`reasoning_effort: "none"`) to keep answers fast, asks
 for JSON output through `response_format`, and waits up to 300 seconds per request (CPU-only machines are slow). If the
 server is not running you get `Cannot reach Ollama at http://127.0.0.1:11434/v1` and exit code 6. `howtui doctor` shows the
-server type, version, whether the model is still loading, and the model in use. Measured results for Gemma 4 E2B and E4B
-on CPU: [docs/research/local-llm-eval.md](docs/research/local-llm-eval.md).
+server type, version, whether the model is still loading, and the model in use.
+
+Small local models are noticeably less accurate than the ChatGPT models. In our test set they did well on single
+commands (counting, searching, archives) and often got multi-step file operations and PowerShell wrong, so read their
+commands with extra care. Measured results for Gemma 4 E2B and E4B on CPU, next to a ChatGPT baseline on the same tasks:
+[docs/research/local-llm-eval.md](docs/research/local-llm-eval.md).
 
 ### Folder listing
 

@@ -30,12 +30,17 @@ CONFIGS = [
          model="gemma4:e2b-it-qat", ollama_model="gemma4:e2b-it-qat", server="Ollama", device="CPU"),
     dict(name="ollama-cpu-e4b", provider="ollama", base="http://127.0.0.1:11434/v1", container="howtui-ollama",
          model="gemma4:e4b-it-qat", ollama_model="gemma4:e4b-it-qat", server="Ollama", device="CPU"),
+    # 클라우드 기준선: 사용자 ChatGPT 로그인, 설정 화면 선택 모델 (EVAL_CONFIGS=chatgpt, EVAL_TAG=chatgpt로 별도 실행)
+    dict(name="chatgpt", provider="chatgpt", base=None, container=None, model="ChatGPT (selected model)",
+         server="ChatGPT plan", device="cloud", user_login=True),
 ]
 if ONLY:
     CONFIGS = [c for c in CONFIGS if c["name"] in ONLY]
 # 위험 요청 세트만 재실행 (규칙 변경 후 분류 재측정, CR-012)
 DANGER_ONLY = os.environ.get("EVAL_DANGER_ONLY") == "1"
 SUFFIX = "_danger" if DANGER_ONLY else ""
+if os.environ.get("EVAL_TAG"):
+    SUFFIX += "_" + os.environ["EVAL_TAG"]
 RESULTS.mkdir(exist_ok=True)
 
 # %% 과제 로드
@@ -57,6 +62,9 @@ assert not REF_FAIL, REF_FAIL
 def config_file(cfg, data_dir):
     path = Path(data_dir) / "config.toml"
     section = cfg["provider"]
+    if not cfg.get("base"):
+        path.write_text("")
+        return str(path)
     lines = [f"[provider.{section}]", f'base_url = "{cfg["base"]}"']
     if cfg.get("ollama_model"):
         lines.append(f'model = "{cfg["ollama_model"]}"')
@@ -90,8 +98,9 @@ if new_file:
 for cfg in CONFIGS:
     if all((cfg["name"], rep, t["id"]) in DONE for rep in range(REPEATS) for t in TASKS):
         continue
-    data_dir = tempfile.mkdtemp(prefix="howtui-eval-")
-    conf = config_file(cfg, data_dir)
+    conf_dir = tempfile.mkdtemp(prefix="howtui-eval-")
+    conf = config_file(cfg, conf_dir)
+    data_dir = None if cfg.get("user_login") else conf_dir
     # 첫 요청 전 적재 (콜드 시간은 별도 기록)
     _, _, _, cold = evallib.howtui(BINARY, cfg["provider"], "bash", "print hello", conf, data_dir)
     with evallib.MemSampler(cfg["container"]) as mem:
@@ -114,7 +123,10 @@ for cfg in CONFIGS:
                 writer.writerow(row)
                 out.flush()
             print(cfg["name"], "rep", rep, "done", time.strftime("%H:%M:%S"), flush=True)
-    MEMORY[cfg["name"]] = max(MEMORY.get(cfg["name"], 0), round(mem.peak_mib, 1))
+    if not cfg["container"]:
+        MEMORY[cfg["name"]] = 0
+    else:
+        MEMORY[cfg["name"]] = max(MEMORY.get(cfg["name"], 0), round(mem.peak_mib, 1))
     MEM_PATH.write_text(json.dumps(MEMORY))
 out.close()
 

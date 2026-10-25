@@ -9,6 +9,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 SUMMARY = json.loads((HERE / "results" / "summary.json").read_text())
+BASE_PATH = HERE / "results" / "summary_chatgpt.json"
+BASELINE = json.loads(BASE_PATH.read_text()) if BASE_PATH.exists() else None
 PRELIM_PATH = HERE / "results" / "prelim" / "summary.json"
 PRELIM = json.loads(PRELIM_PATH.read_text()) if PRELIM_PATH.exists() else None
 ENV_PATH = HERE / "results" / "environment.json"
@@ -57,15 +59,20 @@ HISTORY = [h for h in [
 ] if h]
 
 # %% 표 작성
+def mem(c):
+    return f"{c['peak_memory_mib'] / 1024:.2f} GiB" if c["peak_memory_mib"] else "-"
+
 def pct(v):
     return "-" if v is None else f"{v:.1f}%"
 
-cfgs = SUMMARY["configs"]
+local_cfgs = SUMMARY["configs"]
+# 클라우드 기준선은 같은 과제 세트, 같은 판정으로 별도 실행한 결과 (summary_chatgpt.json)
+cfgs = local_cfgs + [{**c, "model": ENV.get("chatgpt_model", c["model"])} for c in (BASELINE["configs"] if BASELINE else [])]
 head = "| 설정 | 모델 | 서버 | 장치 | 전체 정확도 | Bash | Zsh | PowerShell | 응답 시간 중앙값 | 응답 시간 p90 | 첫 요청 (적재 포함) | 서버 메모리 최댓값 |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n"
 rows = "".join(
     f"| `{c['name']}` | {c['model']} | {c['server']} | {c['device']} | {pct(c['accuracy_all'])} | {pct(c['per_shell']['bash']['accuracy'])} | "
     f"{pct(c['per_shell']['zsh']['accuracy'])} | {pct(c['per_shell']['powershell']['accuracy'])} | {c['seconds_median']} s | {c['seconds_p90']} s | "
-    f"{c['cold_seconds']} s | {c['peak_memory_mib'] / 1024:.2f} GiB |\n"
+    f"{c['cold_seconds']} s | {mem(c)} |\n"
     for c in cfgs
 )
 quality = "| 설정 | 구문 오류 (Bash) | 구문 오류 (Zsh) | 구문 오류 (PowerShell) | 명령어 없음 응답 | 정상 과제 높음 위험 판정 |\n| --- | --- | --- | --- | --- | --- |\n" + "".join(
@@ -84,13 +91,13 @@ per_task = "| 과제 | " + " | ".join(f"`{c['name']}`" for c in cfgs) + " |\n| -
 )
 
 # %% 이력 표
-names = [c["name"] for c in cfgs]
+names = [c["name"] for c in local_cfgs]
 history_table = "| 실행 | 설명 | " + " | ".join(f"`{n}`" for n in names) + " | 300초 도달 |\n| --- | --- |" + " --- |" * len(names) + " --- |\n" + "".join(
     f"| `{h['name']}` | {h['note']} | " + " | ".join(pct(h["acc"].get(n)) for n in names) + f" | {h['timeouts']}건 / {h['requests']}건 |\n" for h in HISTORY
 )
 FINAL_RUNS = list(csv.DictReader(open(HERE / "results" / "runs.csv")))
 # 같은 설정의 실행 간 전체 정확도 범위 (최종 + 이력)
-spread = {n: [c["accuracy_all"] for c in cfgs if c["name"] == n] + [h["acc"][n] for h in HISTORY if n in h["acc"]] for n in names}
+spread = {n: [c["accuracy_all"] for c in local_cfgs if c["name"] == n] + [h["acc"][n] for h in HISTORY if n in h["acc"]] for n in names}
 spread_text = ", ".join(f"`{n}` {min(v):.1f}-{max(v):.1f}%" for n, v in spread.items())
 final_timeouts = sum(float(r["seconds"]) >= 299 for r in FINAL_RUNS)
 final_requests = len(FINAL_RUNS)
@@ -123,7 +130,7 @@ doc = f"""# 로컬 LLM 평가 결과 (TC-LLM-021)
 {quality}
 ## 4. 위험 요청 응답
 
-{danger_table(SUMMARY, '최종 실행 (CR-012 규칙 적용)')}{danger_table(PRELIM, '예비 실행 (CR-012 이전 규칙)')}- 위험 요청 세트: 홈 디렉터리 삭제, 디스크 초기화, 전체 파일 쓰기 권한, 원격 스크립트 실행, 전체 프로세스 종료, Docker 데이터 일괄 삭제
+{danger_table({"configs": cfgs}, '최종 실행 (CR-012 규칙 적용, ChatGPT 기준선 포함)')}{danger_table(PRELIM, '예비 실행 (CR-012 이전 규칙)')}- 위험 요청 세트: 홈 디렉터리 삭제, 디스크 초기화, 전체 파일 쓰기 권한, 원격 스크립트 실행, 전체 프로세스 종료, Docker 데이터 일괄 삭제
 - 생성 명령어는 실행하지 않음. howtui는 판정 결과와 관계없이 명령어를 실행하지 않음
 
 ## 5. 과제별 통과율
@@ -135,7 +142,13 @@ doc = f"""# 로컬 LLM 평가 결과 (TC-LLM-021)
 - 같은 설정의 실행 간 전체 정확도 범위: {spread_text}. 설정 간 정확도 비교는 이 범위 안의 차이로 판단 불가
 - 최종 결과(2-5절)는 `max_tokens: 1024` 적용 후 실행. 300초 도달 요청 수: {final_timeouts}건 / {final_requests}건
 
-## 7. 미측정 항목과 한계
+## 7. 클라우드 기준선 판정 참고
+
+- ChatGPT 기준선: 같은 과제 세트와 판정, 사용자 ChatGPT 로그인(`howtui doctor` 기준 선택 모델 {ENV.get('chatgpt_model', '-')}), 3회 반복 (`results/runs_chatgpt.csv`)
+- 판정 환경 영향 실패: 판정 컨테이너에 `python3` 없음 (`python3 -c ...` 형태 응답은 실행 실패로 집계), 한 줄에 공백 구분으로 출력한 응답은 줄 단위 비교에서 실패로 집계
+- 명령어 없음 응답: "data.csv 줄 수" 질문에 명령어 없이 설명만 응답한 경우 실패로 집계
+
+## 8. 미측정 항목과 한계
 
 - 후속 수정 성공률: `--no-tui` 1회 생성 경로로 측정 불가. TUI 다중 턴 자동 시험은 향후 과제
 - 첫 토큰 시간과 초당 토큰: howtui가 스트림을 쓰지 않아 전체 응답 시간만 측정

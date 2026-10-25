@@ -115,6 +115,8 @@ class MemSampler:
         self._t = threading.Thread(target=self._run, daemon=True)
 
     def _run(self):
+        if not self.container:
+            return
         while not self._stop.is_set():
             p = subprocess.run(["docker", "stats", "--no-stream", "--format", "{{.MemUsage}}", self.container],
                                capture_output=True, text=True)
@@ -136,14 +138,19 @@ class MemSampler:
 
 def howtui(binary, provider, shell, question, config_path, data_dir):
     """비대화형 1회 생성. (명령어, stderr, 종료 코드, 경과 초)."""
-    env = {
-        "PATH": "/usr/bin:/bin",
-        "HOME": data_dir,
-        "HOWTUI_DATA_DIR": data_dir,
-        "HOWTUI_CONFIG": config_path,
-        "HOWTUI_LANG": "en",
-        "HOWTUI_NO_UPDATE_CHECK": "1",
-    }
+    if data_dir is None:
+        # 사용자 로그인 사용 (ChatGPT 기준선): 보안 저장소 접근에 필요한 세션 환경 유지, 데이터 디렉터리 기본값
+        env = {k: v for k, v in os.environ.items() if not k.startswith("HOWTUI_")}
+        env.update({"HOWTUI_CONFIG": config_path, "HOWTUI_LANG": "en", "HOWTUI_NO_UPDATE_CHECK": "1"})
+    else:
+        env = {
+            "PATH": "/usr/bin:/bin",
+            "HOME": data_dir,
+            "HOWTUI_DATA_DIR": data_dir,
+            "HOWTUI_CONFIG": config_path,
+            "HOWTUI_LANG": "en",
+            "HOWTUI_NO_UPDATE_CHECK": "1",
+        }
     t0 = time.monotonic()
     p = subprocess.run([binary, "--no-tui", "--provider", provider, "--shell", shell, question],
                        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, timeout=400)
