@@ -379,11 +379,11 @@ howtui connects to a local server that is already running; it never downloads, l
 
 ```bash
 # Ollama
-ollama pull gemma4:e2b-it-qat
+ollama pull gemma4:e4b-it-qat
 howtui --provider ollama
 
 # llama.cpp
-llama-server -m gemma-4-E2B_q4_0-it.gguf
+llama-server -m gemma-4-E4B_q4_0-it.gguf
 howtui --provider llama_server
 ```
 
@@ -392,10 +392,12 @@ for JSON output through `response_format`, and waits up to 300 seconds per reque
 server is not running you get `Cannot reach Ollama at http://127.0.0.1:11434/v1` and exit code 6. `howtui doctor` shows the
 server type, version, whether the model is still loading, and the model in use.
 
-Small local models are noticeably less accurate than the ChatGPT models. In our test set they did well on single
-commands (counting, searching, archives) and often got multi-step file operations and PowerShell wrong, so read their
-commands with extra care. Measured results for Gemma 4 E2B and E4B on CPU, next to a ChatGPT baseline on the same tasks:
-[docs/research/local-llm-eval.md](docs/research/local-llm-eval.md).
+Recommended local model: **Gemma 4 E4B** (`gemma4:e4b-it-qat`, about 6 GB). We compared 12 models of about 4B
+parameters or less on the same 35 shell tasks, CPU only; Gemma 4 E4B scored highest among them, ahead of the Qwen, Phi,
+Granite, Llama, Ministral and DeepSeek models we tried. Small local models are still clearly less accurate than the ChatGPT
+models: they handle single commands (counting, searching, archives) well and often get multi-step file operations and
+PowerShell wrong, so read their commands with extra care. Full comparison table:
+[docs/research/local-llm-eval.md](docs/research/local-llm-eval.md#요약).
 
 ### Folder listing
 
@@ -506,7 +508,7 @@ folder = false         # true: send the ls -al style folder listing unless turne
 
 [provider.ollama]          # same keys for [provider.llama_server] (plus api_key_env)
 # base_url = "http://127.0.0.1:11434/v1"
-# model = "gemma4:e2b-it-qat"
+# model = "gemma4:e4b-it-qat"
 
 [provider.openai_compatible]
 # base_url = "http://localhost:8080/v1"

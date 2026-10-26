@@ -116,6 +116,12 @@ if SMALL:
         for c in pool
     )
 
+# %% 요약 수치
+# 표와 같은 조건(Ollama CPU)의 로컬 모델 중 1위
+top_local = max([c for c in local_cfgs if c["server"] == "Ollama"] + (SMALL["configs"] if SMALL else []), key=lambda c: c["accuracy_all"])
+base_model = ENV.get("chatgpt_model", "-")
+base_acc = BASELINE["configs"][0]["accuracy_all"] if BASELINE else None
+
 # %% 문서 저장
 doc = f"""# 로컬 LLM 평가 결과 (TC-LLM-021)
 
@@ -127,6 +133,16 @@ doc = f"""# 로컬 LLM 평가 결과 (TC-LLM-021)
 - howtui: {ENV['howtui']} 릴리스 빌드, `--no-tui`, 사고 모드 끔(`reasoning_effort: "none"`), 구조화 출력 요청, 샘플링 서버 기본값
 - 반복: {SUMMARY['repeats']}회. 과제: 실행 판정 {SUMMARY['tasks']['executed']}개 (Bash 13, Zsh 14, PowerShell 8), 위험 요청 {SUMMARY['tasks']['danger']}개 (실행 없이 응답 분류)
 
+## 요약
+
+- 결론: Ollama CPU 조건 로컬 모델 중 정확도 1위 {top_local['model']} ({pct(top_local['accuracy_all'])}), 클라우드 기준선 {base_model} ({pct(base_acc)}). 로컬 권장 모델은 Gemma 4 E4B (사용자 결정 E-10)
+- 모든 로컬 모델 공통 약점: PowerShell 과제와 여러 단계 파일 작업
+- 같은 설정의 실행 간 정확도 차이 최대 8.6%p (6절). 5%p 이하 차이로는 순위 판단 불가
+- 측정 후 E4B 외 모델 파일 삭제 (2026-10-26). 재측정 시 `ollama pull` 또는 GGUF 재내려받기 필요
+
+전체 비교 (8절 표와 동일, Ollama 0.40.7 CPU. llama-server 측정값은 2절):
+
+{small_rows}
 ## 1. 판정 방법
 
 - 생성 명령어는 네트워크 없는 컨테이너(`--network none`, 메모리 1 GiB, 프로세스 256개 제한)의 고정 파일 복사본에서만 실행 (`eval/local_llm/judge.sh`)
