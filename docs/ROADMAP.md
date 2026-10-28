@@ -178,6 +178,7 @@ Phase 1 이월 항목 (요구사항 변경 없이 다음 작업으로 이월):
 | E-07 | 위험 높음 명령어 확정 | Enter 재확인 유지 | PRD-SAFE-003 |
 | E-08 | 실기기 시험 (Raspberry Pi, Windows ARM64) (2026-10-24) | 실기기 없음. 동작 가정 후 `미확인` 표기, 실패 보고 시 다음 업데이트에서 수정 | TC-PLAT-002, TC-PLAT-003, TC-PLAT-005, TC 20절 |
 | E-09 | Phase 3 Fullscreen 출시 (2026-10-25) | 출시 보류. `fullscreen` 브랜치 보관, main은 Phase 4 이후 진행 | ROADMAP 3.4절 |
+| E-11 | v0.2.0 공개 (2026-10-28) | 사용자 승인 후 공개. Phase 4-6 포함, Fullscreen 제외 (E-09) | TC 24절, `.github/release-notes/v0.2.0.md` |
 | E-10 | 로컬 권장 모델 (2026-10-26) | Gemma 4 E4B. 4B 이하 12종 비교 후 결정, 나머지 모델 파일 삭제 | [local-llm-eval.md](research/local-llm-eval.md) 요약, README Local models |
 
 Phase 0 승인 (2026-10-22). 작업 1-01(실계정 실측)은 사용자 참여 가능 시점에 수행하고, 그 전까지 공식 문서 기준으로 1-03 이후 작업을 진행. E-01 결정에 따라 1-01 결과가 다른 작업 순서를 바꾸지 않음.

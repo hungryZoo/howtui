@@ -588,3 +588,11 @@ CI 실행 기록 (run 40073443763, 커밋 1c6ccf1, 15개 작업 전체 통과): 
 | `TC-DOC-008` | 통과 | 실연동 doctor | Ollama: `[ok] local Ollama 0.40.7 at http://127.0.0.1:11434/v1`, `[ok] provider 1 model(s), using gemma4:e2b-it-qat`. llama-server: `[ok] local llama-server b11429-d81235049 at http://127.0.0.1:8080/v1`. 닫힌 주소: `[FAIL] local cannot reach Ollama at http://127.0.0.1:1/v1`, `--no-tui` 종료 코드 6과 한국어 안내 |
 | `TC-LLM-021` | 통과 | `eval/local_llm/run_eval.py` (격리 컨테이너 판정), [local-llm-eval.md](research/local-llm-eval.md) | CPU 전용 4개 설정 x 3회 x 41개 과제. 전체 정확도 llama-cpu-e2b 80.0%, llama-cpu-e4b 76.2%, ollama-cpu-e2b 68.6%, ollama-cpu-e4b 77.1%. 응답 시간 중앙값 llama-cpu-e2b 3.32초, llama-cpu-e4b 6.12초, ollama-cpu-e2b 4.7초, ollama-cpu-e4b 8.93초 (수치는 `eval/local_llm/results/summary.json`). Raspberry Pi 실기기는 미확인 (E-08). 평가 중 발견: 응답 상한 미적용 시 반복 생성 3건이 300초 제한 시간 도달 (`max_tokens: 1024` 적용 후 0건), 위험 판정 규칙 누락 (CR-012) |
 | `TC-LLM-021` (기준선) | 기록 | `EVAL_CONFIGS=chatgpt EVAL_TAG=chatgpt` | 같은 과제와 판정의 ChatGPT 기준선 (gpt-6-luna, 사용자 로그인): 전체 정확도 93.3%, 응답 시간 중앙값 3.41초 (`eval/local_llm/results/summary_chatgpt.json`) |
+
+## 24. 실행 기록 (v0.2.0 릴리스, 2026-10-28)
+
+| TC | 결과 | 실행 수단 | 근거 |
+| --- | --- | --- | --- |
+| `TC-REL-001`, `TC-REL-006`, `TC-REL-008` (v0.2.0) | 통과 | 릴리스 워크플로, `gh attestation verify`, `release-smoke.yml` | release run 40531641051 (7개 대상 빌드, 초안), 초안 자산 9개 `SHA256SUMS` 일치, 압축 파일 구성(바이너리, 제거 스크립트, README, LICENSE), Linux x64 `howtui 0.2.0`, 자산 9개 출처 증명(`release.yml`, `refs/tags/v0.2.0`). 공개 2026-10-28T16:29Z (사용자 승인), smoke run 40726471767 (6개 러너 공개 설치 `howtui 0.2.0`) |
+| `TC-INS-008` (v0.1.2에서 실제 갱신) | 통과 | 로컬, 임시 HOME | 공개 v0.1.2 바이너리를 `~/.local/bin`에 설치 후 `--check-update` 종료 코드 10 (`0.1.2 -> 0.2.0 available`), `--update` 종료 코드 0, 교체 후 `howtui 0.2.0` |
+
